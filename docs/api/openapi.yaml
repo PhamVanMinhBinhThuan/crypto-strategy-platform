@@ -1,0 +1,27 @@
+openapi: 3.1.0
+
+info:
+  title: Crypto Strategy Lab API
+  version: 0.0.0
+  description: >-
+    Skeleton OpenAPI contract. Endpoints and schemas are added after each
+    feature contract is reviewed.
+
+servers: []
+
+tags:
+  - name: Market
+  - name: Strategies
+  - name: Backtesting
+  - name: Experiments
+  - name: Leaderboard
+  - name: News
+
+paths: {}
+
+components:
+  schemas: {}
+  parameters: {}
+  responses: {}
+  securitySchemes: {}
+
