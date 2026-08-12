@@ -24,11 +24,12 @@ Nếu không có dependency rule rõ ràng, các vấn đề sau có thể xuấ
 
 ### 1. Phân loại module
 
-Các module được chia thành bốn nhóm:
+Các module được chia thành năm nhóm:
 
 | Nhóm                | Module/Application                                                                                                        | Vai trò                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Foundation          | `domain`, `contracts`                                                                                                     | Kiểu dữ liệu ổn định và contract đi qua boundary             |
+| Foundation          | `domain`                                                                                                                  | Kiểu dữ liệu và quy tắc domain ổn định                        |
+| Integration         | `contracts`                                                                                                               | DTO/message đi qua runtime hoặc external boundary             |
 | Business capability | `market-data`, `strategy-core`, `strategies`, `combination`, `backtesting`, `evaluation`, `search`, `leaderboard`, `news` | Chứa logic theo từng năng lực nghiệp vụ                      |
 | Adapter             | `persistence`                                                                                                             | Kết nối PostgreSQL/Supabase, Redis và triển khai output port |
 | Composition/runtime | `apps/api`, `apps/worker`                                                                                                 | Wiring module, transaction boundary và điều phối use case    |
@@ -39,219 +40,27 @@ Các module được chia thành bốn nhóm:
 
 Dependency chỉ được hướng từ runtime/adapter vào public contract và domain ổn định:
 
-```drawio
-<mxfile>
-  <diagram id="CpSP7lIE6N4JWnOPNXAj" name="Page-1">
-    <mxGraphModel dx="2" dy="1" grid="0" gridSize="10" guides="1" tooltips="0" connect="0" arrows="0" fold="0" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
-      <root>
-        <mxCell id="1tv6H6HBNWO-JgceilxE-0" />
-        <mxCell id="1tv6H6HBNWO-JgceilxE-1" parent="1tv6H6HBNWO-JgceilxE-0" />
-        <UserObject label="" mermaidData="{&#xa;  &quot;data&quot;: &quot;flowchart TD\n    WEB[apps/web] --&gt;|HTTP / WebSocket| API[apps/api]\n    SENTIMENT[apps/sentiment] &lt;--&gt;|HTTP contract| API\n\n    API --&gt; CAPABILITIES[Business Capability Modules]\n    WORKER[apps/worker] --&gt; CAPABILITIES\n    API --&gt; PERSISTENCE[persistence]\n    WORKER --&gt; PERSISTENCE\n\n    PERSISTENCE --&gt; PORTS[Capability Output Ports]\n    CAPABILITIES --&gt; CONTRACTS[contracts]\n    CAPABILITIES --&gt; DOMAIN[domain]\n    CONTRACTS --&gt; DOMAIN\n\n    STRATEGIES[strategies] --&gt; STRATEGY_CORE[strategy-core]\n    COMBINATION[combination] --&gt; STRATEGY_CORE\n    BACKTESTING[backtesting] --&gt; STRATEGY_CORE\n    SEARCH[search] --&gt; STRATEGY_CORE&quot;,&#xa;  &quot;config&quot;: null&#xa;}" id="_lOih-_n08xBNWANPp59-0">
-          <mxCell connectable="0" parent="1tv6H6HBNWO-JgceilxE-1" style="group;transparentBounds=1;editIcon=1;lockedGroup=0;groupPadding=10;" vertex="1">
-            <mxGeometry as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="apps/web" mermaidId="n:WEB" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="apps/web" id="1tv6H6HBNWO-JgceilxE-2">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="131" x="10" y="10" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="apps/api" mermaidId="n:API" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="apps/api" id="1tv6H6HBNWO-JgceilxE-3">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="123" x="115" y="133" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="apps/sentiment" mermaidId="n:SENTIMENT" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="apps/sentiment" id="1tv6H6HBNWO-JgceilxE-4">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="173" x="191" y="10" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="Business Capability Modules" mermaidId="n:CAPABILITIES" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="Business Capability Modules" id="1tv6H6HBNWO-JgceilxE-5">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="259" x="287" y="237" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="apps/worker" mermaidId="n:WORKER" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="apps/worker" id="1tv6H6HBNWO-JgceilxE-6">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="151" x="331" y="133" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="persistence" mermaidId="n:PERSISTENCE" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="persistence" id="1tv6H6HBNWO-JgceilxE-7">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="142" x="95" y="237" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="Capability Output Ports" mermaidId="n:PORTS" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="Capability Output Ports" id="1tv6H6HBNWO-JgceilxE-8">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="228" x="52" y="341" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="contracts" mermaidId="n:CONTRACTS" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="contracts" id="1tv6H6HBNWO-JgceilxE-9">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="127" x="402" y="341" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="domain" mermaidId="n:DOMAIN" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="domain" id="1tv6H6HBNWO-JgceilxE-10">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="112" x="361" y="445" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="strategies" mermaidId="n:STRATEGIES" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="strategies" id="1tv6H6HBNWO-JgceilxE-11">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="130" x="414" y="10" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="strategy-core" mermaidId="n:STRATEGY_CORE" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="strategy-core" id="1tv6H6HBNWO-JgceilxE-12">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="156" x="688" y="133" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="combination" mermaidId="n:COMBINATION" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="combination" id="1tv6H6HBNWO-JgceilxE-13">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="149" x="594" y="10" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="backtesting" mermaidId="n:BACKTESTING" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="backtesting" id="1tv6H6HBNWO-JgceilxE-14">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="143" x="793" y="10" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="search" mermaidId="n:SEARCH" mermaidBaseStyle="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" mermaidBaseValue="search" id="1tv6H6HBNWO-JgceilxE-15">
-          <mxCell parent="_lOih-_n08xBNWANPp59-0" style="html=1;whiteSpace=wrap;strokeWidth=1;fillColor=light-dark(#ECECFF,#1f2020);strokeColor=light-dark(#9370DB,#cccccc);fontColor=light-dark(#333333,#cccccc);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontSize=16;" vertex="1">
-            <mxGeometry height="54" width="106" x="986" y="10" as="geometry" />
-          </mxCell>
-        </UserObject>
-        <UserObject label="HTTP / WebSocket" mermaidId="e:WEB-&gt;API#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=light-dark(#E8E8E88D,#2a2a2a8D);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.14;entryY=0;" mermaidBaseValue="HTTP / WebSocket" id="1tv6H6HBNWO-JgceilxE-16">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-2" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=light-dark(#E8E8E88D,#2a2a2a8D);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.14;entryY=0;" target="1tv6H6HBNWO-JgceilxE-3">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="75" y="99" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="HTTP contract" mermaidId="e:SENTIMENT-&gt;API#0" mermaidBaseStyle="curved=1;startArrow=block;startSize=7;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=light-dark(#E8E8E88D,#2a2a2a8D);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.85;entryY=0;" mermaidBaseValue="HTTP contract" id="1tv6H6HBNWO-JgceilxE-17">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-4" style="curved=1;startArrow=block;startSize=7;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);html=1;fontSize=16;labelBackgroundColor=light-dark(#E8E8E88D,#2a2a2a8D);fontFamily=Trebuchet MS,Verdana,Arial,sans-serif;fontColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.85;entryY=0;" target="1tv6H6HBNWO-JgceilxE-3">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="277" y="99" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:API-&gt;CAPABILITIES#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.98;entryX=0.27;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-18">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-3" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=1;exitY=0.98;entryX=0.27;entryY=0;" target="1tv6H6HBNWO-JgceilxE-5">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="301" y="212" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:WORKER-&gt;CAPABILITIES#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.57;exitY=1;entryX=0.52;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-19">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-6" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.57;exitY=1;entryX=0.52;entryY=0;" target="1tv6H6HBNWO-JgceilxE-5">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="427" y="212" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:API-&gt;PERSISTENCE#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.41;exitY=1;entryX=0.46;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-20">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-3" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.41;exitY=1;entryX=0.46;entryY=0;" target="1tv6H6HBNWO-JgceilxE-7">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="156" y="212" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:WORKER-&gt;PERSISTENCE#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.02;exitY=1;entryX=0.87;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-21">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-6" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.02;exitY=1;entryX=0.87;entryY=0;" target="1tv6H6HBNWO-JgceilxE-7">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="266" y="212" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:PERSISTENCE-&gt;PORTS#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.5;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-22">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-7" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.5;entryY=0;" target="1tv6H6HBNWO-JgceilxE-8">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points" />
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:CAPABILITIES-&gt;CONTRACTS#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.6;exitY=1;entryX=0.5;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-23">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-5" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.6;exitY=1;entryX=0.5;entryY=0;" target="1tv6H6HBNWO-JgceilxE-9">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="466" y="316" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:CAPABILITIES-&gt;DOMAIN#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.4;exitY=1;entryX=0.26;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-24">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-5" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.4;exitY=1;entryX=0.26;entryY=0;" target="1tv6H6HBNWO-JgceilxE-10">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="366" y="316" />
-                <mxPoint x="366" y="368" />
-                <mxPoint x="366" y="420" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:CONTRACTS-&gt;DOMAIN#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.72;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-25">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-9" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.72;entryY=0;" target="1tv6H6HBNWO-JgceilxE-10">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="466" y="420" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:STRATEGIES-&gt;STRATEGY_CORE#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0;entryY=0.19;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-26">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-11" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0;entryY=0.19;" target="1tv6H6HBNWO-JgceilxE-12">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="479" y="99" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:COMBINATION-&gt;STRATEGY_CORE#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.22;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-27">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-13" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.22;entryY=0;" target="1tv6H6HBNWO-JgceilxE-12">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="668" y="99" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:BACKTESTING-&gt;STRATEGY_CORE#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.78;entryY=0;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-28">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-14" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=0.78;entryY=0;" target="1tv6H6HBNWO-JgceilxE-12">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="864" y="99" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-        <UserObject label="" mermaidId="e:SEARCH-&gt;STRATEGY_CORE#0" mermaidBaseStyle="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=1;entryY=0.17;" mermaidBaseValue="" id="1tv6H6HBNWO-JgceilxE-29">
-          <mxCell edge="1" parent="_lOih-_n08xBNWANPp59-0" source="1tv6H6HBNWO-JgceilxE-15" style="curved=1;startArrow=none;endArrow=block;endSize=7;strokeColor=light-dark(#333333,#cccccc);exitX=0.5;exitY=1;entryX=1;entryY=0.17;" target="1tv6H6HBNWO-JgceilxE-12">
-            <mxGeometry relative="1" as="geometry">
-              <Array as="points">
-                <mxPoint x="1039" y="99" />
-              </Array>
-            </mxGeometry>
-          </mxCell>
-        </UserObject>
-      </root>
-    </mxGraphModel>
-  </diagram>
-</mxfile>
+```mermaid
+flowchart TD
+    WEB[apps/web] -->|HTTP / WebSocket| API[apps/api]
+    API -->|HTTP request| SENTIMENT[apps/sentiment]
+    SENTIMENT -->|HTTP response| API
 
+    API --> CONTRACTS["modules/contracts"]
+    WORKER[apps/worker] --> CONTRACTS
+    API --> CAPABILITIES[Business Capability Modules]
+    WORKER --> CAPABILITIES
+    API --> PERSISTENCE[persistence]
+    WORKER --> PERSISTENCE
+
+    PERSISTENCE --> PORTS[Capability Output Ports]
+    CAPABILITIES --> DOMAIN[domain]
+    CONTRACTS --> DOMAIN
+
+    STRATEGIES[strategies] --> STRATEGY_CORE[strategy-core]
+    COMBINATION[combination] --> STRATEGY_CORE
+    BACKTESTING[backtesting] --> STRATEGY_CORE
+    SEARCH[search] --> STRATEGY_CORE
 ```
 
 Không module nào được tạo dependency ngược từ `domain` vào Spring, database, Binance hoặc một capability module.
@@ -261,17 +70,17 @@ Không module nào được tạo dependency ngược từ `domain` vào Spring,
 | Module          | Được phụ thuộc trực tiếp                                                  |
 | --------------- | ------------------------------------------------------------------------- |
 | `domain`        | Không phụ thuộc module nội bộ nào                                         |
-| `contracts`     | `domain`                                                                  |
-| `market-data`   | `domain`, `contracts`                                                     |
-| `strategy-core` | `domain`, `contracts`                                                     |
+| `contracts`     | `domain` khi integration DTO thực sự cần dùng domain type ổn định         |
+| `market-data`   | `domain`                                                                  |
+| `strategy-core` | `domain`                                                                  |
 | `strategies`    | `domain`, `strategy-core`                                                 |
 | `combination`   | `domain`, `strategy-core`                                                 |
-| `backtesting`   | `domain`, `contracts`, `strategy-core`                                    |
-| `evaluation`    | `domain`, `contracts`                                                     |
-| `search`        | `domain`, `contracts`, `strategy-core`                                    |
-| `leaderboard`   | `domain`, `contracts`                                                     |
-| `news`          | `domain`, `contracts`                                                     |
-| `persistence`   | `domain`, `contracts` và output port công khai của module sở hữu dữ liệu  |
+| `backtesting`   | `domain`, `strategy-core`                                                 |
+| `evaluation`    | `domain`                                                                  |
+| `search`        | `domain`, `strategy-core`                                                 |
+| `leaderboard`   | `domain` và public API của `evaluation` khi cần                           |
+| `news`          | `domain`                                                                  |
+| `persistence`   | `domain` và output port công khai của module sở hữu dữ liệu               |
 | `apps/api`      | Public API của các capability module, `contracts`, `persistence`          |
 | `apps/worker`   | Public API cần thiết cho Backtest/Search flow, `contracts`, `persistence` |
 
@@ -289,9 +98,39 @@ Thêm dependency ngoài bảng phải cập nhật ADR này hoặc tạo ADR tha
 | `leaderboard`                 | `search` hoặc `backtesting` implementation                           | Leaderboard chỉ nhận Evaluation Result chuẩn hóa              |
 | `news`                        | Sentiment model implementation                                       | Có thể thay crawler/provider và model độc lập                 |
 | Capability module             | Repository/table nội bộ của module khác                              | Bảo vệ data ownership                                         |
+| Capability module             | `modules/contracts` DTO/message                                      | Không để transport/integration model xâm nhập business logic  |
 | `apps/web`                    | Binance hoặc Java module nội bộ                                      | Frontend chỉ phụ thuộc API/WebSocket contract chuẩn hóa       |
 
-### 5. Quy tắc public contract
+### 5. Phân biệt hai loại contract
+
+Từ `contract` trong dự án có hai nghĩa khác nhau và không được trộn lẫn:
+
+| Loại | Nơi đặt | Ví dụ | Người sử dụng |
+|---|---|---|---|
+| Contract nội bộ của capability | Module sở hữu: `api/`, `port/in/`, `port/out/`, `event/` | `Strategy`, `StrategyGenerator`, `RunBacktestUseCase`, `Evaluator` | Các Java module trong cùng backend |
+| Integration contract | `modules/contracts` | `BacktestJobMessage`, `CandleUpdatedEvent`, Sentiment request/response | API, Worker, WebSocket, queue hoặc service khác runtime |
+
+`modules/contracts` **không phải** nơi chứa mọi interface hoặc DTO của hệ thống. Module chỉ dùng nội bộ Java phải công bố contract ngay trong module sở hữu.
+
+Ví dụ:
+
+```text
+combination
+  → dùng Strategy từ strategy-core
+  → không cần phụ thuộc modules/contracts
+```
+
+```text
+API/Redis Stream
+  → BacktestJobMessage trong modules/contracts
+  → apps/worker nhận và mapping
+  → RunBacktestCommand trong backtesting
+  → Backtester
+```
+
+`BacktestJobMessage` chỉ tồn tại ở runtime boundary. Business logic trong `backtesting` không nhận hoặc trả queue/WebSocket/HTTP DTO trực tiếp.
+
+### 6. Quy tắc public contract của capability
 
 Mỗi capability module chỉ công khai những thành phần cần thiết qua các package sau:
 
@@ -307,12 +146,15 @@ Implementation, entity nội bộ và helper được đặt trong package `inte
 Quy tắc sử dụng:
 
 1. Module khác gọi public use case/facade, không gọi class `internal`.
-2. DTO qua HTTP, WebSocket, queue hoặc service boundary nằm trong `contracts` khi thực sự được nhiều runtime dùng chung.
-3. Model chỉ dùng bên trong một module phải ở lại module đó, không chuyển vào `contracts` để tiện import.
-4. Không tạo `common`, `shared` hoặc `utils` chứa business logic chung chung.
-5. Business logic không nằm trong Controller, Spring configuration, repository adapter hoặc mapper.
+2. Contract nội bộ như `Strategy`, `StrategyGenerator`, `Backtester`, `Evaluator` và `RankingPolicy` nằm trong module sở hữu.
+3. DTO qua HTTP, WebSocket, queue hoặc service boundary nằm trong `contracts` khi thực sự được nhiều runtime dùng chung.
+4. `apps/api`, `apps/worker` hoặc adapter boundary chịu trách nhiệm mapping integration DTO sang command/query/model nội bộ.
+5. Capability module không import `BacktestJobMessage`, HTTP request/response hoặc WebSocket event để chạy business logic.
+6. Model chỉ dùng bên trong một module phải ở lại module đó, không chuyển vào `contracts` để tiện import.
+7. Không tạo `common`, `shared` hoặc `utils` chứa business logic chung chung.
+8. Business logic không nằm trong Controller, Spring configuration, repository adapter hoặc mapper.
 
-### 6. Quy tắc điều phối luồng
+### 7. Quy tắc điều phối luồng
 
 `apps/api` hoặc `apps/worker` được phép điều phối nhiều public use case để hoàn thành một application flow. Ví dụ Search loop có thể thực hiện:
 
@@ -334,7 +176,7 @@ Tuy nhiên:
 
 Khi chuyển sang Queue/Worker, contract và boundary vẫn giữ nguyên theo [ADR-0006: Queue và Worker cho Backtest/Search](0006-queue-worker-backtesting.md).
 
-### 7. Quy tắc adapter và dữ liệu
+### 8. Quy tắc adapter và dữ liệu
 
 - Binance là adapter phía ngoài của `market-data`, theo [ADR-0003: Market Data Adapter](0003-market-data-adapter.md).
 - Strategy được đăng ký qua contract/registry, theo [ADR-0005: Strategy Plugin Registry](0005-strategy-plugin-registry.md).
@@ -383,8 +225,10 @@ Khi chuyển sang Queue/Worker, contract và boundary vẫn giữ nguyên theo [
 
 - Tạo ArchUnit test cấm `domain` phụ thuộc Spring, persistence hoặc adapter package.
 - Tạo ArchUnit test cấm `strategies` và `strategy-core` phụ thuộc `persistence` hoặc `market-data`.
+- Tạo architecture test cấm các capability module phụ thuộc trực tiếp `modules/contracts`.
 - Tạo test phát hiện dependency cycle giữa các capability module.
 - Build tool phải khai báo dependency đúng với bảng “Dependency được phép”.
+- Kiểm tra `apps/worker` mapping `BacktestJobMessage` thành `RunBacktestCommand` trước khi gọi public API của `backtesting`.
 - Thêm Strategy giả `MACDStrategy` và xác nhận không sửa Backtester/Evaluator.
 - Thêm Search Generator giả và xác nhận không sửa Backtester/Leaderboard.
 - Thay Binance Adapter bằng fixture adapter và xác nhận API response không đổi.
