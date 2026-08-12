@@ -25,6 +25,10 @@ Dữ liệu từ Binance cũng có thể được bổ sung, sửa hoặc tải 
 
 Theo [ADR-0005: Strategy Contract và Plugin Registry](0005-strategy-plugin-registry.md), Strategy có ID/version/parameters. Theo [ADR-0006: Queue và Worker](0006-queue-worker-backtesting.md), job có thể retry và chạy trên nhiều Worker. Theo [ADR-0007: PostgreSQL/Supabase và Redis](0007-postgresql-redis-ownership.md), PostgreSQL là nguồn dữ liệu bền vững.
 
+## Drivers and Quality Scenarios
+
+- [QA-07 Reproduce Experiment](../architecture/quality-attributes.md#qa-07--reproduce-experiment)
+
 ## Decision
 
 ### 1. Experiment là cấu hình bất biến
@@ -361,7 +365,7 @@ Frontend không tự ghép thông tin từ nhiều nguồn không version. Java 
 - PostgreSQL/Supabase schema, migration và retention
 - Demo dataset/configuration
 
-## Validation
+## Validation Plan
 
 - Chạy cùng manifest hai lần và so sánh Trade sequence cùng bốn metrics bắt buộc.
 - Tạo lại checksum từ Dataset và xác nhận khớp manifest trước khi Backtest.
@@ -375,6 +379,12 @@ Frontend không tự ghép thông tin từ nhiều nguồn không version. Java 
 - Click Top-K trên UI và truy ra được Experiment ID, Strategy version, Dataset và parameters.
 - Export/import manifest và xác nhận `experimentFingerprint` không đổi.
 - Xác nhận manifest hoặc log không chứa database password, API key hay secret.
+
+## Evidence
+
+**Status**: Planned — chưa thu thập do chưa có implementation.
+
+- AP-07 trong [Architecture Evidence](../architecture/architecture-evidence.md).
 
 ## Risks and Mitigations
 
@@ -416,9 +426,11 @@ Frontend không tự ghép thông tin từ nhiều nguồn không version. Java 
 
 ## References
 
-- [Đề bài Crypto StrategyLab](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Đề bài Crypto Strategy Lab — §35–36 và §40](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Slide kiến trúc — Reproducibility, ATAM và provenance proof](../KienTrucDoAn_slide.pdf)
 - [Architecture Overview](../architecture/architecture-overview.md)
 - [Data Model Overview](../architecture/data-model-overview.md)
+- [Dynamic Views and Data Flows](../architecture/data-flows.md)
 - [Demo Data and Configuration](../demo/demo-data.md)
 - [UI Stitch Guide](../ui/stitch-guide.md)
 - [ADR-0001: Modular Monolith](0001-modular-monolith.md)

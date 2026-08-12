@@ -2,7 +2,7 @@
 
 **Status**: Proposed
 **Date**: 2026-08-11
-**Owners**: Luật
+**Owners**: Tiến Luật
 
 ## Context
 
@@ -29,6 +29,12 @@ Một Backtest có thể tốn nhiều CPU và thời gian hơn HTTP request th�
 Đề bài yêu cầu có Stop Condition, theo dõi tiến trình, retry khi worker lỗi và có khả năng scale từ hàng trăm lên nhiều candidate hơn. Tuy nhiên, nhóm chỉ có bốn thành viên nên không chọn Kafka, Kubernetes hoặc nhiều Microservice phức tạp cho MVP.
 
 Theo [ADR-0001: Sử dụng Modular Monolith](0001-modular-monolith.md), `apps/worker` có thể trở thành runtime riêng nhưng vẫn tái sử dụng các Java business modules. Theo [ADR-0002: Ranh giới giữa các Module](0002-module-boundaries.md), Search, Backtesting, Evaluation và Leaderboard phải giữ trách nhiệm độc lập.
+
+## Drivers and Quality Scenarios
+
+- [QA-05 Scale Backtest Workers](../architecture/quality-attributes.md#qa-05--scale-backtest-workers)
+- [QA-08 Observe Running Experiment](../architecture/quality-attributes.md#qa-08--observe-running-experiment)
+- [QA-10 Start Large Search](../architecture/quality-attributes.md#qa-10--start-large-search)
 
 ## Decision
 
@@ -320,7 +326,7 @@ Log phải có `correlationId`, `experimentId`, `candidateId` và `jobId` để 
 - PostgreSQL/Supabase schema
 - Redis Streams và WebSocket progress flow
 
-## Validation
+## Validation Plan
 
 - Tạo Search qua REST và xác nhận API trả ID trước khi Search hoàn thành.
 - Chạy ít nhất hai Worker trong cùng consumer group và xác nhận job được phân phối.
@@ -334,6 +340,12 @@ Log phải có `correlationId`, `experimentId`, `candidateId` và `jobId` để 
 - Tăng số Worker và xác nhận throughput tăng mà API/Strategy contract không đổi.
 - Kiểm tra WebSocket phát progress và `LEADERBOARD_UPDATED` mà UI không reload.
 - Xác nhận Market Dashboard vẫn hoạt động khi Worker hoặc Search flow lỗi.
+
+## Evidence
+
+**Status**: Planned — chưa thu thập do chưa có implementation.
+
+- AP-05, AP-08 và AP-10 trong [Architecture Evidence](../architecture/architecture-evidence.md).
 
 ## Risks and Mitigations
 
@@ -371,7 +383,8 @@ Log phải có `correlationId`, `experimentId`, `candidateId` và `jobId` để 
 
 ## References
 
-- [Đề bài Crypto StrategyLab](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Đề bài Crypto Strategy Lab — §23–25, §32 và §43](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Slide kiến trúc — Scale/Failure Proof và Observability](../KienTrucDoAn_slide.pdf)
 - [Architecture Overview](../architecture/architecture-overview.md)
 - [Data Flows](../architecture/data-flows.md)
 - [WebSocket Events](../api/websocket-events.md)

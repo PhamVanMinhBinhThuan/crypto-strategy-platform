@@ -1,46 +1,40 @@
-# API Error Catalog
+# Error Catalog
 
-## Error Response Format
+## Error response
 
 ```json
 {
-  "code": "[ERROR_CODE]",
-  "message": "[Thông báo]",
-  "details": {},
-  "correlationId": "[id]",
-  "timestamp": "[timestamp]"
+  "code": "INVALID_MARKET_QUERY",
+  "message": "The market query is invalid.",
+  "correlationId": "01J...",
+  "details": [{ "field": "timeframe", "reason": "UNSUPPORTED_VALUE" }]
 }
 ```
 
-## Error Codes
+`message` is safe for clients; provider response, secret and stack trace remain in protected logs.
 
-| Code | HTTP Status | Khi xảy ra | Client xử lý |
-| --- | ---: | --- | --- |
-| `[Điền]` |  | [Điền] | [Điền] |
+## Error groups
 
-## Error Groups
+| Group | Codes | Handling |
+| --- | --- | --- |
+| Market | `INVALID_MARKET_QUERY`, `MARKET_PROVIDER_UNAVAILABLE`, `MARKET_PROVIDER_RATE_LIMITED`, `MARKET_DATA_GAP`, `MARKET_DATA_MAPPING_FAILED` | Validate, retry/backfill when transient, expose degraded state |
+| Strategy | `STRATEGY_NOT_FOUND`, `STRATEGY_VERSION_UNAVAILABLE`, `INVALID_STRATEGY_PARAMETERS`, `INSUFFICIENT_STRATEGY_DATA` | Reject candidate/request; do not retry permanent validation |
+| Experiment/Job | `EXPERIMENT_NOT_FOUND`, `INVALID_EXPERIMENT_STATE`, `JOB_NOT_FOUND`, `JOB_TIMEOUT`, `JOB_FAILED`, `SEARCH_LIMIT_REQUIRED` | Preserve status/error summary; retry only transient failures |
+| Realtime | `INVALID_SUBSCRIPTION`, `SUBSCRIPTION_LIMIT_EXCEEDED`, `UNSUPPORTED_EVENT_VERSION`, `REALTIME_UNAVAILABLE` | Scope error to subscription when safe |
+| News/Sentiment | `NEWS_PROVIDER_UNAVAILABLE`, `INVALID_NEWS_ITEM`, `SENTIMENT_UNAVAILABLE`, `INVALID_SENTIMENT_RESPONSE` | Keep News durable; analysis pending/failed without impacting Market |
+| Platform | `DEPENDENCY_UNAVAILABLE`, `RATE_LIMITED`, `INTERNAL_ERROR` | Stable generic response, correlation ID for investigation |
 
-### Validation
+## Retry classification
 
-[Điền error codes]
+- Retry with bounded exponential backoff: timeout, rate limit and retryable dependency `5xx`.
+- Do not retry: invalid input, missing immutable version, unsupported contract or permanent business validation.
+- A Strategy producing zero trades is a valid result, not an error.
+- Unknown worker exceptions retry only to configured limit, then move to Dead Letter/FAILED.
 
-### Market Provider
+## Logging rules
 
-[Điền error codes]
-
-### Strategy and Backtest
-
-[Điền error codes]
-
-### Experiment and Worker
-
-[Điền error codes]
-
-### News and Sentiment
-
-[Điền error codes]
-
-## Logging Rules
-
-[Điền thông tin được phép/không được phép log]
+- Log correlationId, experimentId, candidateId and jobId when available.
+- Redact credentials, tokens, database URLs and provider secrets.
+- Do not log full copyrighted News content unless explicitly required in a protected development environment.
+- Public responses never contain internal exception type or stack trace.
 

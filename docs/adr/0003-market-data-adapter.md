@@ -6,7 +6,7 @@
 
 ## Context
 
-Crypto StrategyLab cần lấy hai loại dữ liệu từ Binance:
+Crypto Strategy Lab cần lấy hai loại dữ liệu từ Binance:
 
 - Historical Candle phục vụ chart, indicator và Backtest;
 - Realtime Candle Update phục vụ tối đa bốn chart với timeframe độc lập.
@@ -23,6 +23,11 @@ Binance có API, WebSocket event, tên symbol, interval, error code và cấu tr
 - mỗi chart có thể tự tạo kết nối riêng và khó quản lý tài nguyên.
 
 Theo [ADR-0001: Sử dụng Modular Monolith](0001-modular-monolith.md) và [ADR-0002: Ranh giới giữa các Module](0002-module-boundaries.md), Market Data phải là một capability có port ổn định và adapter riêng cho từng provider.
+
+## Drivers and Quality Scenarios
+
+- [QA-03 Replace Market Data Provider](../architecture/quality-attributes.md#qa-03--replace-market-data-provider)
+- [QA-04 Binance Disconnect](../architecture/quality-attributes.md#qa-04--binance-disconnect)
 
 ## Decision
 
@@ -193,7 +198,7 @@ Fixture adapter được cung cấp cho test và demo fallback. Chỉ tạo OKX/
 - Backend WebSocket flow
 - Historical data và Backtest dataset flow
 
-## Validation
+## Validation Plan
 
 - Dùng cùng một contract test suite cho `BinanceMarketDataAdapter` và fixture adapter.
 - Kiểm tra Binance Kline mẫu được ánh xạ đúng pair, timeframe, UTC timestamp, OHLCV và `closed`.
@@ -203,6 +208,12 @@ Fixture adapter được cung cấp cho test và demo fallback. Chỉ tạo OKX/
 - Thay Binance adapter bằng fixture adapter qua configuration mà API/Frontend contract không đổi.
 - ArchUnit xác nhận Strategy và Backtest không import Binance client/model.
 - Kiểm tra decimal không bị mất độ chính xác khi map và serialize.
+
+## Evidence
+
+**Status**: Planned — chưa thu thập do chưa có implementation.
+
+- AP-03 và AP-04 trong [Architecture Evidence](../architecture/architecture-evidence.md).
 
 ## Risks and Mitigations
 
@@ -232,11 +243,13 @@ Fixture adapter được cung cấp cho test và demo fallback. Chỉ tạo OKX/
 
 ## References
 
-- [Đề bài Crypto StrategyLab](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Đề bài Crypto Strategy Lab — §4, §28, §32.4 và §40](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Slide kiến trúc — Adapter/Clean Architecture và recovery](../KienTrucDoAn_slide.pdf)
 - [Architecture Overview](../architecture/architecture-overview.md)
 - [Data Flows](../architecture/data-flows.md)
 - [Candle Model Overview](../architecture/data-model-overview.md)
 - [WebSocket Events](../api/websocket-events.md)
+- [Error Catalog](../api/error-catalog.md)
 - [ADR-0001: Modular Monolith](0001-modular-monolith.md)
 - [ADR-0002: Module Boundaries](0002-module-boundaries.md)
 - [ADR-0004: WebSocket Realtime](0004-websocket-realtime.md)

@@ -6,7 +6,7 @@
 
 ## Context
 
-Crypto StrategyLab có nhiều nhóm dữ liệu với đặc tính khác nhau:
+Crypto Strategy Lab có nhiều nhóm dữ liệu với đặc tính khác nhau:
 
 - Candle lịch sử và Candle realtime;
 - Strategy Definition, version và parameters;
@@ -21,6 +21,11 @@ PostgreSQL phù hợp dữ liệu cần transaction, quan hệ và truy vấn l�
 Nhóm dự kiến sử dụng Supabase để cung cấp PostgreSQL cho môi trường dùng chung/demo. Nếu Frontend truy cập trực tiếp Supabase và Backend cũng truy cập cùng bảng, business rule và data ownership sẽ bị phân tán. Nếu lưu job/result chỉ trong Redis, dữ liệu có thể mất hoặc khó tái lập khi Redis restart.
 
 Theo [ADR-0001: Sử dụng Modular Monolith](0001-modular-monolith.md) và [ADR-0002: Ranh giới giữa các Module](0002-module-boundaries.md), dữ liệu phải có module owner rõ ràng. Theo [ADR-0006: Queue và Worker cho Backtest/Search](0006-queue-worker-backtesting.md), PostgreSQL là nguồn sự thật còn Redis Streams dùng để phân phối job.
+
+## Drivers and Quality Scenarios
+
+- [QA-05 Scale Backtest Workers](../architecture/quality-attributes.md#qa-05--scale-backtest-workers)
+- [QA-07 Reproduce Experiment](../architecture/quality-attributes.md#qa-07--reproduce-experiment)
 
 ## Decision
 
@@ -272,7 +277,7 @@ Quy trình này tuân theo Transactional Outbox trong [ADR-0006: Queue và Worke
 - `infra/compose`
 - Supabase project và Redis instance
 
-## Validation
+## Validation Plan
 
 - Chạy migration từ database trống và seed được môi trường demo.
 - Xác nhận Frontend chỉ gọi Java REST/WebSocket, không chứa Supabase service-role key.
@@ -285,6 +290,12 @@ Quy trình này tuân theo Transactional Outbox trong [ADR-0006: Queue và Worke
 - Xác nhận Experiment cũ vẫn tham chiếu đúng Strategy/Dataset version sau khi có version mới.
 - Mô phỏng PostgreSQL lỗi và xác nhận hệ thống không ghi kết quả chỉ vào Redis.
 - Kiểm tra connection pool không vượt giới hạn cấu hình khi tăng Worker.
+
+## Evidence
+
+**Status**: Planned — chưa thu thập do chưa có implementation.
+
+- AP-05 và AP-07 trong [Architecture Evidence](../architecture/architecture-evidence.md).
 
 ## Risks and Mitigations
 
@@ -322,7 +333,8 @@ Quy trình này tuân theo Transactional Outbox trong [ADR-0006: Queue và Worke
 
 ## References
 
-- [Đề bài Crypto StrategyLab](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Đề bài Crypto Strategy Lab — §35–36](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Slide kiến trúc — Data ownership, CQRS và trade-offs](../KienTrucDoAn_slide.pdf)
 - [Architecture Overview](../architecture/architecture-overview.md)
 - [Data Model Overview](../architecture/data-model-overview.md)
 - [Deployment View](../architecture/deployment-view.md)

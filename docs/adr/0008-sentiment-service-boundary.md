@@ -6,7 +6,7 @@
 
 ## Context
 
-Crypto StrategyLab cần:
+Crypto Strategy Lab cần:
 
 - thu thập News liên quan đến coin/pair;
 - chuẩn hóa và lưu News Item;
@@ -28,6 +28,11 @@ Nếu đưa thư viện ML Python trực tiếp vào Java Backend hoặc để N
 Đề bài yêu cầu chứng minh rằng News/Sentiment lỗi thì Realtime Chart vẫn hoạt động và việc thay Sentiment Model không làm Strategy Engine bị ảnh hưởng.
 
 Theo [ADR-0001: Sử dụng Modular Monolith](0001-modular-monolith.md), Sentiment là một runtime boundary riêng. Theo [ADR-0002: Ranh giới giữa các Module](0002-module-boundaries.md), Java module `news` và Strategy chỉ phụ thuộc contract, không phụ thuộc implementation model.
+
+## Drivers and Quality Scenarios
+
+- [QA-06 News/Sentiment Failure](../architecture/quality-attributes.md#qa-06--newssentiment-failure)
+- [QA-07 Reproduce Experiment](../architecture/quality-attributes.md#qa-07--reproduce-experiment)
 
 ## Decision
 
@@ -298,7 +303,7 @@ Sentiment Strategy là phần mở rộng, không bắt buộc MVP. Nếu triể
 - News/Sentiment database model
 - News Sentiment UI và demo fallback
 
-## Validation
+## Validation Plan
 
 - Contract test dùng cùng JSON fixture ở Java client và FastAPI test.
 - Phân tích cùng text/model version và xác nhận response đúng enum/range/schema.
@@ -312,6 +317,12 @@ Sentiment Strategy là phần mở rộng, không bắt buộc MVP. Nếu triể
 - Thay model version và xác nhận tạo result version mới, không overwrite kết quả cũ.
 - Kiểm tra `/health/live` và `/health/ready` phản ánh đúng trạng thái process/model.
 - Xác nhận Python không có credential truy cập shared PostgreSQL trong MVP.
+
+## Evidence
+
+**Status**: Planned — chưa thu thập do chưa có implementation.
+
+- AP-06 và AP-07 trong [Architecture Evidence](../architecture/architecture-evidence.md).
 
 ## Risks and Mitigations
 
@@ -349,12 +360,14 @@ Sentiment Strategy là phần mở rộng, không bắt buộc MVP. Nếu triể
 
 ## References
 
-- [Đề bài Crypto StrategyLab](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Đề bài Crypto Strategy Lab — §27–30 và §40](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Slide kiến trúc — News/ML boundary và failure isolation](../KienTrucDoAn_slide.pdf)
 - [Architecture Overview](../architecture/architecture-overview.md)
 - [Data Flows](../architecture/data-flows.md)
 - [Data Model Overview](../architecture/data-model-overview.md)
 - [Deployment View](../architecture/deployment-view.md)
 - [UI Stitch Guide](../ui/stitch-guide.md)
+- [Internal Sentiment Contract](../api/internal-sentiment-contract.md)
 - [ADR-0001: Modular Monolith](0001-modular-monolith.md)
 - [ADR-0002: Module Boundaries](0002-module-boundaries.md)
 - [ADR-0005: Strategy Plugin Registry](0005-strategy-plugin-registry.md)

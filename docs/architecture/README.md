@@ -13,6 +13,7 @@ Thư mục này mô tả kiến trúc cấp hệ thống: boundaries, thành ph�
 | `data-flows.md` | Historical, realtime, backtest, search và news flows |
 | `deployment-view.md` | Cách các thành phần được chạy/deploy |
 | `quality-attributes.md` | Các scenario về thay đổi, scale và reliability |
+| `architecture-evidence.md` | Ma trận kiểm chứng ADR, quality scenarios và architecture proofs |
 | `data-model-overview.md` | Dữ liệu khái niệm cấp hệ thống |
 | `diagrams/README.md` | Quy ước lưu source diagram |
 

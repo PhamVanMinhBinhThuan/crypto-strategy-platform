@@ -6,7 +6,7 @@
 
 ## Context
 
-Crypto StrategyLab cần cập nhật giao diện mà không reload toàn trang:
+Crypto Strategy Lab cần cập nhật giao diện mà không reload toàn trang:
 
 - tối đa bốn Candlestick Chart với pair/timeframe độc lập;
 - Candle đang hình thành và Candle vừa đóng;
@@ -16,7 +16,12 @@ Crypto StrategyLab cần cập nhật giao diện mà không reload toàn trang:
 
 Polling liên tục từ Frontend tạo nhiều HTTP request trùng lặp, tăng độ trễ và khó đồng bộ bốn chart. Cho phép Frontend kết nối trực tiếp Binance lại làm rò rỉ provider contract và vi phạm [ADR-0003: Market Data Provider Adapter](0003-market-data-adapter.md).
 
-Hệ thống cần một kênh server-push có thể multiplex nhiều subscription trên cùng kết nối, quản lý reconnect và giữ Frontend chỉ phụ thuộc contract của Crypto StrategyLab.
+Hệ thống cần một kênh server-push có thể multiplex nhiều subscription trên cùng kết nối, quản lý reconnect và giữ Frontend chỉ phụ thuộc contract của Crypto Strategy Lab.
+
+## Drivers and Quality Scenarios
+
+- [QA-04 Binance Disconnect](../architecture/quality-attributes.md#qa-04--binance-disconnect)
+- [QA-09 Realtime Four-Chart Update](../architecture/quality-attributes.md#qa-09--realtime-four-chart-update)
 
 ## Decision
 
@@ -246,7 +251,7 @@ Nếu sau này có user/private experiment, authentication và authorization ph�
 - `docs/api/websocket-events.md`
 - Realtime UI state và connection status component
 
-## Validation
+## Validation Plan
 
 - Mở bốn chart trên một browser tab và xác nhận chỉ có một application WebSocket connection.
 - Đổi timeframe Chart 1 và xác nhận Chart 2–4 không reload hoặc mất dữ liệu.
@@ -258,6 +263,12 @@ Nếu sau này có user/private experiment, authentication và authorization ph�
 - Đóng browser tab và xác nhận subscription được cleanup.
 - Mô phỏng client render chậm và xác nhận buffer có giới hạn, Candle close không bị mất.
 - Gửi command/payload không hợp lệ và xác nhận chỉ subscription lỗi, connection vẫn an toàn khi có thể.
+
+## Evidence
+
+**Status**: Planned — chưa thu thập do chưa có implementation.
+
+- AP-04 và AP-09 trong [Architecture Evidence](../architecture/architecture-evidence.md).
 
 ## Risks and Mitigations
 
@@ -285,7 +296,8 @@ Nếu sau này có user/private experiment, authentication và authorization ph�
 
 ## References
 
-- [Đề bài Crypto StrategyLab](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Đề bài Crypto Strategy Lab — §4, §5, §33 và §40](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Slide kiến trúc — Realtime và Architecture Proof](../KienTrucDoAn_slide.pdf)
 - [Data Flows](../architecture/data-flows.md)
 - [WebSocket Events](../api/websocket-events.md)
 - [API Conventions](../api/conventions.md)

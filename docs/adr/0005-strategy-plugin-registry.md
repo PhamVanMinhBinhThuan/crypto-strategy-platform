@@ -2,11 +2,11 @@
 
 **Status**: Proposed
 **Date**: 2026-08-11
-**Owners**: Strategy Owner và Tech Lead
+**Owners**: Tiến Luật
 
 ## Context
 
-Crypto StrategyLab phải có ít nhất bốn Strategy trong MVP:
+Crypto Strategy Lab phải có ít nhất bốn Strategy trong MVP:
 
 - Moving Average;
 - RSI;
@@ -30,6 +30,11 @@ if (type == MA) {
 Mỗi lần thêm Strategy, cách này buộc phải sửa nhiều nơi và dễ tạo logic không nhất quán. Strategy cũng không được tự gọi Binance, database hoặc Spring Service vì như vậy kết quả Backtest không còn độc lập và dễ tái lập.
 
 Theo [ADR-0001: Sử dụng Modular Monolith](0001-modular-monolith.md) và [ADR-0002: Ranh giới giữa các Module](0002-module-boundaries.md), Strategy cần một contract thuần Java và một registry để các consumer làm việc qua abstraction.
+
+## Drivers and Quality Scenarios
+
+- [QA-01 Add New Strategy](../architecture/quality-attributes.md#qa-01--add-new-strategy)
+- [QA-07 Reproduce Experiment](../architecture/quality-attributes.md#qa-07--reproduce-experiment)
 
 ## Decision
 
@@ -305,7 +310,7 @@ Quy tắc:
 - `apps/web`
 - Strategy API và Experiment persistence
 
-## Validation
+## Validation Plan
 
 - Viết contract test chạy chung cho cả bốn Strategy plugin MVP.
 - Registry fail startup khi hai plugin có cùng ID và version.
@@ -317,6 +322,12 @@ Quy tắc:
 - Majority Vote trả HOLD khi số phiếu hòa.
 - ArchUnit xác nhận Strategy không phụ thuộc Spring, Market Data Adapter hoặc Persistence.
 - Chạy nhiều Backtest song song và xác nhận Strategy không chia sẻ mutable state.
+
+## Evidence
+
+**Status**: Planned — chưa thu thập do chưa có implementation.
+
+- AP-01 và AP-07 trong [Architecture Evidence](../architecture/architecture-evidence.md).
 
 ## Risks and Mitigations
 
@@ -344,7 +355,8 @@ Quy tắc:
 
 ## References
 
-- [Đề bài Crypto StrategyLab](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Đề bài Crypto Strategy Lab — §6, §12–14 và §41](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Slide kiến trúc — Strategy Plugin và Extensibility Proof](../KienTrucDoAn_slide.pdf)
 - [Module View](../architecture/module-view.md)
 - [Data Model Overview](../architecture/data-model-overview.md)
 - [UI Stitch Guide](../ui/stitch-guide.md)

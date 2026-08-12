@@ -6,7 +6,7 @@
 
 ## Context
 
-Crypto StrategyLab phải hỗ trợ nhiều khả năng nghiệp vụ liên quan nhưng có tốc độ thay đổi khác nhau:
+Crypto Strategy Lab phải hỗ trợ nhiều khả năng nghiệp vụ liên quan nhưng có tốc độ thay đổi khác nhau:
 
 - Lấy dữ liệu lịch sử và realtime từ Market Data Provider;
 - Bổ sung Strategy mới mà không sửa Backtester;
@@ -21,6 +21,13 @@ Nhóm có bốn thành viên và thời gian thực hiện ngắn. Nếu triển
 Một monolith phân tầng thông thường dễ triển khai hơn, nhưng có nguy cơ biến thành `God Service`: Controller, Strategy, Backtest, Search, News và Persistence gọi trực tiếp lẫn nhau. Cách này không đáp ứng trọng tâm kiến trúc của đề là thay đổi Strategy, Search Algorithm và Data Provider với ảnh hưởng tối thiểu.
 
 Hệ thống vì vậy cần một cấu trúc đủ đơn giản để nhóm hoàn thành MVP, đồng thời phải có ranh giới rõ để kiểm thử, thay đổi và tách riêng module khi có nhu cầu scale thực tế.
+
+## Drivers and Quality Scenarios
+
+- [QA-01 Add New Strategy](../architecture/quality-attributes.md#qa-01--add-new-strategy)
+- [QA-02 Replace Search Algorithm](../architecture/quality-attributes.md#qa-02--replace-search-algorithm)
+- [QA-05 Scale Backtest Workers](../architecture/quality-attributes.md#qa-05--scale-backtest-workers)
+- [QA-06 News/Sentiment Failure](../architecture/quality-attributes.md#qa-06--newssentiment-failure)
 
 ## Decision
 
@@ -94,7 +101,7 @@ ADR này quyết định kiến trúc tổng thể. Dependency cụ thể giữa
 - `infra/compose/`
 - `infra/database/`
 
-## Validation
+## Validation Plan
 
 Quyết định được xem là phù hợp khi nhóm chứng minh được:
 
@@ -105,6 +112,12 @@ Quyết định được xem là phù hợp khi nhóm chứng minh được:
 - thêm Search Generator mới không yêu cầu sửa Backtester hoặc Leaderboard;
 - News/Sentiment Service ngừng hoạt động nhưng Market Dashboard và Market Data flow vẫn chạy;
 - Backtest có thể chuyển sang `apps/worker` mà không sao chép Strategy hoặc Evaluation logic.
+
+## Evidence
+
+**Status**: Planned — chưa thu thập do chưa có implementation.
+
+- AP-01, AP-02, AP-05 và AP-06 trong [Architecture Evidence](../architecture/architecture-evidence.md).
 
 ## Risks and Mitigations
 
@@ -130,7 +143,8 @@ Quyết định được xem là phù hợp khi nhóm chứng minh được:
 
 ## References
 
-- [Đề bài Crypto StrategyLab](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Đề bài Crypto Strategy Lab — §32, §40 và §43](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
+- [Slide kiến trúc — Architectural Drivers, ADD/ATAM và ADR](../KienTrucDoAn_slide.pdf)
 - [Architecture Overview](../architecture/architecture-overview.md)
 - [Module View](../architecture/module-view.md)
 - [ADR-0002: Module Boundaries](0002-module-boundaries.md)

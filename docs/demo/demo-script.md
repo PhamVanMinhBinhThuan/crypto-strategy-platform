@@ -51,11 +51,14 @@
 
 ## 6. Architecture Proof
 
-- Thêm Strategy mới: [Điền cách chứng minh]
-- Thay Market Provider: [Điền cách giải thích]
-- Scale Backtest: [Điền cách giải thích]
-- News lỗi nhưng Chart vẫn chạy: [Điền cách chứng minh]
-- Reproduce Experiment: [Điền cách chứng minh]
+- **Thêm Strategy**: mở diff của MACD plugin; chỉ ra không có thay đổi trong Backtester, Evaluator, Leaderboard hoặc UI; chạy contract test.
+- **Thay Search**: chuyển Random sang Domain-guided qua registry/configuration và chạy cùng downstream pipeline.
+- **Thay Market Provider**: chuyển Binance sang fixture adapter; giữ nguyên REST/WebSocket payload và dashboard consumer.
+- **Scale Backtest**: so sánh benchmark cùng workload với 1 và 3 workers; trình bày throughput, queue lag và duplicate count.
+- **Realtime recovery**: ngắt upstream, quan sát trạng thái reconnecting, backfill và reconciliation report.
+- **Failure isolation**: dừng Sentiment Service; chỉ News/Sentiment degraded trong khi realtime chart tiếp tục.
+- **Reproduce Experiment**: mở Top-K detail/manifest, replay và so sánh Trades, bốn metrics cùng fingerprint.
+- **Evidence rule**: chỉ trình bày artifact có commit, environment và kết quả thật; planned item không được nói là đã verified.
 
 ## 7. Kết luận
 

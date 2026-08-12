@@ -9,6 +9,7 @@ Thư mục này quản lý quy ước và contract giao tiếp của hệ thốn
 | `conventions.md` | Quy ước chung cho REST API |
 | `openapi.yaml` | OpenAPI contract tổng của Spring API |
 | `websocket-events.md` | Protocol và event catalog WebSocket |
+| `internal-sentiment-contract.md` | Contract nội bộ giữa Java Worker và Python Sentiment Service |
 | `error-catalog.md` | Cấu trúc lỗi và danh sách error code |
 | `examples.md` | Request/response/event mẫu |
 
