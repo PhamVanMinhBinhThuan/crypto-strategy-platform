@@ -33,13 +33,14 @@ Các module chính gồm:
 | Module          | Trách nhiệm chính                                           |
 | --------------- | ----------------------------------------------------------- |
 | `domain`        | Các kiểu dữ liệu và quy tắc domain ổn định                  |
-| `contracts`     | DTO, command, query và event contract dùng qua boundary     |
+| `contracts`     | DTO và message qua HTTP, WebSocket, queue hoặc giữa runtime |
 | `market-data`   | Market Data Port, Binance Adapter và chuẩn hóa Candle       |
 | `strategy-core` | Strategy contract, signal và registry                       |
 | `strategies`    | MA, RSI, Bollinger Bands và Support/Resistance              |
 | `combination`   | Tạo và thực thi Composite Strategy                          |
 | `backtesting`   | Mô phỏng giao dịch trên historical data                     |
 | `evaluation`    | Tính Return, Win Rate, Max Drawdown và Number of Trades     |
+| `experiment`    | Quản lý manifest, trạng thái và khả năng tái lập Experiment |
 | `search`        | Sinh candidate bằng Random Search và quản lý stop condition |
 | `leaderboard`   | Xếp hạng và duy trì Top-K                                   |
 | `news`          | News Provider contract và chuẩn hóa News Item               |
@@ -52,7 +53,7 @@ Các quy tắc cấp cao:
 3. Frontend chỉ gọi Backend API/WebSocket, không gọi trực tiếp Binance và không chứa Strategy, Backtest hoặc Ranking logic.
 4. Các bảng có owner logic theo module dù MVP có thể dùng chung một PostgreSQL/Supabase instance.
 5. Giao tiếp nội bộ đồng bộ được ưu tiên cho luồng đơn giản; domain event được dùng khi cần giảm coupling.
-6. `apps/worker` chỉ trở thành runtime riêng cho Backtest/Search khi [ADR-0006: Queue và Worker cho Backtest/Search](0006-queue-worker-backtesting.md) được chấp nhận. Worker tái sử dụng public contract và module nghiệp vụ, không sao chép business logic.
+6. `apps/worker` chỉ trở thành runtime riêng cho Backtest/Search khi [ADR-0006: Queue và Worker cho Backtest/Search](0006-queue-worker-backtesting.md) được chấp nhận. Worker tái sử dụng integration contract và public API của module nghiệp vụ, không sao chép business logic.
 7. Sentiment bằng Python/FastAPI là service boundary riêng vì có runtime và failure mode khác; chi tiết được quyết định trong [ADR-0008: Tách Sentiment Service](0008-sentiment-service-boundary.md).
 8. Không đưa Kafka, Kubernetes hoặc Microservices theo từng module vào MVP nếu chưa có bằng chứng về nhu cầu.
 

@@ -29,8 +29,8 @@ Các module được chia thành năm nhóm:
 | Nhóm                | Module/Application                                                                                                        | Vai trò                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | Foundation          | `domain`                                                                                                                  | Kiểu dữ liệu và quy tắc domain ổn định                        |
-| Integration         | `contracts`                                                                                                               | DTO/message đi qua runtime hoặc external boundary             |
-| Business capability | `market-data`, `strategy-core`, `strategies`, `combination`, `backtesting`, `evaluation`, `search`, `leaderboard`, `news` | Chứa logic theo từng năng lực nghiệp vụ                      |
+| Integration         | `contracts`                                                                                                               | DTO/message đi qua HTTP, WebSocket, queue hoặc runtime khác   |
+| Business capability | `market-data`, `strategy-core`, `strategies`, `combination`, `backtesting`, `evaluation`, `experiment`, `search`, `leaderboard`, `news` | Chứa logic theo từng năng lực nghiệp vụ            |
 | Adapter             | `persistence`                                                                                                             | Kết nối PostgreSQL/Supabase, Redis và triển khai output port |
 | Composition/runtime | `apps/api`, `apps/worker`                                                                                                 | Wiring module, transaction boundary và điều phối use case    |
 
@@ -42,26 +42,45 @@ Dependency chỉ được hướng từ runtime/adapter vào public contract và
 
 ```mermaid
 flowchart TD
-    WEB[apps/web] -->|HTTP / WebSocket| API[apps/api]
-    API -->|HTTP request| SENTIMENT[apps/sentiment]
-    SENTIMENT -->|HTTP response| API
+    WEB["apps/web"] -->|"HTTP / WebSocket"| API["apps/api"]
+    WORKER["apps/worker"] -->|"HTTP request/response"| SENTIMENT["apps/sentiment"]
 
-    API --> CONTRACTS["modules/contracts"]
-    WORKER[apps/worker] --> CONTRACTS
-    API --> CAPABILITIES[Business Capability Modules]
+    API --> CONTRACTS["contracts"]
+    WORKER --> CONTRACTS
+    API --> CAPABILITIES["Business capability modules"]
     WORKER --> CAPABILITIES
-    API --> PERSISTENCE[persistence]
+
+    API --> PERSISTENCE["persistence"]
     WORKER --> PERSISTENCE
+    PERSISTENCE --> PORTS["Capability output ports"]
 
-    PERSISTENCE --> PORTS[Capability Output Ports]
-    CAPABILITIES --> DOMAIN[domain]
-    CONTRACTS --> DOMAIN
-
-    STRATEGIES[strategies] --> STRATEGY_CORE[strategy-core]
-    COMBINATION[combination] --> STRATEGY_CORE
-    BACKTESTING[backtesting] --> STRATEGY_CORE
-    SEARCH[search] --> STRATEGY_CORE
+    CONTRACTS --> DOMAIN["domain"]
+    CAPABILITIES --> DOMAIN
 ```
+
+Sơ đồ trên chỉ thể hiện dependency ở mức tổng quát. Xem ranh giới và trách nhiệm chi tiết của từng module tại [Module View](../architecture/module-view.md).
+
+Dependency chính giữa các capability module:
+
+```mermaid
+flowchart LR
+    STRATEGIES["strategies"] --> STRATEGY_CORE["strategy-core"]
+    COMBINATION["combination"] --> STRATEGY_CORE
+    BACKTESTING["backtesting"] --> STRATEGY_CORE
+    SEARCH["search"] --> STRATEGY_CORE
+
+    LEADERBOARD["leaderboard"] --> EVALUATION["evaluation"]
+
+    PERSISTENCE["persistence"] --> MARKET_PORTS["market-data output ports"]
+    PERSISTENCE --> EXPERIMENT_PORTS["experiment output ports"]
+    PERSISTENCE --> SEARCH_PORTS["search output ports"]
+    PERSISTENCE --> BACKTEST_PORTS["backtesting output ports"]
+    PERSISTENCE --> EVALUATION_PORTS["evaluation output ports"]
+    PERSISTENCE --> LEADERBOARD_PORTS["leaderboard output ports"]
+    PERSISTENCE --> NEWS_PORTS["news output ports"]
+```
+
+Sơ đồ capability chỉ thể hiện các dependency đáng chú ý. Bảng “Dependency được phép” bên dưới là nguồn tham chiếu đầy đủ và chính thức.
 
 Không module nào được tạo dependency ngược từ `domain` vào Spring, database, Binance hoặc một capability module.
 
@@ -70,19 +89,36 @@ Không module nào được tạo dependency ngược từ `domain` vào Spring,
 | Module          | Được phụ thuộc trực tiếp                                                  |
 | --------------- | ------------------------------------------------------------------------- |
 | `domain`        | Không phụ thuộc module nội bộ nào                                         |
-| `contracts`     | `domain` khi integration DTO thực sự cần dùng domain type ổn định         |
+| `contracts`     | `domain` khi integration DTO thực sự cần domain type ổn định              |
 | `market-data`   | `domain`                                                                  |
 | `strategy-core` | `domain`                                                                  |
 | `strategies`    | `domain`, `strategy-core`                                                 |
 | `combination`   | `domain`, `strategy-core`                                                 |
 | `backtesting`   | `domain`, `strategy-core`                                                 |
 | `evaluation`    | `domain`                                                                  |
+| `experiment`    | `domain`                                                                  |
 | `search`        | `domain`, `strategy-core`                                                 |
 | `leaderboard`   | `domain` và public API của `evaluation` khi cần                           |
 | `news`          | `domain`                                                                  |
 | `persistence`   | `domain` và output port công khai của module sở hữu dữ liệu               |
 | `apps/api`      | Public API của các capability module, `contracts`, `persistence`          |
 | `apps/worker`   | Public API cần thiết cho Backtest/Search flow, `contracts`, `persistence` |
+
+#### Giải thích dependency với `contracts`
+
+Từ `contract` trong dự án có hai nghĩa khác nhau:
+
+| Loại contract | Nơi đặt | Ví dụ |
+| ------------- | ------- | ----- |
+| Contract nghiệp vụ nội bộ | Module sở hữu, trong `api/`, `port/in/`, `port/out/` hoặc `event/` | `Strategy`, `RunBacktestUseCase`, `Evaluator` |
+| Integration contract | `modules/contracts` | HTTP DTO, WebSocket event, `BacktestJobMessage` |
+
+Ví dụ:
+
+- `Strategy` là contract nghiệp vụ, nên nằm trong `strategy-core`.
+- `BacktestJobMessage` là integration contract đi qua queue, nên nằm trong `modules/contracts`. `apps/worker` mapping message này thành command nội bộ trước khi gọi `backtesting`.
+
+Không đưa model nội bộ vào `modules/contracts` chỉ để tiện import. Bảng “Dependency được phép” phía trên là nguồn tham chiếu chính thức cho dependency giữa các module.
 
 Thêm dependency ngoài bảng phải cập nhật ADR này hoặc tạo ADR thay thế và được nhóm review.
 
@@ -98,39 +134,10 @@ Thêm dependency ngoài bảng phải cập nhật ADR này hoặc tạo ADR tha
 | `leaderboard`                 | `search` hoặc `backtesting` implementation                           | Leaderboard chỉ nhận Evaluation Result chuẩn hóa              |
 | `news`                        | Sentiment model implementation                                       | Có thể thay crawler/provider và model độc lập                 |
 | Capability module             | Repository/table nội bộ của module khác                              | Bảo vệ data ownership                                         |
-| Capability module             | `modules/contracts` DTO/message                                      | Không để transport/integration model xâm nhập business logic  |
+| Capability module             | DTO/message trong `modules/contracts`                                | Không để transport model xâm nhập business logic              |
 | `apps/web`                    | Binance hoặc Java module nội bộ                                      | Frontend chỉ phụ thuộc API/WebSocket contract chuẩn hóa       |
 
-### 5. Phân biệt hai loại contract
-
-Từ `contract` trong dự án có hai nghĩa khác nhau và không được trộn lẫn:
-
-| Loại | Nơi đặt | Ví dụ | Người sử dụng |
-|---|---|---|---|
-| Contract nội bộ của capability | Module sở hữu: `api/`, `port/in/`, `port/out/`, `event/` | `Strategy`, `StrategyGenerator`, `RunBacktestUseCase`, `Evaluator` | Các Java module trong cùng backend |
-| Integration contract | `modules/contracts` | `BacktestJobMessage`, `CandleUpdatedEvent`, Sentiment request/response | API, Worker, WebSocket, queue hoặc service khác runtime |
-
-`modules/contracts` **không phải** nơi chứa mọi interface hoặc DTO của hệ thống. Module chỉ dùng nội bộ Java phải công bố contract ngay trong module sở hữu.
-
-Ví dụ:
-
-```text
-combination
-  → dùng Strategy từ strategy-core
-  → không cần phụ thuộc modules/contracts
-```
-
-```text
-API/Redis Stream
-  → BacktestJobMessage trong modules/contracts
-  → apps/worker nhận và mapping
-  → RunBacktestCommand trong backtesting
-  → Backtester
-```
-
-`BacktestJobMessage` chỉ tồn tại ở runtime boundary. Business logic trong `backtesting` không nhận hoặc trả queue/WebSocket/HTTP DTO trực tiếp.
-
-### 6. Quy tắc public contract của capability
+### 5. Quy tắc public contract
 
 Mỗi capability module chỉ công khai những thành phần cần thiết qua các package sau:
 
@@ -146,15 +153,14 @@ Implementation, entity nội bộ và helper được đặt trong package `inte
 Quy tắc sử dụng:
 
 1. Module khác gọi public use case/facade, không gọi class `internal`.
-2. Contract nội bộ như `Strategy`, `StrategyGenerator`, `Backtester`, `Evaluator` và `RankingPolicy` nằm trong module sở hữu.
-3. DTO qua HTTP, WebSocket, queue hoặc service boundary nằm trong `contracts` khi thực sự được nhiều runtime dùng chung.
-4. `apps/api`, `apps/worker` hoặc adapter boundary chịu trách nhiệm mapping integration DTO sang command/query/model nội bộ.
-5. Capability module không import `BacktestJobMessage`, HTTP request/response hoặc WebSocket event để chạy business logic.
-6. Model chỉ dùng bên trong một module phải ở lại module đó, không chuyển vào `contracts` để tiện import.
-7. Không tạo `common`, `shared` hoặc `utils` chứa business logic chung chung.
-8. Business logic không nằm trong Controller, Spring configuration, repository adapter hoặc mapper.
+2. Contract nghiệp vụ như `Strategy`, `Backtester`, `Evaluator` hoặc input/output port nằm trong module sở hữu.
+3. DTO qua HTTP, WebSocket, queue hoặc service boundary nằm trong `modules/contracts` khi thực sự được nhiều runtime dùng chung.
+4. `apps/api`, `apps/worker` hoặc adapter mapping integration DTO sang command/query/model nội bộ.
+5. Model chỉ dùng bên trong một module phải ở lại module đó, không chuyển vào `modules/contracts` để tiện import.
+6. Không tạo `common`, `shared` hoặc `utils` chứa business logic chung chung.
+7. Business logic không nằm trong Controller, Spring configuration, repository adapter hoặc mapper.
 
-### 7. Quy tắc điều phối luồng
+### 6. Quy tắc điều phối luồng
 
 `apps/api` hoặc `apps/worker` được phép điều phối nhiều public use case để hoàn thành một application flow. Ví dụ Search loop có thể thực hiện:
 
@@ -176,7 +182,7 @@ Tuy nhiên:
 
 Khi chuyển sang Queue/Worker, contract và boundary vẫn giữ nguyên theo [ADR-0006: Queue và Worker cho Backtest/Search](0006-queue-worker-backtesting.md).
 
-### 8. Quy tắc adapter và dữ liệu
+### 7. Quy tắc adapter và dữ liệu
 
 - Binance là adapter phía ngoài của `market-data`, theo [ADR-0003: Market Data Adapter](0003-market-data-adapter.md).
 - Strategy được đăng ký qua contract/registry, theo [ADR-0005: Strategy Plugin Registry](0005-strategy-plugin-registry.md).
@@ -225,10 +231,10 @@ Khi chuyển sang Queue/Worker, contract và boundary vẫn giữ nguyên theo [
 
 - Tạo ArchUnit test cấm `domain` phụ thuộc Spring, persistence hoặc adapter package.
 - Tạo ArchUnit test cấm `strategies` và `strategy-core` phụ thuộc `persistence` hoặc `market-data`.
-- Tạo architecture test cấm các capability module phụ thuộc trực tiếp `modules/contracts`.
+- Tạo ArchUnit test cấm capability module phụ thuộc trực tiếp `modules/contracts`.
 - Tạo test phát hiện dependency cycle giữa các capability module.
 - Build tool phải khai báo dependency đúng với bảng “Dependency được phép”.
-- Kiểm tra `apps/worker` mapping `BacktestJobMessage` thành `RunBacktestCommand` trước khi gọi public API của `backtesting`.
+- Kiểm tra `apps/worker` mapping `BacktestJobMessage` thành command nội bộ trước khi gọi public API của `backtesting`.
 - Thêm Strategy giả `MACDStrategy` và xác nhận không sửa Backtester/Evaluator.
 - Thêm Search Generator giả và xác nhận không sửa Backtester/Leaderboard.
 - Thay Binance Adapter bằng fixture adapter và xác nhận API response không đổi.

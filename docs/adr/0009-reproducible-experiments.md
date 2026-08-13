@@ -29,6 +29,8 @@ Theo [ADR-0005: Strategy Contract và Plugin Registry](0005-strategy-plugin-regi
 
 ### 1. Experiment là cấu hình bất biến
 
+Module `experiment` sở hữu Experiment Manifest, runtime status và reproduction metadata. Các module `search`, `backtesting`, `evaluation` và `leaderboard` chỉ sở hữu dữ liệu nghiệp vụ của bước tương ứng và liên kết về `experimentId`.
+
 Khi Experiment bắt đầu, hệ thống tạo một **Experiment Manifest bất biến**. Sau khi manifest được xác nhận, không cập nhật trực tiếp các field cấu hình.
 
 Nếu người dùng thay đổi Strategy, dataset, fee hoặc Search configuration, hệ thống tạo Experiment mới và có thể ghi `derivedFromExperimentId`.
@@ -295,6 +297,8 @@ Nếu Experiment sử dụng Sentiment:
 - label, confidence và polarity score đã dùng;
 - chỉ sử dụng News có `publishedAt` không sau thời điểm Strategy đánh giá để tránh look-ahead bias.
 
+`analyzedAt` được lưu để audit và truy vết model run, nhưng không phải điều kiện loại News khỏi dataset lịch sử; tính hợp lệ theo thời gian dựa trên `publishedAt`.
+
 Experiment replay sử dụng Sentiment Result đã freeze, không gọi model mới. Quy tắc service/model thuộc [ADR-0008: Tách Sentiment Service](0008-sentiment-service-boundary.md).
 
 ### 14. API và UI truy vết
@@ -350,6 +354,7 @@ Frontend không tự ghép thông tin từ nhiều nguồn không version. Java 
 - `modules/combination`
 - `modules/backtesting`
 - `modules/evaluation`
+- `modules/experiment`
 - `modules/search`
 - `modules/leaderboard`
 - `modules/news`

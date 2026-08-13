@@ -89,22 +89,22 @@ Tên stream vật lý có thể thêm environment prefix. Version trong tên str
 
 | Thành phần          | Trách nhiệm                                                                                                |
 | ------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `apps/api`          | Validate request, tạo Experiment, ghi command/outbox, trả ID, nhận event để đẩy WebSocket                  |
-| Search Coordinator  | Đọc Search request, sinh candidate theo Search Algorithm, kiểm tra Stop Condition và giới hạn job đang chờ |
-| Backtest Worker     | Tạo Strategy từ Registry, tải dataset, chạy Backtest, Evaluation và lưu kết quả                            |
-| Ranking Handler     | Nhận Candidate Evaluated, tính score, cập nhật Top-K idempotently                                          |
+| `apps/api`          | Validate request, gọi public API của `experiment`, ghi command/outbox, trả ID, nhận event để đẩy WebSocket |
+| Search Coordinator  | Đọc Search request và gọi public API của `search` để sinh candidate, kiểm tra Stop Condition               |
+| Backtest Worker     | Gọi Registry và public API của `backtesting`/`evaluation`, sau đó lưu kết quả qua output port              |
+| Ranking Handler     | Nhận Candidate Evaluated và gọi public API của `leaderboard` để tính score, cập nhật Top-K idempotently     |
 | PostgreSQL/Supabase | Nguồn sự thật của Experiment, candidate, job, result, trades và leaderboard                                |
 | Redis Streams       | Phân phối công việc và event bất đồng bộ                                                                   |
 
 Search Generator chỉ sinh candidate và áp dụng Stop Condition. Backtester, Evaluator và Leaderboard không chứa logic Random Search. Strategy được tạo thông qua [ADR-0005: Strategy Contract và Plugin Registry](0005-strategy-plugin-registry.md).
 
-`apps/worker` là Java/Spring Boot runtime riêng có thể chạy một hoặc nhiều instance. Worker dùng chung module `strategy-core`, `strategies`, `combination`, `backtesting` và `evaluation`; không sao chép business logic từ `apps/api`.
+`apps/worker` là Java/Spring Boot runtime riêng có thể chạy một hoặc nhiều instance. Worker dùng public API của các module `experiment`, `search`, `strategy-core`, `strategies`, `combination`, `backtesting`, `evaluation` và `leaderboard`; không sao chép business logic từ `apps/api`.
 
 ### 4. Job contract
 
 Message queue chỉ chứa ID/reference và thông tin cần điều phối, không nhúng toàn bộ Candle dataset hoặc danh sách Trade.
 
-Ví dụ `BacktestJob`:
+Ví dụ `BacktestJobMessage`:
 
 ```json
 {
@@ -130,6 +130,16 @@ Worker dùng các ID để tải dữ liệu chuẩn từ persistence. Message k
 - Java serialized object;
 - Strategy class name nội bộ;
 - thông tin nhạy cảm hoặc stack trace.
+
+Queue message là integration contract và không được truyền thẳng vào business logic. Worker phải mapping trước khi gọi capability:
+
+```text
+BacktestJobMessage (`modules/contracts`)
+        ↓ apps/worker mapping
+RunBacktestCommand (`modules/backtesting`)
+        ↓
+RunBacktestUseCase / Backtester
+```
 
 ### 5. Delivery và idempotency
 
@@ -314,6 +324,7 @@ Log phải có `correlationId`, `experimentId`, `candidateId` và `jobId` để 
 - `modules/search`
 - `modules/backtesting`
 - `modules/evaluation`
+- `modules/experiment`
 - `modules/leaderboard`
 - `modules/persistence`
 - `infra/compose`

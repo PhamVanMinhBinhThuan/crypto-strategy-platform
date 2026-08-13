@@ -16,6 +16,7 @@ ADR ghi lại quyết định kiến trúc quan trọng, lý do lựa chọn và
 | `0007-postgresql-redis-ownership.md` | Vai trò PostgreSQL và Redis |
 | `0008-sentiment-service-boundary.md` | Tách Sentiment Service |
 | `0009-reproducible-experiments.md` | Versioning và tái lập Experiment |
+| `0010-strategy-generator-contract.md` | Contract thay thế thuật toán sinh Strategy candidate |
 
 ## Quy ước
 
@@ -23,4 +24,3 @@ ADR ghi lại quyết định kiến trúc quan trọng, lý do lựa chọn và
 - Trạng thái: `Proposed`, `Accepted`, `Deprecated`, `Superseded`.
 - ADR mới phải copy từ `template.md`.
 - Quyết định bị thay thế phải tạo ADR mới, không xóa ADR cũ.
-

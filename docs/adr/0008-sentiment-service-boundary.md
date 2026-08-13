@@ -27,7 +27,7 @@ Nếu đưa thư viện ML Python trực tiếp vào Java Backend hoặc để N
 
 Đề bài yêu cầu chứng minh rằng News/Sentiment lỗi thì Realtime Chart vẫn hoạt động và việc thay Sentiment Model không làm Strategy Engine bị ảnh hưởng.
 
-Theo [ADR-0001: Sử dụng Modular Monolith](0001-modular-monolith.md), Sentiment là một runtime boundary riêng. Theo [ADR-0002: Ranh giới giữa các Module](0002-module-boundaries.md), Java module `news` và Strategy chỉ phụ thuộc contract, không phụ thuộc implementation model.
+Theo [ADR-0001: Sử dụng Modular Monolith](0001-modular-monolith.md), Sentiment là một runtime boundary riêng. Theo [ADR-0002: Ranh giới giữa các Module](0002-module-boundaries.md), `apps/api`/`apps/worker` dùng integration contract để gọi Python Service; module `news` dùng contract nghiệp vụ của chính nó, còn Strategy chỉ nhận domain data qua `StrategyContext`. Không capability nào phụ thuộc implementation của model Python.
 
 ## Decision
 
@@ -37,7 +37,7 @@ Ranh giới trách nhiệm:
 
 | Thành phần                 | Trách nhiệm                                                                              |
 | -------------------------- | ---------------------------------------------------------------------------------------- |
-| `modules/news`             | News Provider contract, thu thập, chuẩn hóa, deduplicate và quản lý trạng thái News Item |
+| `modules/news`             | News Provider contract, thu thập, chuẩn hóa, deduplicate News Item; sở hữu Sentiment Result và output port |
 | `modules/persistence`      | Lưu News Item và Sentiment Result qua output port                                        |
 | `apps/api` / `apps/worker` | Điều phối collect/store/analyze, timeout, retry và phát trạng thái cho UI                |
 | `apps/sentiment`           | Python FastAPI service, tải model và phân tích text                                      |
@@ -143,7 +143,7 @@ Python Sentiment Service:
 - không giữ business state của News Item;
 - có thể chạy nhiều instance độc lập.
 
-Java Backend/Worker sở hữu orchestration và persistence. Cách này tránh hai runtime cùng sửa một bảng và giữ data ownership theo [ADR-0007: PostgreSQL/Supabase và Redis](0007-postgresql-redis-ownership.md).
+Module `news` sở hữu News Item và Sentiment Result; Java Backend/Worker điều phối qua public API và `persistence` triển khai output port của `news`. Cách này tránh hai runtime cùng sửa một bảng và giữ data ownership theo [ADR-0007: PostgreSQL/Supabase và Redis](0007-postgresql-redis-ownership.md).
 
 ### 5. Xử lý bất đồng bộ
 
@@ -251,7 +251,7 @@ Sentiment Strategy là phần mở rộng, không bắt buộc MVP. Nếu triể
 - Strategy chỉ nhận `sentimentData` đã chuẩn hóa trong `StrategyContext`;
 - Strategy không gọi Python Service trực tiếp;
 - Strategy descriptor/version được đăng ký theo [ADR-0005: Strategy Contract và Plugin Registry](0005-strategy-plugin-registry.md);
-- Backtest dataset phải có sentiment data đúng thời điểm lịch sử để tránh look-ahead bias;
+- Backtest dataset chỉ dùng News có `publishedAt <= evaluationTime`; `analyzedAt` được lưu để audit nhưng không quyết định tính hợp lệ lịch sử;
 - nếu thiếu sentiment, behavior phải được feature spec quy định rõ.
 
 ## Alternatives Considered
@@ -341,7 +341,7 @@ Sentiment Strategy là phần mở rộng, không bắt buộc MVP. Nếu triể
 
 - **Risk**: Sentiment Strategy tạo look-ahead bias trong Backtest.
 
-  **Mitigation**: Chỉ dùng News đã published/analyzed trước evaluation time và version dataset lịch sử.
+  **Mitigation**: Chỉ dùng News có `publishedAt` không sau `evaluationTime`, freeze Sentiment Result/model version và lưu `analyzedAt` để audit.
 
 - **Risk**: Python dependency/model làm Docker image quá lớn.
 

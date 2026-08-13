@@ -147,7 +147,7 @@ WebSocket giữ thứ tự message trong một connection, nhưng reconnect ho�
 Quy tắc xử lý:
 
 - Frontend deduplicate theo `eventId` trong phạm vi cửa sổ gần nhất;
-- Candle được nhận diện bằng `provider + pair + timeframe + openTime`;
+- Backend nhận diện Candle bằng `provider + pair + timeframe + openTime`; Frontend dùng `pair + timeframe + openTime` vì public payload không làm lộ provider;
 - update mới hơn cho cùng Candle thay thế update cũ;
 - Candle có `closed = true` là trạng thái cuối của khoảng nến đó;
 - Frontend bỏ qua update cũ hơn trạng thái Candle hiện có;
@@ -299,4 +299,3 @@ Nếu sau này có user/private experiment, authentication và authorization ph�
 
 - Supersedes: None
 - Superseded by: None
-

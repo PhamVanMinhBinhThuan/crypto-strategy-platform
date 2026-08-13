@@ -98,12 +98,12 @@ TTL cụ thể được cấu hình theo môi trường và feature plan, không
 | ------------------------------- | ------------------------------------------------------------------ |
 | `market-data`                   | Pair, Candle, Dataset market metadata                              |
 | `strategy-core` / `combination` | Strategy Definition, version, parameters và Composite Definition   |
-| `search`                        | Search Experiment configuration, Candidate và Stop Condition state |
+| `experiment`                    | Experiment Manifest, runtime status và reproduction metadata       |
+| `search`                        | Candidate, Search configuration và Stop Condition state             |
 | `backtesting`                   | Backtest Job execution, Trade và simulation result                 |
 | `evaluation`                    | Metrics và Evaluation Result                                       |
 | `leaderboard`                   | Ranking score, Top-K entry và revision                             |
-| `news`                          | News Item và provider metadata                                     |
-| Sentiment boundary              | Sentiment Result và model version thông qua contract đã chốt       |
+| `news`                          | News Item, provider metadata, Sentiment Result và model version     |
 | Platform persistence            | Outbox, processed message và migration metadata                    |
 
 Quy tắc ownership:
@@ -263,6 +263,7 @@ Quy trình này tuân theo Transactional Outbox trong [ADR-0006: Queue và Worke
 - `modules/search`
 - `modules/backtesting`
 - `modules/evaluation`
+- `modules/experiment`
 - `modules/leaderboard`
 - `modules/news`
 - `apps/api`
