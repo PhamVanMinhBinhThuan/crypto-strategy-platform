@@ -174,24 +174,24 @@ sequenceDiagram
     participant News as Java News Module
     participant DB as PostgreSQL
     participant Worker
-    participant Sentiment as Python/FastAPI
+    participant Sentiment as Python Sentiment Service
     participant API
     participant Web
 
     Provider-->>News: Raw news payload
     News->>News: Normalize, sanitize, contentHash, deduplicate
     News->>DB: Store News Item as PENDING
-    Worker->>DB: Claim analysis job; mark ANALYZING
+    Worker->>DB: Claim analysis job and mark ANALYZING
     Worker->>Sentiment: Versioned internal HTTP request
     alt Valid response
         Sentiment-->>Worker: Label, confidence, score, modelVersion
-        Worker->>Worker: Validate contract/ranges
-        Worker->>DB: Store immutable Sentiment Result; ANALYZED
-    else Timeout/429/5xx
-        Worker->>Worker: Limited retry/backoff/circuit breaker
-        Worker->>DB: Keep PENDING/FAILED_RETRYABLE or FAILED
+        Worker->>Worker: Validate contract and value ranges
+        Worker->>DB: Store result and mark ANALYZED
+    else Retryable failure
+        Worker->>Worker: Apply limited retry and circuit breaker
+        Worker->>DB: Keep PENDING or mark FAILED
     end
-    API->>DB: Read News/Sentiment view
+    API->>DB: Read News and Sentiment view
     API-->>Web: News Item + analysis state/result
 ```
 
