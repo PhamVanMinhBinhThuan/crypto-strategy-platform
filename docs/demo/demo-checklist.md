@@ -42,6 +42,14 @@
 - [ ] Queue/Worker scalability
 - [ ] Fault isolation
 - [ ] Experiment reproducibility
+- [ ] Extensibility proof: thêm MACD với downstream không đổi
+- [ ] Replaceability proof: thêm/đổi Strategy Generator
+- [ ] Scale proof: so sánh 1 và 3 Worker, kiểm tra duplicate
+- [ ] Failure proof: tắt Sentiment và ngắt/reconnect Binance
+- [ ] Provenance proof: Top-K truy về exact Manifest/version
+- [ ] Evidence được gắn commit/tag và không dùng số liệu giả
+
+Chi tiết target và trạng thái bằng chứng nằm trong [Architecture Evidence](../architecture/architecture-evidence.md).
 
 ## Sau demo
 

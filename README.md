@@ -269,21 +269,18 @@ Một backtest chỉ được xem là có thể tái lập khi cùng strategy ve
 
 ## Tài liệu kiến trúc
 
-Các tài liệu sẽ được bổ sung trong `docs/`:
+- [Architecture Overview](docs/architecture/architecture-overview.md)
+- [C4 System Context](docs/architecture/system-context.md)
+- [C4 Container View](docs/architecture/container-view.md)
+- [Backend Module View](docs/architecture/module-view.md)
+- [Dynamic Data Flows](docs/architecture/data-flows.md)
+- [Data Model and Ownership](docs/architecture/data-model-overview.md)
+- [Deployment View](docs/architecture/deployment-view.md)
+- [Quality Attribute Scenarios](docs/architecture/quality-attributes.md)
+- [Architecture Evidence](docs/architecture/architecture-evidence.md)
+- [Architecture Decision Records](docs/adr/README.md)
 
-- System Context và Container/Component diagrams;
-- Data Flow, Realtime Flow và Search/Backtest Flow;
-- quality attribute scenarios;
-- API và event contracts;
-- Architecture Decision Records (ADR).
-
-ADR dự kiến đầu tiên:
-
-- `ADR-001`: giao tiếp realtime bằng WebSocket;
-- `ADR-002`: Strategy Plugin Architecture;
-- `ADR-003`: queue và worker cho backtesting;
-- `ADR-004`: tách biệt News Collector và Sentiment Service;
-- `ADR-005`: version hóa strategy và experiment reproducibility.
+Các view mô tả target MVP architecture. Benchmark và runtime evidence chỉ được cập nhật sau khi có implementation và phép đo thật.
 
 ## Quy ước đóng góp
 
