@@ -2,6 +2,8 @@
 
 ADR ghi lại quyết định kiến trúc quan trọng, lý do lựa chọn và hệ quả.
 
+Các ADR được tổng hợp thành C4/Dynamic View và ma trận kiểm chứng tại [Architecture Documentation](../architecture/README.md).
+
 ## Danh sách file
 
 | File | Quyết định |

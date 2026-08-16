@@ -1,70 +1,110 @@
-# Module View
+# C4 Level 3 — Backend Module View
 
-**Status**: Draft  
-**Owners**: Tech Lead và Module Owners
+**Status**: Draft — Target MVP Architecture
+
+**Last Updated**: 2026-08-14
+
+**Owner**: Văn Minh
 
 ## Purpose
 
-[Mô tả module boundaries bên trong backend]
+View này mô tả ranh giới module bên trong Java Backend. [ADR-0002](../adr/0002-module-boundaries.md) là nguồn chính thức cho dependency được phép; tài liệu này giải thích trách nhiệm và cách các module cộng tác.
 
-## Module Diagram
+## Bounded Contexts
+
+| Context | Capability chính | Khái niệm tiêu biểu |
+| --- | --- | --- |
+| Market Data | `market-data` | Pair, Timeframe, Candle, Dataset |
+| Strategy | `strategy-core`, `strategies`, `combination` | Strategy Definition, Signal, Combination Policy |
+| Experiment | `experiment`, `search`, `backtesting`, `evaluation`, `leaderboard` | Manifest, Candidate, Trade, Metrics, Ranking |
+| News Intelligence | `news` và Sentiment boundary | News Item, Sentiment Result, Model Version |
+
+`Signal` là quyết định phân tích của Strategy; `Trade` là giao dịch mô phỏng của Backtester. Hai khái niệm không được dùng thay nhau.
+
+## Dependency Direction
+
+```mermaid
+flowchart TD
+    WEB["apps/web"] -->|"HTTP / WebSocket"| API["apps/api"]
+    WORKER["apps/worker"] -->|"HTTP / JSON"| SENTIMENT["apps/sentiment"]
+    API --> CONTRACTS["contracts"]
+    WORKER --> CONTRACTS
+    API --> CAP["Capability public APIs"]
+    WORKER --> CAP
+    API --> PERSISTENCE["persistence"]
+    WORKER --> PERSISTENCE
+    PERSISTENCE --> PORTS["Capability output ports"]
+    CONTRACTS --> DOMAIN["domain"]
+    CAP --> DOMAIN
+```
 
 ```mermaid
 flowchart LR
-    API[API]
-    DOMAIN[Domain]
-    MARKET[Market Data]
-    STRATEGY[Strategy Core]
-    BACKTEST[Backtesting]
-    EVALUATION[Evaluation]
-    SEARCH[Search]
-    LEADERBOARD[Leaderboard]
-    NEWS[News]
-    PERSISTENCE[Persistence]
-
-    API --> MARKET
-    API --> DOMAIN
-    MARKET --> DOMAIN
-    STRATEGY --> DOMAIN
-    BACKTEST --> STRATEGY
-    EVALUATION --> DOMAIN
-    SEARCH --> STRATEGY
-    PERSISTENCE --> DOMAIN
+    STRATEGIES["strategies"] --> CORE["strategy-core"]
+    COMBINATION["combination"] --> CORE
+    BACKTEST["backtesting"] --> CORE
+    SEARCH["search"] --> CORE
+    LEADERBOARD["leaderboard"] --> EVALUATION["evaluation public API"]
+    PERSISTENCE["persistence"] --> MARKET_PORT["market-data ports"]
+    PERSISTENCE --> EXP_PORT["experiment ports"]
+    PERSISTENCE --> SEARCH_PORT["search ports"]
+    PERSISTENCE --> BACKTEST_PORT["backtesting ports"]
+    PERSISTENCE --> EVAL_PORT["evaluation ports"]
+    PERSISTENCE --> RANK_PORT["leaderboard ports"]
+    PERSISTENCE --> NEWS_PORT["news ports"]
 ```
+
+Mũi tên `A --> B` nghĩa là code của A được phép phụ thuộc public contract của B; không có nghĩa A được truy cập implementation hoặc bảng nội bộ của B.
 
 ## Module Catalog
 
-| Module | Trách nhiệm | Public Contract | Không được làm | Owner |
-| --- | --- | --- | --- | --- |
-| [Điền] | [Điền] | [Điền] | [Điền] | [Điền] |
-
-## Dependency Rules
-
-- [Module nào được phụ thuộc module nào]
-- [Domain dependency rule]
-- [Strategy dependency rule]
-- [Persistence dependency rule]
-- [Frontend/API boundary rule]
+| Module | Trách nhiệm | Public boundary | Không được làm |
+| --- | --- | --- | --- |
+| `domain` | Kiểu/value object và invariant ổn định | Domain types | Phụ thuộc Spring/provider/database |
+| `contracts` | DTO/message qua HTTP, WebSocket, queue/runtime | Versioned integration contract | Chứa business implementation hoặc internal entity |
+| `market-data` | Provider port, Binance adapter, canonical Candle, recovery | Market query/subscription và output ports | Để Binance model thoát ra ngoài |
+| `strategy-core` | `Strategy`, decision, descriptor và registry | Strategy/Registry API | Gọi network/database/Spring |
+| `strategies` | MA, RSI, Bollinger, Support/Resistance | Plugin implementations | Điều phối Backtest/Search |
+| `combination` | Composite Strategy và Combination Policy | Composite factory/policy API | Tính metrics/ranking |
+| `experiment` | Immutable manifest, runtime status và reproduction | Experiment use cases/ports | Chứa Strategy hoặc Backtest algorithm |
+| `search` | Generator Registry, candidate generation và stop condition | `StrategyGenerator`, coordinator-facing API | Chạy Backtest hoặc cập nhật Top-K |
+| `backtesting` | Mô phỏng execution và tạo Trade/Result | Backtest use case/ports | Biết generator/ranking implementation |
+| `evaluation` | Tính metrics từ Backtest Result | Evaluator API/ports | Tạo Strategy hoặc Top-K |
+| `leaderboard` | Score, tie-break, Top-K và revision | Ranking/query API/ports | Chạy Backtest hoặc Search |
+| `news` | Provider contract, normalize/deduplicate News và sentiment ownership | News use cases/ports | Phụ thuộc model Python cụ thể |
+| `persistence` | JDBC/Redis adapter triển khai output port | Adapter implementations | Chứa business policy hoặc được capability import ngược |
 
 ## Allowed Dependencies
 
-| Module | Có thể phụ thuộc |
+| Module | Có thể phụ thuộc trực tiếp |
 | --- | --- |
-| [Điền] | [Điền] |
+| `domain` | Không module nội bộ nào |
+| `contracts` | `domain` khi DTO cần stable domain type |
+| `market-data`, `strategy-core`, `evaluation`, `experiment`, `news` | `domain` |
+| `strategies`, `combination`, `backtesting`, `search` | `domain`, `strategy-core` |
+| `leaderboard` | `domain`, public API của `evaluation` khi cần |
+| `persistence` | `domain`, output port công khai của data owner |
+| `apps/api` | Capability public APIs, `contracts`, `persistence` |
+| `apps/worker` | Public APIs cần cho background flow, `contracts`, `persistence` |
 
 ## Forbidden Dependencies
 
-| From | Không được phụ thuộc | Lý do |
-| --- | --- | --- |
-| [Điền] | [Điền] | [Điền] |
+- Capability module không phụ thuộc `apps/*`, Controller, database adapter hoặc transport DTO.
+- Strategy không gọi Market Data Provider, Persistence hoặc Sentiment Service.
+- Search không phụ thuộc implementation của Backtesting, Evaluation hoặc Leaderboard.
+- Backtesting không phụ thuộc Strategy implementation cụ thể hoặc Search.
+- Module không import repository/table/entity nội bộ của data owner khác.
+- Web không import Java module hoặc xử lý Strategy/Backtest/Ranking business logic.
+- Không tạo `shared/common/utils` làm nơi chứa business model không có owner.
 
-## Enforcement
+## Public Contract and Enforcement
 
-- [ArchUnit rule]
-- [Code review rule]
-- [Build/module rule]
+Public surface của một capability dùng `api/`, `port/in/`, `port/out/` hoặc `event/`; implementation nằm trong `internal` hoặc package không export.
 
-## Open Questions
+Kế hoạch enforcement:
 
-- [Câu hỏi chưa chốt]
-
+1. Build/module boundary ngăn import package nội bộ.
+2. ArchUnit kiểm tra dependency direction và các forbidden dependency.
+3. Contract test cho Strategy, Generator, provider adapter và queue message.
+4. Pull Request review bắt buộc khi thêm dependency hoặc cross-module read model.
+5. Thêm dependency ngoài bảng phải cập nhật ADR-0002 hoặc ADR thay thế.
