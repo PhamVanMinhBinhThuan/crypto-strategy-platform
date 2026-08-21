@@ -2,12 +2,15 @@ openapi: 3.1.0
 
 info:
   title: Crypto Strategy Lab API
-  version: 0.0.0
-  description: >-
-    Skeleton OpenAPI contract. Endpoints and schemas are added after each
-    feature contract is reviewed.
+  version: 0.1.0
+  description: |-
+    Draft public REST contract for the Crypto Strategy Lab MVP.
+    Long-running Backtest and Experiment operations are asynchronous.
+    WebSocket messages are versioned separately in `websocket-events.md`.
 
-servers: []
+servers:
+  - url: /api/v1
+    description: Current host
 
 tags:
   - name: Market
@@ -17,11 +20,785 @@ tags:
   - name: Leaderboard
   - name: News
 
-paths: {}
+paths:
+  /candles:
+    get:
+      tags: [Market]
+      operationId: listCandles
+      summary: Get historical candles
+      description: Candles are ordered by `openTime`; `startTime` is inclusive and `endTime` is exclusive.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Pair'
+        - $ref: '#/components/parameters/Timeframe'
+        - $ref: '#/components/parameters/StartTime'
+        - $ref: '#/components/parameters/EndTime'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Historical candles returned successfully.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandlePage' }
+              example:
+                items:
+                  - pair: BTC/USDT
+                    timeframe: 5m
+                    openTime: '2026-08-16T01:00:00Z'
+                    closeTime: '2026-08-16T01:05:00Z'
+                    open: '59120.10'
+                    high: '59280.50'
+                    low: '59080.00'
+                    close: '59210.25'
+                    volume: '18.425'
+                    closed: true
+                nextCursor: null
+                hasMore: false
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '504': { $ref: '#/components/responses/GatewayTimeout' }
+
+  /strategies:
+    get:
+      tags: [Strategies]
+      operationId: listStrategies
+      summary: List registered strategies
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Registered strategy descriptors.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StrategyPage' }
+              example:
+                items:
+                  - strategyId: ma-crossover
+                    version: 1.0.0
+                    displayName: MA Crossover
+                    supportedSignals: [BUY, SELL, HOLD]
+                    parameters:
+                      - name: fastPeriod
+                        type: INTEGER
+                        required: true
+                        minimum: 2
+                        maximum: 100
+                        defaultValue: 20
+                nextCursor: null
+                hasMore: false
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /backtests:
+    post:
+      tags: [Backtesting]
+      operationId: startBacktest
+      summary: Start a Backtest
+      description: Creates an immutable request and queues execution. Retries must reuse the same idempotency key.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StartBacktestRequest' }
+            example:
+              datasetId: 01JDATASET00000000000000001
+              strategy:
+                strategyId: ma-crossover
+                version: 1.0.0
+                parameters: { fastPeriod: 20, slowPeriod: 50 }
+              configuration:
+                initialCapital: '10000.00'
+                feeRate: '0.001'
+                positionMode: LONG_ONLY
+                executionPriceRule: CANDLE_CLOSE
+      responses:
+        '202':
+          description: Backtest accepted for asynchronous execution.
+          headers:
+            Location:
+              description: URL of the Job used to track Backtest execution.
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BacktestAccepted' }
+              example:
+                backtestId: 01JBACKTEST0000000000000001
+                jobId: 01JJOB00000000000000000001
+                status: QUEUED
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /backtest-results/{resultId}:
+    get:
+      tags: [Backtesting]
+      operationId: getBacktestResult
+      summary: Get an immutable Backtest result
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/ResultId'
+      responses:
+        '200':
+          description: Backtest result returned successfully.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BacktestResult' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /jobs/{jobId}:
+    get:
+      tags: [Backtesting, Experiments]
+      operationId: getJob
+      summary: Get asynchronous Job status
+      description: A failed Job is returned with `200 OK` and `status` set to `FAILED`.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '200':
+          description: Current Job state.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+              example:
+                jobId: 01JJOB00000000000000000002
+                status: FAILED
+                failure:
+                  code: JOB_EXECUTION_TIMEOUT
+                  message: The job exceeded its execution timeout.
+                  retryable: true
+                  attempt: 3
+                  failedAt: '2026-08-16T02:15:00Z'
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /experiments:
+    post:
+      tags: [Experiments]
+      operationId: startExperiment
+      summary: Start a strategy search Experiment
+      description: Freezes the search configuration and queues execution. A finite stop condition is required.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StartExperimentRequest' }
+            example:
+              name: BTC MA random search
+              datasetId: 01JDATASET00000000000000001
+              generator: { generatorId: random, version: 1.0.0, seed: 20260816 }
+              searchSpace:
+                strategyId: ma-crossover
+                strategyVersion: 1.0.0
+                parameters:
+                  fastPeriod: { minimum: 5, maximum: 30 }
+                  slowPeriod: { minimum: 40, maximum: 120 }
+              stopCondition: { maximumCandidates: 100, maximumDurationSeconds: 300 }
+              topK: 10
+      responses:
+        '202':
+          description: Experiment accepted for asynchronous execution.
+          headers:
+            Location:
+              description: URL of the Job used to track Experiment execution.
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExperimentAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /experiments/{experimentId}/leaderboard:
+    get:
+      tags: [Leaderboard]
+      operationId: getExperimentLeaderboard
+      summary: Get the current Top-K Leaderboard
+      description: Ordering follows the Experiment's versioned ranking policy.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/ExperimentId'
+        - $ref: '#/components/parameters/LeaderboardLimit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Latest Leaderboard revision.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Leaderboard' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /news-items:
+    get:
+      tags: [News]
+      operationId: listNewsItems
+      summary: List normalized news items
+      description: Returns newest items first with deterministic ID tie-breaking.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/OptionalPair'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: News items returned successfully.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NewsItemPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
 components:
-  schemas: {}
-  parameters: {}
-  responses: {}
-  securitySchemes: {}
+  headers:
+    CorrelationId:
+      description: Correlation identifier generated or accepted by the API.
+      schema: { $ref: '#/components/schemas/OpaqueId' }
+    RetryAfter:
+      description: Seconds the client should wait before retrying.
+      schema: { type: integer, minimum: 1 }
 
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: Optional client correlation ID; an invalid value may be replaced.
+      schema: { $ref: '#/components/schemas/OpaqueId' }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: Reusing this key with a different canonical payload returns `409 Conflict`.
+      schema: { type: string, minLength: 1, maxLength: 255 }
+    Pair:
+      name: pair
+      in: query
+      required: true
+      schema: { $ref: '#/components/schemas/Pair' }
+    OptionalPair:
+      name: pair
+      in: query
+      required: false
+      schema: { $ref: '#/components/schemas/Pair' }
+    Timeframe:
+      name: timeframe
+      in: query
+      required: true
+      schema: { $ref: '#/components/schemas/Timeframe' }
+    StartTime:
+      name: startTime
+      in: query
+      required: true
+      description: Inclusive UTC start.
+      schema: { type: string, format: date-time }
+    EndTime:
+      name: endTime
+      in: query
+      required: true
+      description: Exclusive UTC end; must be later than `startTime`.
+      schema: { type: string, format: date-time }
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+    LeaderboardLimit:
+      name: limit
+      in: query
+      required: false
+      description: Bounded by the Experiment's configured Top-K.
+      schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+    Cursor:
+      name: cursor
+      in: query
+      required: false
+      description: Opaque cursor returned by the previous page.
+      schema: { type: string, minLength: 1 }
+    ResultId:
+      name: resultId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/OpaqueId' }
+    JobId:
+      name: jobId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/OpaqueId' }
+    ExperimentId:
+      name: experimentId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/OpaqueId' }
+
+  responses:
+    BadRequest:
+      description: Request syntax, schema, query parameter, or cursor is invalid.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: A requested or referenced resource was not found.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: Resource state, version, immutability, or idempotency conflict.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    UnsupportedMediaType:
+      description: Request Content-Type is unsupported.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    UnprocessableContent:
+      description: Structurally valid request violates a domain rule.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    TooManyRequests:
+      description: Client rate limit or quota exceeded.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    BadGateway:
+      description: An upstream response could not be mapped to the canonical contract.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    ServiceUnavailable:
+      description: A provider, database, queue, or internal service is temporarily unavailable.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    GatewayTimeout:
+      description: An upstream dependency exceeded its timeout.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+        Retry-After: { $ref: '#/components/headers/RetryAfter' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  schemas:
+    OpaqueId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: Opaque public identifier; clients must not parse it.
+    Pair:
+      type: string
+      pattern: '^[A-Z0-9]+/[A-Z0-9]+$'
+      examples: [BTC/USDT]
+    Timeframe:
+      type: string
+      enum: [1m, 5m, 15m, 1h, 4h, 1d]
+    DecimalString:
+      type: string
+      pattern: '^-?(0|[1-9][0-9]*)(\.[0-9]+)?$'
+    NonNegativeDecimalString:
+      type: string
+      pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+
+    PaginationFields:
+      type: object
+      required: [nextCursor, hasMore]
+      properties:
+        nextCursor: { type: [string, 'null'], minLength: 1 }
+        hasMore: { type: boolean }
+
+    Candle:
+      type: object
+      additionalProperties: false
+      required: [pair, timeframe, openTime, closeTime, open, high, low, close, volume, closed]
+      properties:
+        pair: { $ref: '#/components/schemas/Pair' }
+        timeframe: { $ref: '#/components/schemas/Timeframe' }
+        openTime: { type: string, format: date-time }
+        closeTime: { type: string, format: date-time }
+        open: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        high: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        low: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        close: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        volume: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        closed: { type: boolean }
+    CandlePage:
+      allOf:
+        - $ref: '#/components/schemas/PaginationFields'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/Candle' }
+
+    Signal:
+      type: string
+      enum: [BUY, SELL, HOLD]
+    StrategyParameterType:
+      type: string
+      enum: [INTEGER, DECIMAL, BOOLEAN, STRING, ENUM]
+    StrategyParameterDescriptor:
+      type: object
+      additionalProperties: false
+      required: [name, type, required]
+      properties:
+        name: { type: string, minLength: 1 }
+        type: { $ref: '#/components/schemas/StrategyParameterType' }
+        required: { type: boolean }
+        minimum: { type: [number, 'null'] }
+        maximum: { type: [number, 'null'] }
+        defaultValue: {}
+        allowedValues:
+          type: array
+          items: {}
+    StrategyDescriptor:
+      type: object
+      additionalProperties: false
+      required: [strategyId, version, displayName, supportedSignals, parameters]
+      properties:
+        strategyId: { type: string, minLength: 1 }
+        version: { type: string, minLength: 1 }
+        displayName: { type: string, minLength: 1 }
+        supportedSignals:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/Signal' }
+        parameters:
+          type: array
+          items: { $ref: '#/components/schemas/StrategyParameterDescriptor' }
+    StrategyPage:
+      allOf:
+        - $ref: '#/components/schemas/PaginationFields'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/StrategyDescriptor' }
+
+    StrategySelection:
+      type: object
+      additionalProperties: false
+      required: [strategyId, version, parameters]
+      properties:
+        strategyId: { type: string, minLength: 1 }
+        version: { type: string, minLength: 1 }
+        parameters:
+          type: object
+          description: Values validated against the selected strategy's versioned schema.
+    BacktestConfiguration:
+      type: object
+      additionalProperties: false
+      required: [initialCapital, feeRate, positionMode, executionPriceRule]
+      properties:
+        initialCapital: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        feeRate: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        positionMode: { type: string, enum: [LONG_ONLY] }
+        executionPriceRule: { type: string, enum: [CANDLE_CLOSE] }
+    StartBacktestRequest:
+      type: object
+      additionalProperties: false
+      required: [datasetId, strategy, configuration]
+      properties:
+        datasetId: { $ref: '#/components/schemas/OpaqueId' }
+        strategy: { $ref: '#/components/schemas/StrategySelection' }
+        configuration: { $ref: '#/components/schemas/BacktestConfiguration' }
+    BacktestAccepted:
+      type: object
+      additionalProperties: false
+      required: [backtestId, jobId, status]
+      properties:
+        backtestId: { $ref: '#/components/schemas/OpaqueId' }
+        jobId: { $ref: '#/components/schemas/OpaqueId' }
+        status: { type: string, const: QUEUED }
+    JobStatus:
+      type: string
+      enum: [QUEUED, RUNNING, COMPLETED, FAILED, CANCELLED]
+    JobFailure:
+      type: object
+      additionalProperties: false
+      required: [code, message, retryable, attempt, failedAt]
+      properties:
+        code:
+          type: string
+          enum:
+            - JOB_EXECUTION_TIMEOUT
+            - JOB_RETRY_EXHAUSTED
+            - JOB_CANCELLED
+            - JOB_MESSAGE_INVALID
+            - JOB_DEPENDENCY_UNAVAILABLE
+            - JOB_DATASET_NOT_READY
+            - JOB_DATASET_INTEGRITY_FAILED
+            - JOB_STRATEGY_VERSION_UNAVAILABLE
+            - JOB_STRATEGY_PARAMETERS_INVALID
+            - JOB_BACKTEST_FAILED
+            - JOB_EVALUATION_FAILED
+            - JOB_SENTIMENT_ANALYSIS_FAILED
+            - JOB_INTERNAL_ERROR
+        message: { type: string, minLength: 1 }
+        retryable: { type: boolean }
+        attempt: { type: integer, minimum: 1 }
+        failedAt: { type: string, format: date-time }
+    Job:
+      type: object
+      additionalProperties: false
+      required: [jobId, status]
+      properties:
+        jobId: { $ref: '#/components/schemas/OpaqueId' }
+        status: { $ref: '#/components/schemas/JobStatus' }
+        failure:
+          oneOf:
+            - $ref: '#/components/schemas/JobFailure'
+            - type: 'null'
+          description: Present only when `status` is `FAILED`.
+    BacktestMetrics:
+      type: object
+      additionalProperties: false
+      required: [totalReturn, winRate, maximumDrawdown, numberOfTrades]
+      properties:
+        totalReturn: { $ref: '#/components/schemas/DecimalString' }
+        winRate: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        maximumDrawdown: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        numberOfTrades: { type: integer, minimum: 0 }
+    Trade:
+      type: object
+      additionalProperties: false
+      required: [tradeId, side, entryTime, entryPrice, exitTime, exitPrice, profitLoss]
+      properties:
+        tradeId: { $ref: '#/components/schemas/OpaqueId' }
+        side: { type: string, enum: [LONG, SHORT] }
+        entryTime: { type: string, format: date-time }
+        entryPrice: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        exitTime: { type: string, format: date-time }
+        exitPrice: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        profitLoss: { $ref: '#/components/schemas/DecimalString' }
+    BacktestResult:
+      type: object
+      additionalProperties: false
+      required: [backtestResultId, status, metrics, trades]
+      properties:
+        backtestResultId: { $ref: '#/components/schemas/OpaqueId' }
+        status: { type: string, const: COMPLETED }
+        metrics: { $ref: '#/components/schemas/BacktestMetrics' }
+        trades:
+          type: array
+          items: { $ref: '#/components/schemas/Trade' }
+
+    GeneratorSelection:
+      type: object
+      additionalProperties: false
+      required: [generatorId, version, seed]
+      properties:
+        generatorId: { type: string, minLength: 1 }
+        version: { type: string, minLength: 1 }
+        seed: { type: integer, format: int64 }
+    NumericRange:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        minimum: { type: number }
+        maximum: { type: number }
+        step: { type: number, exclusiveMinimum: 0 }
+    SearchSpace:
+      type: object
+      additionalProperties: false
+      required: [strategyId, strategyVersion, parameters]
+      properties:
+        strategyId: { type: string, minLength: 1 }
+        strategyVersion: { type: string, minLength: 1 }
+        parameters:
+          type: object
+          minProperties: 1
+          additionalProperties: { $ref: '#/components/schemas/NumericRange' }
+    StopCondition:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        maximumCandidates: { type: integer, minimum: 1 }
+        maximumDurationSeconds: { type: integer, minimum: 1 }
+    StartExperimentRequest:
+      type: object
+      additionalProperties: false
+      required: [name, datasetId, generator, searchSpace, stopCondition, topK]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        datasetId: { $ref: '#/components/schemas/OpaqueId' }
+        generator: { $ref: '#/components/schemas/GeneratorSelection' }
+        searchSpace: { $ref: '#/components/schemas/SearchSpace' }
+        stopCondition: { $ref: '#/components/schemas/StopCondition' }
+        topK: { type: integer, minimum: 1, maximum: 100 }
+    ExperimentAccepted:
+      type: object
+      additionalProperties: false
+      required: [experimentId, jobId, status]
+      properties:
+        experimentId: { $ref: '#/components/schemas/OpaqueId' }
+        jobId: { $ref: '#/components/schemas/OpaqueId' }
+        status: { type: string, const: QUEUED }
+
+    LeaderboardEntry:
+      type: object
+      additionalProperties: false
+      required: [rank, candidateId, score, strategyId, strategyVersion, parameters, backtestResultId]
+      properties:
+        rank: { type: integer, minimum: 1 }
+        candidateId: { $ref: '#/components/schemas/OpaqueId' }
+        score: { $ref: '#/components/schemas/DecimalString' }
+        strategyId: { type: string, minLength: 1 }
+        strategyVersion: { type: string, minLength: 1 }
+        parameters: { type: object }
+        backtestResultId: { $ref: '#/components/schemas/OpaqueId' }
+    Leaderboard:
+      allOf:
+        - $ref: '#/components/schemas/PaginationFields'
+        - type: object
+          required: [experimentId, revision, rankingPolicyVersion, items]
+          properties:
+            experimentId: { $ref: '#/components/schemas/OpaqueId' }
+            revision: { type: integer, minimum: 0 }
+            rankingPolicyVersion: { type: string, minLength: 1 }
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/LeaderboardEntry' }
+
+    Sentiment:
+      type: object
+      additionalProperties: false
+      required: [label, score, modelVersion]
+      properties:
+        label: { type: string, enum: [POSITIVE, NEUTRAL, NEGATIVE] }
+        score: { $ref: '#/components/schemas/DecimalString' }
+        modelVersion: { type: string, minLength: 1 }
+    NewsItem:
+      type: object
+      additionalProperties: false
+      required: [newsItemId, title, source, url, publishedAt, sentiment]
+      properties:
+        newsItemId: { $ref: '#/components/schemas/OpaqueId' }
+        title: { type: string, minLength: 1 }
+        source: { type: string, minLength: 1 }
+        url: { type: string, format: uri }
+        publishedAt: { type: string, format: date-time }
+        sentiment:
+          oneOf:
+            - $ref: '#/components/schemas/Sentiment'
+            - type: 'null'
+          description: Null while sentiment is unavailable or pending.
+    NewsItemPage:
+      allOf:
+        - $ref: '#/components/schemas/PaginationFields'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/NewsItem' }
+
+    FieldError:
+      type: object
+      additionalProperties: false
+      required: [field, reason]
+      properties:
+        field: { type: string, minLength: 1 }
+        reason: { type: string, minLength: 1 }
+    ErrorDetails:
+      type: object
+      additionalProperties: true
+      properties:
+        fieldErrors:
+          type: array
+          items: { $ref: '#/components/schemas/FieldError' }
+        resourceType: { type: string }
+        resourceId: { $ref: '#/components/schemas/OpaqueId' }
+        currentState: { type: string }
+        allowedStates:
+          type: array
+          items: { type: string }
+        retryable: { type: boolean }
+        retryAfterSeconds: { type: [integer, 'null'], minimum: 1 }
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [code, message, details, correlationId, timestamp]
+      properties:
+        code: { type: string, pattern: '^[A-Z][A-Z0-9_]*$' }
+        message: { type: string, minLength: 1 }
+        details: { $ref: '#/components/schemas/ErrorDetails' }
+        correlationId: { $ref: '#/components/schemas/OpaqueId' }
+        timestamp: { type: string, format: date-time }
+      example:
+        code: STRATEGY_PARAMETERS_INVALID
+        message: Strategy parameters are invalid.
+        details:
+          fieldErrors:
+            - field: strategy.parameters.fastPeriod
+              reason: must be less than slowPeriod
+          retryable: false
+        correlationId: 01JBACKTESTREQUEST0000000001
+        timestamp: '2026-08-16T02:05:00Z'
+
+  securitySchemes: {}
