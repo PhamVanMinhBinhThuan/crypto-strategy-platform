@@ -164,7 +164,7 @@ Nếu thời gian demo do giảng viên quy định khác, giữ nguyên thứ t
 | ---: | --- | --- |
 | 1 | Mở News Sentiment | Danh sách tin đã chuẩn hóa xuất hiện |
 | 2 | Lọc theo sentiment | Có `POSITIVE`, `NEUTRAL`, `NEGATIVE` |
-| 3 | Mở một News Item | Hiển thị source, published time, label, score và model version |
+| 3 | Mở một News Item | Hiển thị source, published time, label, confidence, polarity score và model version |
 | 4 | Quay lại Market Dashboard | Market Dashboard vẫn hoạt động độc lập |
 
 ### Nội dung nói

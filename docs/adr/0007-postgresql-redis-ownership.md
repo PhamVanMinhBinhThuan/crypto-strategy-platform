@@ -55,7 +55,7 @@ Những dữ liệu sau phải được lưu bền vững trong PostgreSQL/Supab
 | Backtest                 | Trades, Return, Win Rate, Max Drawdown, Number of Trades                     |
 | Evaluation/Ranking       | Score, Evaluation Result, Top-K read model hoặc revision                     |
 | News                     | Title, content/summary, source, URL, published/crawled time, related coins   |
-| Sentiment                | Label, score, model version, analyzed time                                   |
+| Sentiment                | Label, confidence, polarity score, model version, analyzed time              |
 | Reliability              | Transactional Outbox, processed message/idempotency record                   |
 
 Nếu Redis bị xóa hoàn toàn, hệ thống phải có thể khôi phục trạng thái nghiệp vụ quan trọng từ PostgreSQL và republish các job/event chưa hoàn thành.

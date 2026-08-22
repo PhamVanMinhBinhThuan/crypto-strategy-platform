@@ -20,7 +20,7 @@ erDiagram
     CANDIDATE_DEFINITION ||--o{ EXECUTION_ATTEMPT : runs_as
     CANDIDATE_DEFINITION ||--o| BACKTEST_RESULT : succeeds_as
     BACKTEST_RESULT ||--o{ TRADE : contains
-    BACKTEST_RESULT ||--|| EVALUATION_RESULT : evaluated_as
+    BACKTEST_RESULT ||--o{ EVALUATION_RESULT : evaluated_as_by_version
     EVALUATION_RESULT ||--o| LEADERBOARD_ENTRY : projected_to
     LEADERBOARD_REVISION ||--o{ LEADERBOARD_ENTRY : contains
     NEWS_ITEM ||--o{ SENTIMENT_RESULT : analyzed_as
@@ -42,7 +42,7 @@ erDiagram
 | Job/Execution Attempt | Một lần Worker thử chạy Candidate | `backtesting` | jobId + attempt |
 | Backtest Result | Kết quả mô phỏng thành công | `backtesting` | resultId; unique theo Candidate/Job policy |
 | Trade | Entry/exit/P&L mô phỏng | `backtesting` | tradeId + stable sequence index |
-| Evaluation Result | Metrics/version từ Result | `evaluation` | evaluationId + metricVersion |
+| Evaluation Result | Metrics/version từ Result; một Result có thể được đánh giá bằng nhiều metric version | `evaluation` | evaluationId; unique theo resultId + metricVersion |
 | Leaderboard Revision/Entry | Top-K projection và stable rank | `leaderboard` | experimentId + revision + evaluationId |
 | News Item | Tin đã normalize/deduplicate | `news` | newsId + contentHash/source identity |
 | Sentiment Result | Kết quả model immutable | `news` | newsId + contentHash + modelVersion |

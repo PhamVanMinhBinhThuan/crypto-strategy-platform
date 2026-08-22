@@ -397,7 +397,7 @@ Display a clean list of cryptocurrency news items. Each item must show:
 - Related trading symbol
 - Short summary
 - Positive, Neutral or Negative sentiment label
-- Optional sentiment score
+- Confidence and polarity score when available
 
 Add a compact sentiment summary showing the number or percentage of
 positive, neutral and negative news items.

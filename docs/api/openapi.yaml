@@ -459,6 +459,14 @@ components:
     NonNegativeDecimalString:
       type: string
       pattern: '^(0|[1-9][0-9]*)(\.[0-9]+)?$'
+    ConfidenceString:
+      type: string
+      pattern: '^(0(\.[0-9]+)?|1(\.0+)?)$'
+      description: Model confidence serialized as a decimal string in the range 0 to 1.
+    PolarityScoreString:
+      type: string
+      pattern: '^-?(0(\.[0-9]+)?|1(\.0+)?)$'
+      description: Sentiment polarity serialized as a decimal string in the range -1 to 1.
 
     PaginationFields:
       type: object
@@ -728,10 +736,11 @@ components:
     Sentiment:
       type: object
       additionalProperties: false
-      required: [label, score, modelVersion]
+      required: [label, confidence, polarityScore, modelVersion]
       properties:
         label: { type: string, enum: [POSITIVE, NEUTRAL, NEGATIVE] }
-        score: { $ref: '#/components/schemas/DecimalString' }
+        confidence: { $ref: '#/components/schemas/ConfidenceString' }
+        polarityScore: { $ref: '#/components/schemas/PolarityScoreString' }
         modelVersion: { type: string, minLength: 1 }
     NewsItem:
       type: object

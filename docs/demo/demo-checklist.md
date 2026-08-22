@@ -138,7 +138,7 @@ Checklist này được dùng cho buổi tổng duyệt và buổi demo chính t
 
 - [ ] News Items hiển thị source và published time.
 - [ ] Có label `POSITIVE`, `NEUTRAL`, `NEGATIVE`.
-- [ ] Có sentiment score và model version.
+- [ ] Có confidence, polarity score và model version.
 - [ ] Có Loading, Empty và Service Unavailable state.
 - [ ] Sentiment Service lỗi không làm Market Dashboard hoặc Backtest ngừng hoạt động.
 
