@@ -152,22 +152,29 @@ có thể được truy vấn để feature Worker sau xử lý.
   Strategy, Experiment, News và Platform Reliability.
 - **FR-003**: Hệ thống MUST dùng identity ổn định và từ chối identity không đúng
   định dạng hoặc bị trùng theo business key đã công bố.
-- **FR-004**: Hệ thống MUST chỉ lưu closed Candle bền vững và deduplicate theo
-  provider, pair, timeframe và open time.
-- **FR-005**: Hệ thống MUST hỗ trợ các timeframe canonical `1m`, `5m`, `15m`,
-  `30m`, `1h`, `2h`, `4h`, `1d`; bốn mặc định là `5m`, `15m`, `1h`, `4h`.
-- **FR-006**: Hệ thống MUST freeze ordered Dataset membership, count, checksum,
-  range và normalization version; Dataset đã được tham chiếu không bị overwrite.
-- **FR-007**: Hệ thống MUST lưu Strategy/Composite snapshot bất biến khi lần đầu
-  được Experiment hoặc Composite tham chiếu.
-- **FR-008**: Hệ thống MUST tách Experiment runtime state khỏi manifest bất biến
-  và lưu đầy đủ provenance cần để reproduce.
+- **FR-004**: Baseline MUST cung cấp cấu trúc lưu closed Candle và deduplicate theo
+  provider, pair, timeframe và open time. Việc xác nhận Candle đã đóng thuộc
+  persistence/ingestion feature sau vì không dùng clock-dependent database constraint.
+- **FR-005**: Database MUST giới hạn timeframe canonical ở `1m`, `5m`, `15m`,
+  `30m`, `1h`, `2h`, `4h`, `1d`. Bốn mặc định `5m`, `15m`, `1h`, `4h` là
+  application configuration, không phải database default của feature này.
+- **FR-006**: Baseline MUST lưu ordered Dataset membership, count, checksum,
+  range và normalization version cần để freeze Dataset. Persistence feature sau
+  MUST ngăn overwrite Dataset đã được tham chiếu.
+- **FR-007**: Baseline MUST cung cấp Strategy/Composite snapshot có version và
+  identity ổn định. Persistence feature sau MUST thực thi bất biến khi snapshot
+  lần đầu được Experiment hoặc Composite tham chiếu.
+- **FR-008**: Baseline MUST tách Experiment runtime state khỏi manifest và lưu đầy
+  đủ provenance cần để reproduce. Persistence feature sau MUST thực thi tính bất biến
+  của manifest sau khi được chấp nhận.
 - **FR-009**: Hệ thống MUST tách Candidate Definition, Execution Attempt,
   Backtest Result, Trade và Evaluation Result; retry không tạo Result trùng.
-- **FR-010**: Hệ thống MUST cho phép một Backtest Result có nhiều Evaluation theo
-  metric version và giữ các Leaderboard revision bất biến khi Top-K thay đổi.
-- **FR-011**: Hệ thống MUST lưu News metadata/content theo retention được phép và
-  lưu Sentiment Result bất biến theo content hash cùng model version.
+- **FR-010**: Baseline MUST cho phép một Backtest Result có nhiều Evaluation theo
+  metric version và lưu từng Leaderboard revision riêng. Persistence feature sau
+  MUST ngăn sửa revision đã được chấp nhận khi Top-K thay đổi.
+- **FR-011**: Baseline MUST lưu News metadata/content cùng timestamp phục vụ retention
+  và lưu Sentiment Result theo content hash cùng model version. Maintenance feature
+  sau thực thi retention; persistence feature sau thực thi tính bất biến.
 - **FR-012**: Hệ thống MUST lưu riêng sentiment label, confidence và polarity;
   confidence thuộc `0..1`, polarity thuộc `-1..1`.
 - **FR-013**: Hệ thống MUST gắn mỗi Experiment với đúng một user identity hợp lệ
@@ -223,10 +230,12 @@ có thể được truy vấn để feature Worker sau xử lý.
   assumptions, software version và evaluation version cần cho reproduction.
 - **SC-005**: Database lưu được hai Experiment fixture có cùng manifest fingerprint
   nhưng identity riêng, reference reproduction hợp lệ và đầy đủ Trade/metric data.
-- **SC-006**: Sau khi xóa toàn bộ cache/queue transient trong bài kiểm thử recovery,
-  không mất Experiment/Result và mọi event chưa publish vẫn được nhận diện.
-- **SC-007**: Không credential đặc quyền hoặc quyền đọc/ghi business data trực
-  tiếp xuất hiện trong client/browser bundle.
+- **SC-006**: Database verification xác nhận Experiment/Result là durable records,
+  mọi Outbox Event chưa publish truy vấn được và processed-message identity tồn tại
+  độc lập với cache/queue transient. Kiểm thử mất Redis/queue đầu-cuối thuộc feature Worker sau.
+- **SC-007**: Database verification xác nhận `anon` và `authenticated` không có
+  direct privilege trên business schema/table; repository không chứa database
+  credential đặc quyền. Kiểm tra browser bundle thuộc feature frontend sau.
 
 ## Assumptions
 
