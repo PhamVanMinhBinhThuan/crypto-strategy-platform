@@ -184,7 +184,7 @@ sequenceDiagram
     Worker->>DB: Claim analysis job and mark ANALYZING
     Worker->>Sentiment: Versioned internal HTTP request
     alt Valid response
-        Sentiment-->>Worker: Label, confidence, score, modelVersion
+        Sentiment-->>Worker: Label, confidence, polarityScore, modelVersion
         Worker->>Worker: Validate contract and value ranges
         Worker->>DB: Store result and mark ANALYZED
     else Retryable failure

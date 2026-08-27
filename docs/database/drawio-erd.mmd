@@ -1,0 +1,282 @@
+erDiagram
+    AUTH_USER {
+        uuid id PK
+        text email
+    }
+    USER_PROFILE {
+        uuid user_id PK, FK
+        text display_name
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    ASSET {
+        varchar asset_id PK
+        text symbol UK
+        text name
+        boolean active
+        timestamptz created_at
+    }
+    TRADING_PAIR {
+        varchar trading_pair_id PK
+        varchar base_asset_id FK
+        varchar quote_asset_id FK
+        text symbol UK
+        boolean active
+        timestamptz created_at
+    }
+    CANDLE {
+        varchar candle_id PK
+        text provider
+        varchar trading_pair_id FK
+        text timeframe
+        timestamptz open_time
+        timestamptz close_time
+        numeric open
+        numeric high
+        numeric low
+        numeric close
+        numeric volume
+        timestamptz created_at
+    }
+    DATASET_VERSION {
+        varchar dataset_version_id PK
+        text version
+        text provider
+        varchar trading_pair_id FK
+        text timeframe
+        text normalization_version
+        timestamptz range_start
+        timestamptz range_end
+        integer candle_count
+        text checksum UK
+        timestamptz created_at
+    }
+    DATASET_CANDLE {
+        varchar dataset_version_id PK, FK
+        integer sequence_no PK
+        varchar candle_id FK
+    }
+    STRATEGY_VERSION {
+        varchar strategy_version_id PK
+        text plugin_id
+        text version
+        text display_name
+        jsonb parameter_schema
+        jsonb default_parameters
+        jsonb supported_signals
+        text fingerprint UK
+        timestamptz created_at
+    }
+    COMPOSITE_VERSION {
+        varchar composite_version_id PK
+        text composite_id
+        text version
+        text display_name
+        text policy_id
+        text policy_version
+        jsonb policy_parameters
+        text fingerprint UK
+        timestamptz created_at
+    }
+    COMPOSITE_COMPONENT {
+        varchar composite_version_id PK, FK
+        integer position PK
+        varchar strategy_version_id FK
+        jsonb parameter_overrides
+        numeric weight
+    }
+    EXPERIMENT {
+        varchar experiment_id PK
+        uuid owner_user_id FK
+        varchar derived_from_experiment_id FK
+        text name
+        text status
+        timestamptz started_at
+        timestamptz completed_at
+        text failure_code
+        text failure_message
+        timestamptz created_at
+    }
+    EXPERIMENT_MANIFEST {
+        varchar experiment_id PK, FK
+        text manifest_version
+        varchar dataset_version_id FK
+        text strategy_kind
+        text strategy_ref_id
+        text strategy_version
+        jsonb strategy_parameters
+        jsonb backtest_config
+        jsonb search_config
+        jsonb evaluation_config
+        jsonb sentiment_config
+        text software_version
+        text git_commit
+        text fingerprint
+        timestamptz created_at
+    }
+    CANDIDATE_DEFINITION {
+        varchar candidate_id PK
+        varchar experiment_id FK
+        integer generation_index
+        jsonb definition
+        jsonb generator_state
+        text fingerprint
+        timestamptz created_at
+    }
+    EXECUTION_ATTEMPT {
+        varchar attempt_id PK
+        varchar job_id
+        varchar candidate_id FK
+        integer attempt_no
+        text status
+        text worker_id
+        timestamptz started_at
+        timestamptz finished_at
+        timestamptz next_retry_at
+        text failure_code
+        text failure_message
+        boolean retryable
+        timestamptz created_at
+    }
+    BACKTEST_RESULT {
+        varchar backtest_result_id PK
+        varchar candidate_id FK
+        varchar successful_attempt_id FK
+        numeric initial_capital
+        numeric final_capital
+        text result_fingerprint
+        timestamptz completed_at
+        varchar reproduces_result_id FK
+        timestamptz created_at
+    }
+    TRADE {
+        varchar trade_id PK
+        varchar backtest_result_id FK
+        integer sequence_no
+        text side
+        timestamptz entry_time
+        timestamptz exit_time
+        numeric entry_price
+        numeric exit_price
+        numeric quantity
+        numeric fee
+        numeric profit_loss
+        timestamptz created_at
+    }
+    EVALUATION_RESULT {
+        varchar evaluation_result_id PK
+        varchar backtest_result_id FK
+        text metric_version
+        text ranking_version
+        numeric total_return
+        numeric win_rate
+        numeric maximum_drawdown
+        integer number_of_trades
+        numeric overall_score
+        timestamptz evaluated_at
+        timestamptz created_at
+    }
+    LEADERBOARD_REVISION {
+        varchar leaderboard_revision_id PK
+        varchar experiment_id FK
+        bigint revision_no
+        integer top_k
+        timestamptz created_at
+    }
+    LEADERBOARD_ENTRY {
+        varchar leaderboard_revision_id PK, FK
+        integer rank PK
+        varchar evaluation_result_id FK
+        numeric score
+    }
+    NEWS_ITEM {
+        varchar news_item_id PK
+        text source
+        text source_item_id
+        text url UK
+        text title
+        text summary
+        text content
+        text content_hash
+        timestamptz published_at
+        timestamptz crawled_at
+        text analysis_status
+        timestamptz created_at
+    }
+    NEWS_ITEM_ASSET {
+        varchar news_item_id PK, FK
+        varchar asset_id PK, FK
+        numeric relevance_score
+    }
+    SENTIMENT_RESULT {
+        varchar sentiment_result_id PK
+        varchar news_item_id FK
+        text content_hash
+        text model_version
+        text label
+        numeric confidence
+        numeric polarity_score
+        timestamptz analyzed_at
+        timestamptz created_at
+    }
+    OUTBOX_EVENT {
+        varchar outbox_event_id PK
+        varchar message_id UK
+        text aggregate_type
+        varchar aggregate_id
+        text event_type
+        text event_version
+        jsonb payload
+        jsonb headers
+        timestamptz occurred_at
+        timestamptz published_at
+        integer publish_attempts
+        text last_error
+        timestamptz created_at
+    }
+    PROCESSED_MESSAGE {
+        text consumer_name PK
+        varchar message_id PK
+        timestamptz processed_at
+        timestamptz expires_at
+    }
+    IDEMPOTENCY_RECORD {
+        uuid user_id PK, FK
+        text scope PK
+        text idempotency_key PK
+        text request_hash
+        text resource_type
+        varchar resource_id
+        integer response_status
+        jsonb response_body
+        timestamptz created_at
+        timestamptz expires_at
+    }
+
+    AUTH_USER ||--o| USER_PROFILE : has
+    AUTH_USER ||--o{ EXPERIMENT : owns
+    AUTH_USER ||--o{ IDEMPOTENCY_RECORD : scopes
+    EXPERIMENT o|--o{ EXPERIMENT : derives
+    ASSET ||--o{ TRADING_PAIR : base_asset
+    ASSET ||--o{ TRADING_PAIR : quote_asset
+    TRADING_PAIR ||--o{ CANDLE : has
+    TRADING_PAIR ||--o{ DATASET_VERSION : scopes
+    DATASET_VERSION ||--o{ DATASET_CANDLE : freezes
+    CANDLE ||--o{ DATASET_CANDLE : included_in
+    STRATEGY_VERSION ||--o{ COMPOSITE_COMPONENT : used_by
+    COMPOSITE_VERSION ||--o{ COMPOSITE_COMPONENT : contains
+    DATASET_VERSION ||--o{ EXPERIMENT_MANIFEST : used_by
+    EXPERIMENT ||--|| EXPERIMENT_MANIFEST : freezes
+    EXPERIMENT ||--o{ CANDIDATE_DEFINITION : generates
+    CANDIDATE_DEFINITION ||--o{ EXECUTION_ATTEMPT : runs_as
+    CANDIDATE_DEFINITION ||--o| BACKTEST_RESULT : succeeds_as
+    EXECUTION_ATTEMPT ||--o| BACKTEST_RESULT : produces
+    BACKTEST_RESULT ||--o{ TRADE : contains
+    BACKTEST_RESULT ||--o{ EVALUATION_RESULT : evaluated_by
+    BACKTEST_RESULT o|--o{ BACKTEST_RESULT : reproduces
+    EXPERIMENT ||--o{ LEADERBOARD_REVISION : ranks
+    LEADERBOARD_REVISION ||--o{ LEADERBOARD_ENTRY : contains
+    EVALUATION_RESULT ||--o{ LEADERBOARD_ENTRY : projected_as
+    NEWS_ITEM ||--o{ NEWS_ITEM_ASSET : mentions
+    ASSET ||--o{ NEWS_ITEM_ASSET : referenced_by
+    NEWS_ITEM ||--o{ SENTIMENT_RESULT : analyzed_as

@@ -32,10 +32,13 @@ Các thao tác trên dùng REST API. WebSocket chỉ phát update và ID để F
 | STOMP/SockJS | Không dùng trong MVP |
 | Encoding | UTF-8 |
 | Số connection | Một connection cho mỗi browser tab |
-| Authentication | Không bắt buộc cho dữ liệu demo công khai trong MVP |
+| Authentication | Bắt buộc theo ADR-0011 |
 | Origin | Backend chỉ chấp nhận Origin nằm trong allowlist cấu hình |
 
-Nếu sau này Experiment hoặc dữ liệu thuộc riêng từng user, nhóm phải bổ sung authentication và authorization trước khi phát dữ liệu đó qua WebSocket.
+WebSocket upgrade phải xác thực user bằng secure cookie hoặc short-lived
+one-time ticket lấy từ authenticated REST API. Không đặt Supabase access token
+dài hạn trong query string. Subscription tới Experiment/Leaderboard phải kiểm
+tra ownership trước khi gửi snapshot hoặc event.
 
 ## 3. Message Envelope
 

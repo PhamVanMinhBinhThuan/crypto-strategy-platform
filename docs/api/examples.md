@@ -308,7 +308,8 @@ Accept: application/json
       "publishedAt": "2026-08-16T01:30:00Z",
       "sentiment": {
         "label": "POSITIVE",
-        "score": "0.81",
+        "confidence": "0.82",
+        "polarityScore": "0.64",
         "modelVersion": "baseline-1.0.0"
       }
     }

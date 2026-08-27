@@ -94,6 +94,7 @@ Hai runtime được tách vì driver cụ thể:
 | [0008](../adr/0008-sentiment-service-boundary.md) | Python Sentiment Service boundary | Proposed |
 | [0009](../adr/0009-reproducible-experiments.md) | Immutable manifest, versioning và fingerprint | Proposed |
 | [0010](../adr/0010-strategy-generator-contract.md) | Replaceable Strategy Generator contract | Proposed |
+| [0011](../adr/0011-supabase-auth-user-ownership.md) | Supabase Auth và per-user Experiment ownership | Accepted |
 
 ## Deliberate Trade-offs
 

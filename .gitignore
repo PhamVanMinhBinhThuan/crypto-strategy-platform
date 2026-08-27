@@ -1,0 +1,13 @@
+# File môi trường local có thể chứa thông tin bí mật.
+.env
+.env.local
+.env.*.local
+
+# File xuất database và dữ liệu runtime local.
+*.dump
+*.sql.gz
+infra/database/local-data/
+
+# Trạng thái local do Supabase CLI tạo ra.
+supabase/.temp/
+supabase/.branches/

@@ -288,7 +288,7 @@ Quy tắc:
 ```
 
 - Pair dùng canonical format `BASE/QUOTE` viết hoa.
-- Timeframe dùng mã chuẩn đã công bố như `1m`, `5m`, `15m`, `1h`, `4h`, `1d`.
+- Timeframe dùng một trong `1m`, `5m`, `15m`, `30m`, `1h`, `2h`, `4h`, `1d`.
 - Không expose symbol/interval riêng của Binance như canonical contract.
 
 ### Boolean, null và collection rỗng

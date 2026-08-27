@@ -207,7 +207,7 @@ Cấu trúc này là định hướng ban đầu và sẽ được điều chỉ
 | Trade | Entry/exit, side, price, P&L, timestamps |
 | Leaderboard Entry | Experiment, metrics, overall score, rank |
 | News | Title, content, source, URL, publish/crawl time, related coins |
-| Sentiment | Label, score, model version, analyzed time |
+| Sentiment | Label, confidence, polarity score, model version, analyzed time |
 
 Strategy definition là **immutable theo version**; thay đổi logic hoặc parameter mặc định phải tạo version mới để bảo đảm tái lập kết quả.
 
