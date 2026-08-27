@@ -22,11 +22,11 @@ Nguồn: [Supabase CLI reference](https://supabase.com/docs/reference/cli/supaba
 
 ## R-03 — Test format
 
-**Decision**: Lưu SQL verification suite có thứ tự tại `supabase/tests/database/001_database_baseline_test.sql`; chạy bằng `psql` với `ON_ERROR_STOP`, trong transaction rollback.
+**Decision**: Lưu SQL verification suite có thứ tự tại `supabase/tests/database/001_database_baseline_test.sql`; chạy bằng `supabase db query --linked --file` trong transaction rollback.
 
-**Rationale**: SQL assertions kiểm tra được catalog, constraint và privilege mà không cần application code. Tách execution khỏi `supabase test db` cho phép hosted-only workflow; cấu trúc file vẫn phù hợp nếu dự án thêm pgTAP/local CI sau này.
+**Rationale**: SQL assertions kiểm tra được catalog, constraint và privilege mà không cần application code. Linked query dùng Management API nên không cần đưa database connection URL/password vào command; cấu trúc file vẫn phù hợp nếu dự án thêm pgTAP/local CI sau này.
 
-**Alternatives considered**: pgTAP qua `supabase test db` hiện nhắm local database; test qua Java repository vượt phạm vi baseline.
+**Alternatives considered**: pgTAP qua `supabase test db` hiện nhắm local database; `psql` trực tiếp cần quản lý connection secret riêng; test qua Java repository vượt phạm vi baseline.
 
 ## R-04 — User identity and client access
 

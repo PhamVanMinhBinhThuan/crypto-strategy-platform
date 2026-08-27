@@ -9,7 +9,7 @@ Verification suite là acceptance contract cho migration baseline. Suite MUST tr
 - Supabase project đã link đúng shared development project.
 - Migration đã được review và chỉ được apply sau explicit approval.
 - Database connection secret chỉ tồn tại trong credential store/environment, không nằm trong repository hoặc command output.
-- SQL suite chạy với role đủ quyền tạo fixture và đọc PostgreSQL catalog.
+- SQL suite chạy qua linked Management API với role đủ quyền tạo fixture và đọc PostgreSQL catalog.
 
 ## Required assertions
 

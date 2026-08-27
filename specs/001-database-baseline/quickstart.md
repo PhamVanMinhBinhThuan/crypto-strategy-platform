@@ -3,14 +3,12 @@
 ## 1. Prerequisites
 
 - Supabase CLI đã login và project đã link với ref `aeuezvsdsggrrvpaxfqf`.
-- Có PostgreSQL `psql` client nếu chạy hosted SQL verification.
 - Không lưu database password/connection URL vào file được commit.
 
 Kiểm tra context:
 
 ```bash
 git branch --show-current
-supabase status --output json
 supabase migration list
 ```
 
@@ -39,14 +37,14 @@ supabase db lint --linked --fail-on error
 
 ## 5. Run transactional verification
 
-Khi `supabase/tests/database/001_database_baseline_test.sql` đã được tạo ở bước implementation, đặt connection URL vào environment cục bộ và chạy:
+Khi `supabase/tests/database/001_database_baseline_test.sql` đã được tạo ở bước implementation, chạy trực tiếp trên linked development project:
 
 ```bash
-psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 \
-  -f supabase/tests/database/001_database_baseline_test.sql
+supabase db query --linked \
+  --file supabase/tests/database/001_database_baseline_test.sql
 ```
 
-Test file phải tự `BEGIN`, chạy assertions và `ROLLBACK`, vì vậy fixture không được giữ lại. Không paste connection URL vào log, issue hoặc tài liệu.
+Test file phải tự `BEGIN`, chạy assertions và `ROLLBACK`, vì vậy fixture không được giữ lại. Linked query dùng Supabase Management API và không yêu cầu đưa connection URL vào command.
 
 ## 6. Completion evidence
 

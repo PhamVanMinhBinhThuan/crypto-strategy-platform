@@ -11,9 +11,9 @@ Thiết lập database baseline có version cho Supabase hosted bằng một for
 ## Technical Context
 
 **Language/Version**: SQL, PostgreSQL 17  
-**Primary Dependencies**: Supabase hosted, Supabase CLI 2.115+, Supabase Auth schema, PostgreSQL client tương thích `psql`  
+**Primary Dependencies**: Supabase hosted, Supabase CLI 2.115+, Supabase Auth schema<br>
 **Storage**: Supabase PostgreSQL 17; Redis và transient cache/queue ngoài phạm vi  
-**Testing**: migration dry-run, linked database lint, SQL integration/constraint tests trong transaction rollback  
+**Testing**: migration dry-run, linked database lint, SQL integration/constraint tests qua `supabase db query --linked --file` trong transaction rollback<br>
 **Target Platform**: Supabase shared development project tại `ap-southeast-1`  
 **Project Type**: Database infrastructure trong modular monolith repository  
 **Performance Goals**: Không đặt runtime throughput SLA trong feature này; các access path đã chốt phải có index và toàn bộ verification baseline hoàn thành trong 5 phút  
