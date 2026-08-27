@@ -1,4 +1,14 @@
 erDiagram
+    AUTH_USER {
+        uuid id PK
+        text email
+    }
+    USER_PROFILE {
+        uuid user_id PK, FK
+        text display_name
+        timestamptz created_at
+        timestamptz updated_at
+    }
     ASSET {
         varchar asset_id PK
         text symbol UK
@@ -34,6 +44,7 @@ erDiagram
         text provider
         varchar trading_pair_id FK
         text timeframe
+        text normalization_version
         timestamptz range_start
         timestamptz range_end
         integer candle_count
@@ -76,6 +87,8 @@ erDiagram
     }
     EXPERIMENT {
         varchar experiment_id PK
+        uuid owner_user_id FK
+        varchar derived_from_experiment_id FK
         text name
         text status
         timestamptz started_at
@@ -98,7 +111,7 @@ erDiagram
         jsonb sentiment_config
         text software_version
         text git_commit
-        text fingerprint UK
+        text fingerprint
         timestamptz created_at
     }
     CANDIDATE_DEFINITION {
@@ -228,6 +241,7 @@ erDiagram
         timestamptz expires_at
     }
     IDEMPOTENCY_RECORD {
+        uuid user_id PK, FK
         text scope PK
         text idempotency_key PK
         text request_hash
@@ -239,6 +253,10 @@ erDiagram
         timestamptz expires_at
     }
 
+    AUTH_USER ||--o| USER_PROFILE : has
+    AUTH_USER ||--o{ EXPERIMENT : owns
+    AUTH_USER ||--o{ IDEMPOTENCY_RECORD : scopes
+    EXPERIMENT o|--o{ EXPERIMENT : derives
     ASSET ||--o{ TRADING_PAIR : base_asset
     ASSET ||--o{ TRADING_PAIR : quote_asset
     TRADING_PAIR ||--o{ CANDLE : has

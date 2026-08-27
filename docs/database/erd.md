@@ -17,6 +17,9 @@ ERD này chuyển conceptual model thành tên bảng vật lý dự kiến. Thi
 
 ```mermaid
 erDiagram
+    AUTH_USER ||--o| USER_PROFILE : has
+    AUTH_USER ||--o{ EXPERIMENT : owns
+    AUTH_USER ||--o{ IDEMPOTENCY_RECORD : scopes
     ASSET ||--o{ TRADING_PAIR : base_or_quote
     TRADING_PAIR ||--o{ CANDLE : has
     DATASET_VERSION ||--o{ DATASET_CANDLE : freezes
@@ -54,7 +57,7 @@ erDiagram
 | `experiment` | `evaluation_result` | `evaluation` |
 | `experiment` | `leaderboard_revision`, `leaderboard_entry` | `leaderboard` |
 | `news` | `news_item`, `news_item_asset`, `sentiment_result` | `news` |
-| `platform` | `outbox_event`, `processed_message`, `idempotency_record` | platform persistence |
+| `platform` | `user_profile`, `outbox_event`, `processed_message`, `idempotency_record` | platform persistence |
 
 ## Quan hệ logic
 
@@ -76,6 +79,8 @@ erDiagram
 7. Rank và Evaluation không trùng trong một Leaderboard revision.
 8. Sentiment duy nhất theo News, content hash và model version.
 9. Một consumer chỉ xử lý một message ID một lần.
+10. Mỗi Experiment thuộc đúng một Supabase Auth user; bảng con kế thừa ownership
+    qua Experiment.
 
 Chi tiết column và constraint nằm trong
 [Data Dictionary](data-dictionary.md); lý do lựa chọn nằm trong

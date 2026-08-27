@@ -1,7 +1,7 @@
 # Các quyết định thiết kế database
 
-**Trạng thái**: Proposed — Database baseline 0.1  
-**Cập nhật**: 2026-08-21
+**Trạng thái**: Proposed — Database baseline 0.1
+**Cập nhật**: 2026-08-27
 
 File này ghi lại các lựa chọn ban đầu để thiết kế ERD và migration. Sau khi cả
 nhóm review, từng mục có thể được giữ nguyên, sửa hoặc chuyển sang `Accepted`.
@@ -24,6 +24,9 @@ phải dùng migration mới.
 | DB-10 | Database access | Chỉ Backend/Worker truy cập business data |
 | DB-11 | Migration | Chỉ dùng Supabase CLI |
 | DB-12 | Kiểu dữ liệu chung | `timestamptz`, `numeric`, `text + check` |
+| DB-13 | User ownership | Supabase Auth, mỗi Experiment thuộc một user — Accepted bởi ADR-0011 |
+| DB-14 | Timeframe | Mặc định 4 khung, contract hỗ trợ 8 khung theo ADR-0003 |
+| DB-15 | Strategy snapshot | Persist khi lần đầu được tham chiếu |
 
 ## DB-01 — Tổ chức PostgreSQL schema
 
@@ -152,7 +155,8 @@ News API phải giữ nguyên ý nghĩa và khoảng giá trị đã quy định
 **Vì sao?** Ưu tiên reproducibility nhưng không giữ vô hạn dữ liệu kỹ thuật có
 thể cleanup. News content còn phụ thuộc điều khoản của provider.
 
-**Lưu ý**: Các con số retention cần được feature spec hoặc vận hành xác nhận.
+**Lưu ý**: Thời gian giữ content phải được xác nhận theo license của News
+Provider trước khi vận hành cleanup.
 
 ## DB-10 — Quyền truy cập database
 
@@ -162,7 +166,8 @@ chỉ là lớp bảo vệ bổ sung.
 
 **Vì sao?** Giữ business validation trong Java API và tránh hai đường ghi dữ liệu.
 
-**Lưu ý**: Supabase Auth/Storage/Realtime chỉ được thêm khi có quyết định riêng.
+**Lưu ý**: Supabase Auth/Storage/Realtime chỉ được thêm khi có quyết định kiến
+trúc riêng.
 
 ## DB-11 — Quản lý migration
 
@@ -178,13 +183,56 @@ Flyway migration trong `modules/persistence`.
 **Chọn gì?**
 
 - Timestamp: `timestamptz`, trao đổi dưới dạng ISO-8601 UTC.
-- Giá, tiền, fee và metric: `numeric` với precision/scale phù hợp.
+- Giá, quantity, tiền, P&L và fee: `numeric(30,12)`.
+- Rate, metric và score: `numeric(20,10)`.
 - Status: `text + check constraint`, không dùng PostgreSQL enum.
 - Không dùng soft delete mặc định.
 - Chỉ có `updated_at` trên table thật sự cho phép update.
 
 **Vì sao?** Tránh sai số float, nhầm timezone, migration enum khó và query
 soft-delete phức tạp không cần thiết cho MVP.
+
+## DB-13 — Quản lý user cơ bản
+
+**Chọn gì?** Dùng Supabase Auth (`auth.users`) để đăng ký, đăng nhập và quản lý
+session. Mỗi `experiment.experiment` có một `owner_user_id`; chưa có tenant,
+organization hoặc workspace. `platform.user_profile` chỉ lưu thông tin hiển thị
+như `display_name`, không lưu password. Market data, Strategy catalog và News là
+dữ liệu dùng chung.
+
+Business data vẫn đi qua Java API. Web gửi access token; API xác minh token và
+lọc dữ liệu theo `owner_user_id`. Không đưa `service_role` key vào browser.
+
+**Vì sao?** Đủ để mỗi người quản lý Experiment của mình nhưng chưa tạo độ phức
+tạp của multi-tenant và role/permission trong MVP.
+
+**Lưu ý**: Bảng con như Candidate, Result và Trade không lặp `user_id`; quyền sở
+hữu được truy ngược qua Experiment. HTTP idempotency record lưu `user_id` để
+khóa idempotency không dùng chung giữa các user. Quyết định kiến trúc đã được
+chấp nhận tại ADR-0011.
+
+## DB-14 — Timeframe MVP
+
+**Chọn gì?** Dashboard mặc định dùng `5m`, `15m`, `1h`, `4h`; database và
+contract chấp nhận `1m`, `5m`, `15m`, `30m`, `1h`, `2h`, `4h`, `1d` theo
+ADR-0003.
+
+**Vì sao?** Phân biệt bốn giá trị hiển thị mặc định với toàn bộ canonical value
+mà Market Data contract phải hỗ trợ.
+
+**Lưu ý**: Thêm timeframe mới bằng forward migration và cập nhật API contract.
+
+## DB-15 — Persist Strategy snapshot
+
+**Chọn gì?** Chỉ persist `strategy_version` khi version đó lần đầu được
+Experiment hoặc Composite tham chiếu; không ghi toàn bộ Registry mỗi lần
+application startup.
+
+**Vì sao?** Chỉ snapshot artifact thực sự cần tái lập, tránh database write thừa
+và vẫn bảo đảm Experiment resolve được exact Strategy version.
+
+**Lưu ý**: Việc persist snapshot và tạo reference phải nằm trong một workflow
+nhất quán; snapshot đã được tham chiếu là bất biến.
 
 ## Cách thay đổi quyết định
 

@@ -4,7 +4,8 @@
 
 Thư mục này mô tả thiết kế PostgreSQL cho Crypto Strategy Lab trước khi tạo
 migration. Supabase-hosted PostgreSQL là database dùng chung/demo; Java Backend
-kết nối qua JDBC và Frontend không truy cập Supabase trực tiếp.
+kết nối qua JDBC. Frontend chỉ truy cập Supabase Auth; business table vẫn đi qua
+Java API theo ADR-0011.
 
 ## Tài liệu
 
@@ -32,4 +33,4 @@ Không chỉnh schema thủ công trên Supabase Dashboard mà không có migrat
 - [Module View](../architecture/module-view.md)
 - [ADR-0007: PostgreSQL và Redis ownership](../adr/0007-postgresql-redis-ownership.md)
 - [ADR-0009: Reproducible Experiments](../adr/0009-reproducible-experiments.md)
-
+- [ADR-0011: Supabase Auth và User Ownership](../adr/0011-supabase-auth-user-ownership.md)

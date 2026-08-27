@@ -23,12 +23,14 @@ flowchart TB
         API["apps/api<br/>Java 21 / Spring Boot 3"]
         WORKER["apps/worker<br/>Java background workers"]
         SENTIMENT["apps/sentiment<br/>Python / FastAPI"]
+        AUTH["Supabase Auth<br/>Identity / JWT"]
         DB[("PostgreSQL / Supabase<br/>Business source of truth")]
         REDIS[("Redis<br/>Streams / cache / transient state")]
     end
 
     USER <-->|"HTTPS / WSS"| WEB
-    WEB <-->|"REST / WebSocket"| API
+    WEB <-->|"Sign in / refresh"| AUTH
+    WEB <-->|"REST / WebSocket + user auth"| API
     API <-->|"HTTPS / WebSocket upstream"| BINANCE
     API -->|"Collect through adapter"| NEWS_PROVIDER
     API -->|"JDBC"| DB
@@ -47,6 +49,7 @@ flowchart TB
 | `apps/api` | Public API, WebSocket gateway, validation, provider integration và orchestration | HTTP/JSON, WebSocket | Scale sau khi state/subscription strategy được kiểm chứng |
 | `apps/worker` | Search coordination, Backtest/Evaluation và background News jobs | Redis Streams, JDBC, internal HTTP | Tăng Worker instance trong cùng consumer group |
 | `apps/sentiment` | Stateless text inference | Versioned internal HTTP/JSON | Nhiều instance độc lập nếu inference là bottleneck |
+| Supabase Auth | Đăng ký, đăng nhập, session và JWT identity | HTTPS/Auth API | Managed service |
 | PostgreSQL/Supabase | Experiment, Job, Result, Trade, News, Outbox và durable read model | JDBC/PostgreSQL | Connection pool và database plan là giới hạn chính |
 | Redis | Queue, pending delivery, cache, latest/open Candle và progress snapshot | Redis protocol/Streams | Scale topology chỉ khi measurement yêu cầu |
 
@@ -55,6 +58,7 @@ flowchart TB
 | From | To | Protocol | Dữ liệu | Mode |
 | --- | --- | --- | --- | --- |
 | Web | API | REST/JSON | Query, command, result detail | Synchronous |
+| Web | Supabase Auth | HTTPS | Sign in, refresh và access token | Synchronous |
 | Web | API | WebSocket/JSON | Candle, progress, status, Leaderboard revision | Bidirectional push |
 | API | Binance | HTTPS/WebSocket | Historical/realtime market data | Sync + stream |
 | API/Worker | News Providers | HTTPS/RSS | Raw news input | Synchronous collection |
@@ -67,7 +71,8 @@ flowchart TB
 - PostgreSQL lưu bản chính của Experiment, Candidate, Job, Result, Trade, Evaluation, Leaderboard revision, News, Sentiment và Outbox.
 - Redis không là bản duy nhất của dữ liệu nghiệp vụ; cache/progress phải rebuild được và job phải recover được từ PostgreSQL/Outbox.
 - Sentiment Service stateless và không truy cập shared database.
-- Web không truy cập trực tiếp Binance, Supabase hoặc Sentiment Service.
+- Web chỉ truy cập Supabase Auth; không truy cập trực tiếp Supabase business
+  tables, Binance hoặc Sentiment Service.
 - Ownership chi tiết theo module nằm trong [Data Model Overview](data-model-overview.md) và [ADR-0007](../adr/0007-postgresql-redis-ownership.md).
 
 ## Failure Isolation
