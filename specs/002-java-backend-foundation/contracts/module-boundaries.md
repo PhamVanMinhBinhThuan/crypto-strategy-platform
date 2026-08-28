@@ -45,3 +45,24 @@ ghi nhận trong ADR `Accepted`.
 - Negative fixtures chứng minh internal import, forbidden technology dependency, canonical
   value violation và cycle làm architecture test fail.
 - Thêm subproject nhưng không áp convention/test phải làm build verification fail.
+
+## Automated enforcement in F-002
+
+`architecture-tests` là project verification độc lập và chạy trong root `check`:
+
+- `ModuleBoundaryTest` kiểm tra cả Gradle project dependency được khai báo và direct
+  bytecode dependency theo bảng ở trên. Package owner `marketdata` ánh xạ tới
+  `market-data`; `strategy` ánh xạ tới `strategy-core`.
+- Mọi truy cập từ owner khác vào package `internal` đều bị từ chối. Các package `api`,
+  `port.in`, `port.out` và `event` là những boundary được phép công khai; sự tồn tại của
+  package public không tự động cấp thêm dependency ngoài bảng.
+- `PurityAndCycleTest` cấm Spring, SQL/JPA/Hibernate/PostgreSQL, Binance và persistence
+  adapter trong `domain`, `strategy-core`, `strategies`, `evaluation`; đồng thời kiểm tra
+  cycle giữa các package owner.
+- Public/domain signatures bị từ chối nếu dùng binary floating point, `LocalDateTime`,
+  hoặc field identity không dùng UUID.
+- Negative fixture nằm trong test source set riêng và chỉ được import bởi test tương ứng,
+  nên fixture cố tình sai không làm nhiễu production scan.
+
+Rule kiểm tra dependency hiện tại không thay đổi ma trận quyết định. Khi cần thêm một cạnh
+không có trong bảng, phải review ADR-0002 thay vì nới rule trước.

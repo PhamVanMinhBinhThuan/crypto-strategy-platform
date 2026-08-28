@@ -78,14 +78,14 @@ Test của mỗi user story phải được viết trước implementation tươ
 
 ### Kiểm thử User Story 2
 
-- [ ] T019 [US2] Tạo dependency/canonical fixtures tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/AllowedDomainDependency.java`, `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenInternalDependency.java`, `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenTechnologyDependency.java`, `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenCycleA.java`, `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenCycleB.java` và `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenCanonicalBoundaryValue.java`
-- [ ] T020 [US2] Viết ArchUnit rule cho public/internal package và allowed dependency matrix tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/ModuleBoundaryTest.java`
-- [ ] T021 [US2] Viết ArchUnit rule cấm framework/provider/persistence trong pure modules, cấm cycle và enforce UUID/exact-decimal/UTC public-boundary convention tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/PurityAndCycleTest.java`
+- [x] T019 [US2] Tạo dependency/canonical fixtures tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/AllowedDomainDependency.java`, `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenInternalDependency.java`, `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenTechnologyDependency.java`, `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenCycleA.java`, `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenCycleB.java` và `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/ForbiddenCanonicalBoundaryValue.java`
+- [x] T020 [US2] Viết ArchUnit rule cho public/internal package và allowed dependency matrix tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/ModuleBoundaryTest.java`
+- [x] T021 [US2] Viết ArchUnit rule cấm framework/provider/persistence trong pure modules, cấm cycle và enforce UUID/exact-decimal/UTC public-boundary convention tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/PurityAndCycleTest.java`
 
 ### Triển khai User Story 2
 
-- [ ] T022 [US2] Thêm ArchUnit 1.5.0 và project-under-test dependency cần thiết vào `architecture-tests/build.gradle.kts`
-- [ ] T023 [US2] Đồng bộ package ownership/public-boundary description với test rule tại `specs/002-java-backend-foundation/contracts/module-boundaries.md`
+- [x] T022 [US2] Thêm ArchUnit 1.5.0 và project-under-test dependency cần thiết vào `architecture-tests/build.gradle.kts`
+- [x] T023 [US2] Đồng bộ package ownership/public-boundary description với test rule tại `specs/002-java-backend-foundation/contracts/module-boundaries.md`
 - [ ] T024 [US2] Nhờ Nghi Văn, Văn Minh và Tiến review allowed dependency phục vụ F-003/F-004/F-005 và ghi reviewer, commit, kết quả có thể xem lại tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 **Điểm kiểm tra**: Architecture rule có cả bằng chứng pass và bằng chứng chủ động bắt lỗi.
