@@ -23,6 +23,10 @@ API và Worker dùng Spring Boot structured console format `logstash`. API filte
 HTTP method, request path, response status và MDC correlation ID; header, query value và
 request body không nằm trong completion log. Unexpected exception log chỉ ghi exception
 type cùng correlation context, không ghi exception message có thể chứa token/credential.
+Framework logger được giữ ở `INFO` để biến môi trường chung `DEBUG` của shell không vô
+tình bật request/exception diagnostic quá chi tiết. Hai composition entry point đặt
+Spring Boot `debug=false` mặc định trước startup; muốn debug có chủ đích phải truyền
+command-line `--debug` hoặc JVM system property tương ứng.
 
 ## Required evidence
 

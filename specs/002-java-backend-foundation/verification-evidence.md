@@ -28,6 +28,14 @@ Không ghi password, token, full JDBC URL hoặc secret value vào tài liệu n
 OpenAPI business contract tại `docs/api/openapi.yaml` không đổi trong commit verification;
 protected authentication controller chỉ tồn tại dưới `src/test`.
 
+## Đối chiếu governance
+
+- Implementation đã được đối chiếu với `spec.md`, `plan.md`, `data-model.md` và bốn
+  boundary contract; mã xác thực `AUTHENTICATION_REQUIRED` được đồng bộ vào error catalog.
+- `docs/api/openapi.yaml`, migration đã apply và toàn bộ ADR không bị sửa trong F-002.
+- ADR-0001, ADR-0002, ADR-0006 và ADR-0007 vẫn là `Proposed`; merge tiếp tục bị chặn
+  cho tới khi review chuyển từng ADR liên quan sang `Accepted`.
+
 ## Merge gate
 
 - ADR-0001, ADR-0002, ADR-0006 và ADR-0007 phải `Accepted` trước khi merge.

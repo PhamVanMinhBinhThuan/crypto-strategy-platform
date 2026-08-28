@@ -29,6 +29,10 @@ management:
       enabled: false
 
 logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+    org.apache: INFO
   structured:
     format:
       console: logstash
