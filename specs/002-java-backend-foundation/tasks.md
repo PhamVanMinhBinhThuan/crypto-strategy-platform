@@ -135,7 +135,7 @@ Test của mỗi user story phải được viết trước implementation tươ
 - [x] T038 [US4] Implement immutable authenticated user context tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticatedUserContext.java`
 - [x] T039 [US4] Cấu hình Resource Server issuer/JWKS/audience/UUID-sub validation tại `apps/api/src/main/java/com/cryptostrategy/platform/api/config/SecurityConfiguration.java`
 - [x] T040 [US4] Implement safe authentication failure mapping có correlation ID tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticationFailureHandler.java`
-- [ ] T041 [US4] Xác nhận OpenAPI không có endpoint fixture mới và ghi authentication matrix result tại `specs/002-java-backend-foundation/verification-evidence.md`
+- [x] T041 [US4] Xác nhận OpenAPI không có endpoint fixture mới và ghi authentication matrix result tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 **Điểm kiểm tra**: Toàn bộ invalid token fixture bị từ chối; valid token đưa đúng UUID vào handler; raw JWT không xuất hiện trong log/response.
 
