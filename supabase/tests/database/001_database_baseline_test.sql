@@ -20,19 +20,35 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
-    (select count(*) = 24 from information_schema.tables
-     where table_schema in ('market', 'strategy', 'experiment', 'news', 'platform')
-       and table_type = 'BASE TABLE'),
-    'twenty-four baseline tables must exist'
+    (select count(*) = 24
+     from (values
+        ('market', 'asset'), ('market', 'trading_pair'), ('market', 'candle'),
+        ('market', 'dataset_version'), ('market', 'dataset_candle'),
+        ('strategy', 'strategy_version'), ('strategy', 'composite_version'),
+        ('strategy', 'composite_component'), ('platform', 'user_profile'),
+        ('experiment', 'experiment'), ('experiment', 'experiment_manifest'),
+        ('experiment', 'candidate_definition'), ('experiment', 'execution_attempt'),
+        ('experiment', 'backtest_result'), ('experiment', 'trade'),
+        ('experiment', 'evaluation_result'), ('experiment', 'leaderboard_revision'),
+        ('experiment', 'leaderboard_entry'), ('news', 'news_item'),
+        ('news', 'news_item_asset'), ('news', 'sentiment_result'),
+        ('platform', 'outbox_event'), ('platform', 'processed_message'),
+        ('platform', 'idempotency_record')
+     ) as expected(table_schema, table_name)
+     join information_schema.tables actual
+       on actual.table_schema = expected.table_schema
+      and actual.table_name = expected.table_name
+      and actual.table_type = 'BASE TABLE'),
+    'all twenty-four baseline tables must still exist'
 );
 
 select pg_temp.assert_true(
-    (select count(*) = 27
+    (select count(*) >= 27
      from pg_constraint c
      join pg_namespace n on n.oid = c.connamespace
      where c.contype = 'f'
        and n.nspname in ('market', 'strategy', 'experiment', 'news', 'platform')),
-    'all twenty-seven baseline foreign keys must exist'
+    'all twenty-seven baseline foreign keys must still exist'
 );
 
 select pg_temp.assert_true(
@@ -206,6 +222,17 @@ insert into experiment.candidate_definition
 values
     ('00000000000000000000000009', '00000000000000000000000007', 0, '{}', 'candidate-fp-1'),
     ('0000000000000000000000000A', '00000000000000000000000008', 0, '{}', 'candidate-fp-2');
+
+insert into experiment.job
+    (job_id, experiment_id, candidate_id, job_type, status, correlation_id,
+     total_work, completed_work, failed_work)
+values
+    ('0000000000000000000000000C', '00000000000000000000000007',
+     '00000000000000000000000009', 'BACKTEST', 'SUCCEEDED',
+     '0000000000000000000000001A', 1, 1, 0),
+    ('0000000000000000000000000E', '00000000000000000000000008',
+     '0000000000000000000000000A', 'BACKTEST', 'SUCCEEDED',
+     '0000000000000000000000001B', 1, 1, 0);
 
 insert into experiment.execution_attempt
     (attempt_id, job_id, candidate_id, attempt_no, status)

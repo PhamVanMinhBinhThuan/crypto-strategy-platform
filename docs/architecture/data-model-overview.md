@@ -2,7 +2,7 @@
 
 **Status**: Draft — Target MVP Architecture
 
-**Last Updated**: 2026-08-14
+**Last Updated**: 2026-08-28
 
 **Owner**: Văn Minh
 
@@ -16,8 +16,14 @@ erDiagram
     EXPERIMENT ||--|| EXPERIMENT_MANIFEST : freezes
     EXPERIMENT_MANIFEST }o--|| DATASET_VERSION : uses
     EXPERIMENT_MANIFEST }o--|| STRATEGY_DEFINITION : uses
+    USER ||--o{ USER_STRATEGY : owns
+    USER_STRATEGY ||--o{ USER_STRATEGY_VERSION : versions
+    USER_STRATEGY_VERSION }o--|| STRATEGY_DEFINITION : configures
+    USER_STRATEGY_VERSION ||--o{ EXPERIMENT_MANIFEST : provenance_for
     EXPERIMENT ||--o{ CANDIDATE_DEFINITION : generates
-    CANDIDATE_DEFINITION ||--o{ EXECUTION_ATTEMPT : runs_as
+    EXPERIMENT ||--o{ JOB : owns
+    CANDIDATE_DEFINITION ||--o| JOB : executes_as
+    JOB ||--o{ EXECUTION_ATTEMPT : retries_as
     CANDIDATE_DEFINITION ||--o| BACKTEST_RESULT : succeeds_as
     BACKTEST_RESULT ||--o{ TRADE : contains
     BACKTEST_RESULT ||--o{ EVALUATION_RESULT : evaluated_as_by_version
@@ -36,10 +42,13 @@ erDiagram
 | Dataset Version | Frozen ordered Candle membership | `market-data` | datasetId + version + checksum |
 | Strategy Definition | Plugin descriptor và exact parameters | `strategy-core` | pluginId + version + parameters |
 | Composite Definition | Policy và Strategy con | `combination` | compositeId + version/fingerprint |
+| User Strategy | Tên, kind và lifecycle của cấu hình riêng | `strategy-core` | userStrategyId + ownerUserId |
+| User Strategy Version | Exact plugin/parameters hoặc composite policy đã publish | `strategy-core` | userStrategyVersionId + versionNo/fingerprint |
 | Experiment | Identity và runtime lifecycle của một lần chạy | `experiment` | experimentId |
 | Experiment Manifest | Immutable input/configuration | `experiment` | manifestVersion + fingerprint |
 | Candidate Definition | Strategy/Composite cụ thể được sinh | `search` | candidateId + generationIndex/fingerprint |
-| Job/Execution Attempt | Một lần Worker thử chạy Candidate | `backtesting` | jobId + attempt |
+| Job | Công việc Search/Backtest logic, status và progress bền vững | `experiment` | jobId |
+| Execution Attempt | Một lần Worker thử xử lý Backtest Job | `backtesting` | attemptId; unique jobId + attemptNo |
 | Backtest Result | Kết quả mô phỏng thành công | `backtesting` | resultId; unique theo Candidate/Job policy |
 | Trade | Entry/exit/P&L mô phỏng | `backtesting` | tradeId + stable sequence index |
 | Evaluation Result | Metrics/version từ Result; một Result có thể được đánh giá bằng nhiều metric version | `evaluation` | evaluationId; unique theo resultId + metricVersion |
@@ -55,6 +64,8 @@ Một Experiment Manifest đã xác nhận phải tham chiếu chính xác:
 
 - Dataset ID/version/checksum, provider, pair, timeframe, range và Candle count.
 - Strategy/Composite ID, version, exact parameters và Combination Policy.
+- User Strategy version nguồn khi user chọn cấu hình đã lưu; owner phải trùng với
+  Experiment. Manifest vẫn đóng băng exact snapshot, không chỉ giữ reference.
 - Backtest assumptions: initial capital, fee, execution price, position/slippage/end-position policy.
 - Search algorithm/generator version, seed, Search Space, Stop Conditions, Top-K và Candidate thực tế.
 - Evaluation/Ranking version và tie-break rule.
@@ -97,6 +108,10 @@ stateDiagram-v2
 ```
 
 Transition được kiểm tra ở Backend; Frontend không tự đặt status.
+
+User Strategy có lifecycle `ACTIVE → ARCHIVED`. Version được soạn ở `DRAFT` và
+chuyển một chiều sang `PUBLISHED`; published version/component là bất biến. Thay
+cấu hình tạo version mới, còn archive không xóa provenance của Experiment cũ.
 
 ## Source of Truth and Storage Roles
 

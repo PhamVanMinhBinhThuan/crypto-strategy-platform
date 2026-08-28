@@ -1,10 +1,11 @@
 # Database ERD
 
-**Trạng thái**: Draft — Database baseline 0.1  
-**Cập nhật**: 2026-08-22
+**Trạng thái**: Baseline 0.1 đã áp dụng; DB setup v2 đang chờ review/apply
+**Cập nhật**: 2026-08-28
 
-ERD này chuyển conceptual model thành tên bảng vật lý dự kiến. Thiết kế vẫn
-đang để review và chưa được triển khai lên Supabase.
+ERD này chuyển conceptual model thành tên bảng vật lý. Quan hệ v2 là target của
+forward migration `20260828000100_add_user_strategies_and_jobs.sql` và chưa được
+apply remote.
 
 ## Quy ước
 
@@ -19,6 +20,7 @@ ERD này chuyển conceptual model thành tên bảng vật lý dự kiến. Thi
 erDiagram
     AUTH_USER ||--o| USER_PROFILE : has
     AUTH_USER ||--o{ EXPERIMENT : owns
+    AUTH_USER ||--o{ USER_STRATEGY : owns
     AUTH_USER ||--o{ IDEMPOTENCY_RECORD : scopes
     ASSET ||--o{ TRADING_PAIR : base_or_quote
     TRADING_PAIR ||--o{ CANDLE : has
@@ -27,11 +29,18 @@ erDiagram
 
     STRATEGY_VERSION ||--o{ COMPOSITE_COMPONENT : used_by
     COMPOSITE_VERSION ||--o{ COMPOSITE_COMPONENT : contains
+    USER_STRATEGY ||--o{ USER_STRATEGY_VERSION : versions
+    STRATEGY_VERSION ||--o{ USER_STRATEGY_VERSION : configures_single
+    USER_STRATEGY_VERSION ||--o{ USER_STRATEGY_COMPONENT : contains
+    STRATEGY_VERSION ||--o{ USER_STRATEGY_COMPONENT : configures_component
 
     DATASET_VERSION ||--o{ EXPERIMENT_MANIFEST : used_by
     EXPERIMENT ||--|| EXPERIMENT_MANIFEST : freezes
+    USER_STRATEGY_VERSION ||--o{ EXPERIMENT_MANIFEST : source_for
     EXPERIMENT ||--o{ CANDIDATE_DEFINITION : generates
-    CANDIDATE_DEFINITION ||--o{ EXECUTION_ATTEMPT : runs_as
+    EXPERIMENT ||--o{ JOB : owns
+    CANDIDATE_DEFINITION ||--o| JOB : runs_as
+    JOB ||--o{ EXECUTION_ATTEMPT : attempts
     CANDIDATE_DEFINITION ||--o| BACKTEST_RESULT : succeeds_as
     BACKTEST_RESULT ||--o{ TRADE : contains
     BACKTEST_RESULT ||--o{ EVALUATION_RESULT : evaluated_by_version
@@ -51,8 +60,10 @@ erDiagram
 | `market` | `asset`, `trading_pair`, `candle`, `dataset_version`, `dataset_candle` | `market-data` |
 | `strategy` | `strategy_version` | `strategy-core` |
 | `strategy` | `composite_version`, `composite_component` | `combination` |
+| `strategy` | `user_strategy`, `user_strategy_version`, `user_strategy_component` | `strategy-core` |
 | `experiment` | `experiment`, `experiment_manifest` | `experiment` |
 | `experiment` | `candidate_definition` | `search` |
+| `experiment` | `job` | `experiment` |
 | `experiment` | `execution_attempt`, `backtest_result`, `trade` | `backtesting` |
 | `experiment` | `evaluation_result` | `evaluation` |
 | `experiment` | `leaderboard_revision`, `leaderboard_entry` | `leaderboard` |
@@ -63,6 +74,9 @@ erDiagram
 
 - Manifest lưu `strategy_kind + strategy_ref_id + version` vì target có thể là
   Strategy đơn hoặc Composite; không dùng foreign key đa hình.
+- `source_user_strategy_version_id` là provenance tùy chọn; exact snapshot trong
+  Manifest vẫn là nguồn tái lập và source phải cùng owner với Experiment.
+- Job là công việc logic; Execution Attempt là từng lần Worker thử chạy Job.
 - Candidate lưu exact definition và fingerprint dưới dạng snapshot.
 - Outbox dùng `aggregate_type + aggregate_id` vì phục vụ nhiều schema.
 - Sentiment dùng cho Strategy sau này phải được freeze trong manifest, không đọc
@@ -81,6 +95,9 @@ erDiagram
 9. Một consumer chỉ xử lý một message ID một lần.
 10. Mỗi Experiment thuộc đúng một Supabase Auth user; bảng con kế thừa ownership
     qua Experiment.
+11. User Strategy có owner trực tiếp; version published và component của nó bất biến.
+12. Search Job không có Candidate; Backtest Job có Candidate thuộc cùng Experiment.
+13. Execution Attempt phải dùng đúng cặp Job/Candidate và retry giữ nguyên Job ID.
 
 Chi tiết column và constraint nằm trong
 [Data Dictionary](data-dictionary.md); lý do lựa chọn nằm trong

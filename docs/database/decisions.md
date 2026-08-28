@@ -1,7 +1,7 @@
 # Các quyết định thiết kế database
 
-**Trạng thái**: Proposed — Database baseline 0.1
-**Cập nhật**: 2026-08-27
+**Trạng thái**: Baseline 0.1 đã áp dụng; DB setup v2 Proposed
+**Cập nhật**: 2026-08-28
 
 File này ghi lại các lựa chọn ban đầu để thiết kế ERD và migration. Sau khi cả
 nhóm review, từng mục có thể được giữ nguyên, sửa hoặc chuyển sang `Accepted`.
@@ -27,6 +27,8 @@ phải dùng migration mới.
 | DB-13 | User ownership | Supabase Auth, mỗi Experiment thuộc một user — Accepted bởi ADR-0011 |
 | DB-14 | Timeframe | Mặc định 4 khung, contract hỗ trợ 8 khung theo ADR-0003 |
 | DB-15 | Strategy snapshot | Persist khi lần đầu được tham chiếu |
+| DB-16 | User Strategy | Tách catalog plugin dùng chung khỏi cấu hình riêng, có version của user |
+| DB-17 | Job và Attempt | Job là công việc bền vững; Attempt là mỗi lần Worker retry |
 
 ## DB-01 — Tổ chức PostgreSQL schema
 
@@ -233,6 +235,33 @@ và vẫn bảo đảm Experiment resolve được exact Strategy version.
 
 **Lưu ý**: Việc persist snapshot và tạo reference phải nằm trong một workflow
 nhất quán; snapshot đã được tham chiếu là bất biến.
+
+## DB-16 — User Strategy riêng theo user
+
+**Chọn gì?** Giữ `strategy_version` làm catalog plugin dùng chung. Thêm root
+`user_strategy` có owner và lifecycle; cấu hình nằm trong `user_strategy_version`,
+component kết hợp nằm trong `user_strategy_component`. Version chuyển từ `DRAFT`
+sang `PUBLISHED`; sau publish, database chặn sửa/xóa version và component. MVP chỉ
+có Strategy riêng tư và archive, chưa có sharing/team/marketplace.
+
+**Vì sao?** Plugin mô tả implementation hệ thống, còn User Strategy là cấu hình
+người dùng muốn đặt tên và tái sử dụng. Trộn chúng vào một bảng làm ownership và
+versioning khó hiểu, đồng thời có nguy cơ user “sở hữu” nhầm plugin hệ thống.
+
+**Lưu ý**: API phải query bằng authenticated owner. `owner_user_id`/foreign key
+chứng minh quan hệ dữ liệu nhưng không tự thay thế authorization.
+
+## DB-17 — Durable Job và Execution Attempt
+
+**Chọn gì?** Tạo `experiment.job` cho một tác vụ Search/Backtest logic. Một Job có
+nhiều `execution_attempt`; retry tăng attempt number nhưng giữ nguyên Job ID.
+Search Job không có Candidate, Backtest Job có một Candidate cùng Experiment.
+
+**Vì sao?** Job cần lưu status/progress để REST, WebSocket và recovery dùng chung.
+Attempt chỉ mô tả một Worker try nên không thể làm aggregate bền vững cho toàn bộ job.
+
+**Lưu ý**: Migration v2 backfill Job từ Attempt cũ trước khi thêm foreign key và
+dừng an toàn nếu một legacy Job ID trỏ tới nhiều Candidate.
 
 ## Cách thay đổi quyết định
 

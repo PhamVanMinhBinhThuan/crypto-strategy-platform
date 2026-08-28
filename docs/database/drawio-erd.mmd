@@ -85,6 +85,39 @@ erDiagram
         jsonb parameter_overrides
         numeric weight
     }
+    USER_STRATEGY {
+        varchar user_strategy_id PK
+        uuid owner_user_id FK
+        text strategy_kind
+        text name
+        text description
+        text status
+        timestamptz archived_at
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    USER_STRATEGY_VERSION {
+        varchar user_strategy_version_id PK
+        varchar user_strategy_id FK
+        integer version_no
+        text strategy_kind
+        varchar strategy_version_id FK
+        jsonb parameters
+        text policy_id
+        text policy_version
+        jsonb policy_parameters
+        text lifecycle_status
+        text fingerprint
+        timestamptz published_at
+        timestamptz created_at
+    }
+    USER_STRATEGY_COMPONENT {
+        varchar user_strategy_version_id PK, FK
+        integer position PK
+        varchar strategy_version_id FK
+        jsonb parameters
+        numeric weight
+    }
     EXPERIMENT {
         varchar experiment_id PK
         uuid owner_user_id FK
@@ -101,6 +134,7 @@ erDiagram
         varchar experiment_id PK, FK
         text manifest_version
         varchar dataset_version_id FK
+        varchar source_user_strategy_version_id FK
         text strategy_kind
         text strategy_ref_id
         text strategy_version
@@ -122,6 +156,26 @@ erDiagram
         jsonb generator_state
         text fingerprint
         timestamptz created_at
+    }
+    JOB {
+        varchar job_id PK
+        varchar experiment_id FK
+        varchar candidate_id FK
+        text job_type
+        text status
+        varchar correlation_id
+        integer total_work
+        integer completed_work
+        integer failed_work
+        numeric best_score
+        timestamptz queued_at
+        timestamptz started_at
+        timestamptz finished_at
+        timestamptz next_retry_at
+        text failure_code
+        text failure_message
+        timestamptz created_at
+        timestamptz updated_at
     }
     EXECUTION_ATTEMPT {
         varchar attempt_id PK
@@ -255,6 +309,7 @@ erDiagram
 
     AUTH_USER ||--o| USER_PROFILE : has
     AUTH_USER ||--o{ EXPERIMENT : owns
+    AUTH_USER ||--o{ USER_STRATEGY : owns
     AUTH_USER ||--o{ IDEMPOTENCY_RECORD : scopes
     EXPERIMENT o|--o{ EXPERIMENT : derives
     ASSET ||--o{ TRADING_PAIR : base_asset
@@ -265,10 +320,17 @@ erDiagram
     CANDLE ||--o{ DATASET_CANDLE : included_in
     STRATEGY_VERSION ||--o{ COMPOSITE_COMPONENT : used_by
     COMPOSITE_VERSION ||--o{ COMPOSITE_COMPONENT : contains
+    USER_STRATEGY ||--o{ USER_STRATEGY_VERSION : versions
+    STRATEGY_VERSION ||--o{ USER_STRATEGY_VERSION : configures_single
+    USER_STRATEGY_VERSION ||--o{ USER_STRATEGY_COMPONENT : contains
+    STRATEGY_VERSION ||--o{ USER_STRATEGY_COMPONENT : configures_component
     DATASET_VERSION ||--o{ EXPERIMENT_MANIFEST : used_by
     EXPERIMENT ||--|| EXPERIMENT_MANIFEST : freezes
+    USER_STRATEGY_VERSION ||--o{ EXPERIMENT_MANIFEST : source_for
     EXPERIMENT ||--o{ CANDIDATE_DEFINITION : generates
-    CANDIDATE_DEFINITION ||--o{ EXECUTION_ATTEMPT : runs_as
+    EXPERIMENT ||--o{ JOB : owns
+    CANDIDATE_DEFINITION ||--o| JOB : runs_as
+    JOB ||--o{ EXECUTION_ATTEMPT : attempts
     CANDIDATE_DEFINITION ||--o| BACKTEST_RESULT : succeeds_as
     EXECUTION_ATTEMPT ||--o| BACKTEST_RESULT : produces
     BACKTEST_RESULT ||--o{ TRADE : contains
