@@ -113,7 +113,7 @@ Test của mỗi user story phải được viết trước implementation tươ
 - [x] T032 [US3] Implement correlation ID resolution/generation, request filter và MDC cleanup tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationId.java` và `CorrelationIdFilter.java`
 - [x] T033 [US3] Implement API error envelope/handler khớp catalog hiện tại tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/ErrorEnvelope.java` và `ApiExceptionHandler.java`
 - [x] T034 [US3] Cấu hình structured JSON logging và secret redaction tại `apps/api/src/main/resources/application.yml`, `apps/worker/src/main/resources/application.yml` và `specs/002-java-backend-foundation/contracts/observability-boundary.md`
-- [ ] T035 [US3] Chạy API/Worker health smoke test và root `supabaseIntegrationTest`, xác nhận captured operation không truy vấn/mutation business table, rồi ghi commit/environment/configuration/status/timing không chứa secret tại `specs/002-java-backend-foundation/verification-evidence.md`
+- [x] T035 [US3] Chạy API/Worker health smoke test và root `supabaseIntegrationTest`, xác nhận captured operation không truy vấn/mutation business table, rồi ghi commit/environment/configuration/status/timing không chứa secret tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 **Điểm kiểm tra**: API/Worker liveness đạt trong 30 giây; database mất chỉ làm readiness DOWN; Worker vẫn idle; correlation nhất quán.
 
