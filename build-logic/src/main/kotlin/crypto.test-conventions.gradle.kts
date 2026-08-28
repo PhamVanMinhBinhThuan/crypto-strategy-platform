@@ -12,6 +12,7 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    systemProperty("debug", "false")
     reports {
         junitXml.required.set(true)
         html.required.set(true)
