@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-27
 
-**Status**: Draft
+**Status**: Planned — ready for implementation; ADR merge gate open
 
 **Input**: User description: "Thiết lập nền tảng backend dùng chung theo roadmap và
 ADR hiện có để nhóm bốn người có thể phát triển các capability song song mà không phá
@@ -52,6 +52,9 @@ chạy command chuẩn và xác nhận toàn bộ module foundation được bui
    **Then** quy trình trả trạng thái thất bại và chỉ rõ module/test gây lỗi.
 3. **Given** một thành viên mới, **When** làm theo hướng dẫn repository,
    **Then** người đó khởi động được API foundation và chạy test trong một buổi thiết lập.
+4. **Given** một public boundary dùng identity, decimal hoặc timestamp, **When** kiểm tra
+   canonical convention, **Then** identity dùng UUID, decimal không mất precision và
+   timestamp biểu diễn một UTC instant không mơ hồ timezone.
 
 ---
 
@@ -75,6 +78,8 @@ xác nhận trường hợp hợp lệ pass và trường hợp bị cấm làm 
    module khác, **When** chạy architecture test, **Then** test thất bại với rule rõ ràng.
 3. **Given** domain/Strategy code phụ thuộc framework, provider hoặc persistence,
    **When** chạy architecture test, **Then** dependency bị từ chối.
+4. **Given** hai capability tạo dependency vòng, **When** chạy architecture test,
+   **Then** cycle fixture làm test thất bại với các module liên quan được chỉ rõ.
 
 ---
 
@@ -96,12 +101,16 @@ trạng thái và mô phỏng thiếu cấu hình bắt buộc để xác nhận
    sàng được báo thành công mà không làm thay đổi business data.
 2. **Given** một dependency bắt buộc không sẵn sàng, **When** kiểm tra readiness,
    **Then** trạng thái degraded/not-ready được báo mà không làm process crash âm thầm.
-3. **Given** thiếu cấu hình bắt buộc, **When** khởi động, **Then** application fail-fast
-   với thông báo tên cấu hình thiếu nhưng không hiển thị giá trị secret.
+3. **Given** API hoặc Worker thiếu cấu hình bắt buộc, **When** khởi động, **Then** runtime
+   tương ứng fail-fast với thông báo tên cấu hình thiếu nhưng không hiển thị giá trị secret.
 4. **Given** cấu hình shared development hợp lệ, **When** chạy integration verification,
-   **Then** readiness xác nhận kết nối bằng thao tác chỉ đọc và không thay đổi business data.
+   **Then** readiness của cả API và Worker xác nhận kết nối bằng thao tác chỉ đọc và không
+   thay đổi business data.
 5. **Given** chưa có queue và job handler, **When** Worker foundation khởi động,
    **Then** Worker báo health thành công, ở trạng thái idle và không thử consume job.
+6. **Given** validation failure hoặc unexpected failure trong test fixture, **When** API
+   mapping lỗi, **Then** response dùng safe error envelope, có correlation ID và không lộ
+   stack trace hoặc secret.
 
 ---
 
@@ -158,7 +167,8 @@ xác nhận chỉ token hợp lệ tạo được authenticated user context.
 - **FR-006**: Domain và Strategy boundary MUST không phụ thuộc application framework,
   provider client, transport model hoặc persistence implementation.
 - **FR-007**: Foundation MUST cung cấp canonical representation/convention cho public
-  identity, exact decimal và UTC instant mà không tạo business entity không có owner.
+  identity dưới dạng UUID, exact decimal không dùng binary floating-point và UTC instant
+  không mơ hồ timezone mà không tạo business entity không có owner.
 - **FR-008**: API foundation MUST có error envelope/correlation identity nhất quán cho
   validation, authentication và unexpected failure; public error MUST không lộ secret
   hoặc internal stack trace.
@@ -179,8 +189,10 @@ xác nhận chỉ token hợp lệ tạo được authenticated user context.
   cấp health state và ở trạng thái idle; feature MUST NOT kết nối queue hoặc consume job.
 - **FR-015**: Foundation MUST có hướng dẫn prerequisite, build, test, run, configuration
   và cách thêm module mới mà không phá dependency rule.
-- **FR-016**: Mọi requirement trong feature MUST có automated evidence tương xứng;
-  test không cần database/queue/provider thật MUST chạy được khi các dependency đó tắt.
+- **FR-016**: Mỗi acceptance scenario và quality scenario bị ảnh hưởng MUST có evidence
+  tương xứng, được tự động hóa khi khả thi; review evidence có thể xem lại được chấp nhận
+  cho outcome cần đánh giá trực tiếp của thành viên. Test không cần database/queue/provider
+  thật MUST chạy được khi các dependency đó tắt.
 - **FR-017**: Foundation MUST NOT sửa migration database đã apply hoặc thay đổi business
   schema; mọi nhu cầu schema mới phát hiện trong feature trở thành forward migration
   được review riêng.
@@ -211,8 +223,9 @@ xác nhận chỉ token hợp lệ tạo được authenticated user context.
   command trong tối đa 10 phút sau khi cài prerequisite đã công bố.
 - **SC-002**: 100% module foundation tham gia command build/test chung; không module nào
   cần chạy quy trình thủ công riêng để được kiểm chứng.
-- **SC-003**: Architecture test bắt được 100% fixture dependency bị cấm đã liệt kê và
-  chấp nhận 100% fixture dependency hợp lệ.
+- **SC-003**: Architecture test bắt được 100% fixture internal import, forbidden technology
+  dependency và dependency cycle đã liệt kê, đồng thời chấp nhận 100% fixture dependency
+  hợp lệ.
 - **SC-004**: API và Worker foundation đều khởi động và trả liveness trong tối đa 30 giây
   trên máy development mục tiêu khi cấu hình hợp lệ.
 - **SC-005**: 100% fixture token thiếu, malformed, hết hạn, sai signature/issuer/audience
@@ -223,15 +236,17 @@ xác nhận chỉ token hợp lệ tạo được authenticated user context.
   queue và provider bị tắt.
 - **SC-008**: Nghi Văn, Văn Minh và Tiến có thể tạo feature module từ cùng foundation mà
   không phải sửa composition/build layout ngoài extension point đã công bố.
-- **SC-009**: Shared-development integration verification xác nhận kết nối thành công và
-  database audit/evidence không ghi nhận business-data mutation từ health operation.
+- **SC-009**: Shared-development integration verification xác nhận API và Worker kết nối
+  thành công; reviewable operation/audit evidence không ghi nhận business-data query hoặc
+  mutation từ health operation.
 - **SC-010**: 100% request fixture có đúng một correlation ID trong response và mọi log
   fixture của request có cùng identity; log verification không chứa token hoặc secret.
 
 ## Assumptions
 
-- Các quyết định Java backend, Modular Monolith, API/Worker boundary và Supabase Auth đã
-  được chốt trong ADR-0001, ADR-0002, ADR-0006, ADR-0007 và ADR-0011.
+- Constitution v1.1.0 chốt target stack và cho phép ADR `Proposed` hỗ trợ planning.
+  ADR-0011 đã `Accepted`; ADR-0001, ADR-0002, ADR-0006 và ADR-0007 phải được review và
+  chuyển sang `Accepted` trước khi implementation phụ thuộc được merge.
 - Luật là owner chính của F-002; Nghi Văn, Văn Minh và Tiến review boundary phục vụ
   Market, Strategy và Experiment trước khi merge.
 - Database baseline đã apply trên shared development; feature chỉ cần configuration và

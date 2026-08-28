@@ -31,6 +31,7 @@
 
 ## Notes
 
-- Specification dựa trên ADR đang có hiệu lực; không sửa hoặc supersede ADR nào.
+- Specification dùng ADR `Proposed` cho planning theo Constitution v1.1.0; ADR-0011 đã
+  `Accepted`, còn ADR-0001/0002/0006/0007 là merge gate và không bị sửa hoặc supersede.
 - Chi tiết build tool, module dependency declaration, security library và test framework
   được quyết định ở bước planning trong giới hạn ADR.

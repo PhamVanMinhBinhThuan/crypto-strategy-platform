@@ -34,3 +34,5 @@
 - Validation passed on the first review iteration.
 - Architecture and technology choices remain in ADR/design artifacts rather than
   this stakeholder-facing specification.
+- Post-amendment impact review theo Constitution v1.1.0 được ghi trong `plan.md` và
+  `verification-evidence.md`; không sửa migration đã apply.
