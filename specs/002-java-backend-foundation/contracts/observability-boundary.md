@@ -19,6 +19,11 @@
   stack trace in a public response.
 - F-002 does not deploy tracing collector, metrics dashboard or observability backend.
 
+API và Worker dùng Spring Boot structured console format `logstash`. API filter chỉ log
+HTTP method, request path, response status và MDC correlation ID; header, query value và
+request body không nằm trong completion log. Unexpected exception log chỉ ghi exception
+type cùng correlation context, không ghi exception message có thể chứa token/credential.
+
 ## Required evidence
 
 - Provided valid ID is preserved in header and logs.

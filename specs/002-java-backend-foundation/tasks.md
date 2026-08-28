@@ -100,19 +100,19 @@ Test của mỗi user story phải được viết trước implementation tươ
 
 ### Kiểm thử User Story 3
 
-- [ ] T025 [US3] Viết API liveness/readiness và missing-configuration integration test tại `apps/api/src/test/java/com/cryptostrategy/platform/api/health/ApiHealthIntegrationTest.java`
-- [ ] T026 [P] [US3] Viết Worker startup/idle/health và missing-configuration test không Redis tại `apps/worker/src/test/java/com/cryptostrategy/platform/worker/WorkerHealthIntegrationTest.java`
-- [ ] T027 [US3] Viết correlation success/authentication/validation/unexpected-error, safe-envelope, MDC-cleanup và log-redaction test tại `apps/api/src/test/java/com/cryptostrategy/platform/api/observability/CorrelationIntegrationTest.java`
-- [ ] T028 [US3] Tạo remote connection-level Supabase readiness test cho cả API và Worker tại `apps/api/src/supabaseIntegrationTest/java/com/cryptostrategy/platform/api/health/SupabaseReadinessIntegrationTest.java`, `apps/worker/src/supabaseIntegrationTest/java/com/cryptostrategy/platform/worker/health/SupabaseReadinessIntegrationTest.java`, cấu hình source set/task trong `apps/api/build.gradle.kts`, `apps/worker/build.gradle.kts` và root aggregation tại `build.gradle.kts`
+- [x] T025 [US3] Viết API liveness/readiness và missing-configuration integration test tại `apps/api/src/test/java/com/cryptostrategy/platform/api/health/ApiHealthIntegrationTest.java`
+- [x] T026 [P] [US3] Viết Worker startup/idle/health và missing-configuration test không Redis tại `apps/worker/src/test/java/com/cryptostrategy/platform/worker/WorkerHealthIntegrationTest.java`
+- [x] T027 [US3] Viết correlation success/authentication/validation/unexpected-error, safe-envelope, MDC-cleanup và log-redaction test tại `apps/api/src/test/java/com/cryptostrategy/platform/api/observability/CorrelationIntegrationTest.java`
+- [x] T028 [US3] Tạo remote connection-level Supabase readiness test cho cả API và Worker tại `apps/api/src/supabaseIntegrationTest/java/com/cryptostrategy/platform/api/health/SupabaseReadinessIntegrationTest.java`, `apps/worker/src/supabaseIntegrationTest/java/com/cryptostrategy/platform/worker/health/SupabaseReadinessIntegrationTest.java`, cấu hình source set/task trong `apps/api/build.gradle.kts`, `apps/worker/build.gradle.kts` và root aggregation tại `build.gradle.kts`
 
 ### Triển khai User Story 3
 
-- [ ] T029 [P] [US3] Tạo API/Worker external configuration model và placeholder config tại `apps/api/src/main/resources/application.yml` và `apps/worker/src/main/resources/application.yml`
-- [ ] T030 [US3] Cấu hình Actuator liveness/readiness và database-only readiness contribution tại `apps/api/src/main/java/com/cryptostrategy/platform/api/config/HealthConfiguration.java` và `apps/worker/src/main/java/com/cryptostrategy/platform/worker/config/HealthConfiguration.java`
-- [ ] T031 [US3] Cấu hình Worker runtime idle, không queue consumer tại `apps/worker/src/main/java/com/cryptostrategy/platform/worker/config/WorkerRuntimeConfiguration.java`
-- [ ] T032 [US3] Implement correlation ID resolution/generation, request filter và MDC cleanup tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationId.java` và `CorrelationIdFilter.java`
-- [ ] T033 [US3] Implement API error envelope/handler khớp catalog hiện tại tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/ErrorEnvelope.java` và `ApiExceptionHandler.java`
-- [ ] T034 [US3] Cấu hình structured JSON logging và secret redaction tại `apps/api/src/main/resources/application.yml`, `apps/worker/src/main/resources/application.yml` và `specs/002-java-backend-foundation/contracts/observability-boundary.md`
+- [x] T029 [P] [US3] Tạo API/Worker external configuration model và placeholder config tại `apps/api/src/main/resources/application.yml` và `apps/worker/src/main/resources/application.yml`
+- [x] T030 [US3] Cấu hình Actuator liveness/readiness và database-only readiness contribution tại `apps/api/src/main/java/com/cryptostrategy/platform/api/config/HealthConfiguration.java` và `apps/worker/src/main/java/com/cryptostrategy/platform/worker/config/HealthConfiguration.java`
+- [x] T031 [US3] Cấu hình Worker runtime idle, không queue consumer tại `apps/worker/src/main/java/com/cryptostrategy/platform/worker/config/WorkerRuntimeConfiguration.java`
+- [x] T032 [US3] Implement correlation ID resolution/generation, request filter và MDC cleanup tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationId.java` và `CorrelationIdFilter.java`
+- [x] T033 [US3] Implement API error envelope/handler khớp catalog hiện tại tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/ErrorEnvelope.java` và `ApiExceptionHandler.java`
+- [x] T034 [US3] Cấu hình structured JSON logging và secret redaction tại `apps/api/src/main/resources/application.yml`, `apps/worker/src/main/resources/application.yml` và `specs/002-java-backend-foundation/contracts/observability-boundary.md`
 - [ ] T035 [US3] Chạy API/Worker health smoke test và root `supabaseIntegrationTest`, xác nhận captured operation không truy vấn/mutation business table, rồi ghi commit/environment/configuration/status/timing không chứa secret tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 **Điểm kiểm tra**: API/Worker liveness đạt trong 30 giây; database mất chỉ làm readiness DOWN; Worker vẫn idle; correlation nhất quán.
@@ -127,14 +127,14 @@ Test của mỗi user story phải được viết trước implementation tươ
 
 ### Kiểm thử User Story 4
 
-- [ ] T036 [US4] Tạo local JWT signing/JWKS fixture và token factory tại `apps/api/src/test/java/com/cryptostrategy/platform/api/auth/JwtTestFixture.java`
-- [ ] T037 [US4] Tạo test-only protected controller và authentication matrix test tại `apps/api/src/test/java/com/cryptostrategy/platform/api/auth/AuthenticationIntegrationTest.java`
+- [x] T036 [US4] Tạo local JWT signing/JWKS fixture và token factory tại `apps/api/src/test/java/com/cryptostrategy/platform/api/auth/JwtTestFixture.java`
+- [x] T037 [US4] Tạo test-only protected controller và authentication matrix test tại `apps/api/src/test/java/com/cryptostrategy/platform/api/auth/AuthenticationIntegrationTest.java`
 
 ### Triển khai User Story 4
 
-- [ ] T038 [US4] Implement immutable authenticated user context tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticatedUserContext.java`
-- [ ] T039 [US4] Cấu hình Resource Server issuer/JWKS/audience/UUID-sub validation tại `apps/api/src/main/java/com/cryptostrategy/platform/api/config/SecurityConfiguration.java`
-- [ ] T040 [US4] Implement safe authentication failure mapping có correlation ID tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticationFailureHandler.java`
+- [x] T038 [US4] Implement immutable authenticated user context tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticatedUserContext.java`
+- [x] T039 [US4] Cấu hình Resource Server issuer/JWKS/audience/UUID-sub validation tại `apps/api/src/main/java/com/cryptostrategy/platform/api/config/SecurityConfiguration.java`
+- [x] T040 [US4] Implement safe authentication failure mapping có correlation ID tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticationFailureHandler.java`
 - [ ] T041 [US4] Xác nhận OpenAPI không có endpoint fixture mới và ghi authentication matrix result tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 **Điểm kiểm tra**: Toàn bộ invalid token fixture bị từ chối; valid token đưa đúng UUID vào handler; raw JWT không xuất hiện trong log/response.

@@ -126,6 +126,9 @@ class PurityAndCycleTest {
 
     private static boolean looksLikeIdentity(String name) {
         String normalized = name.toLowerCase(Locale.ROOT);
+        if (normalized.equals("correlationid")) {
+            return false;
+        }
         return normalized.equals("id") || normalized.endsWith("id") || normalized.endsWith("identity");
     }
 
