@@ -1,8 +1,8 @@
 # C4 Level 3 — Backend Module View
 
-**Status**: Draft — Target MVP Architecture
+**Status**: Planned — F-002 build enforcement in progress
 
-**Last Updated**: 2026-08-14
+**Last Updated**: 2026-08-28
 
 **Owner**: Văn Minh
 
@@ -108,3 +108,19 @@ Kế hoạch enforcement:
 3. Contract test cho Strategy, Generator, provider adapter và queue message.
 4. Pull Request review bắt buộc khi thêm dependency hoặc cross-module read model.
 5. Thêm dependency ngoài bảng phải cập nhật ADR-0002 hoặc ADR thay thế.
+
+## Gradle Build Enforcement
+
+- `settings.gradle.kts` khai báo hai composition root, 13 capability và
+  `architecture-tests`; project mới không được đứng ngoài root `check`.
+- Library module áp dụng `crypto.java-library-conventions`; runnable Java application áp
+  dụng `crypto.spring-application-conventions`.
+- Java toolchain được pin ở Java 21; test dùng JUnit Platform với report dùng chung.
+- Public package dùng `..api..`; `..internal..` không phải contract cho consumer khác.
+- `build-logic` và `architecture-tests` là build/verification infrastructure, không phải
+  business capability hoặc nơi chứa model dùng chung.
+
+Quy trình thêm module: xác định owner → review dependency theo bảng → khai báo project và
+convention plugin → tạo `api`/`internal` package → bổ sung build/architecture fixture →
+chạy `./gradlew clean check`. ADR-0002 phải được `Accepted` trước khi implementation phụ
+thuộc boundary này được merge theo Constitution v1.1.0.

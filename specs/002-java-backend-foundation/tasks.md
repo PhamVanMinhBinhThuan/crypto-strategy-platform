@@ -22,10 +22,10 @@ Test của mỗi user story phải được viết trước implementation tươ
 
 **Mục tiêu**: Tạo một Gradle Wrapper và dependency catalog có version cố định.
 
-- [ ] T001 Tạo Gradle Wrapper 8.14.5 cùng root project metadata tại `gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.properties`, `gradle/wrapper/gradle-wrapper.jar` và `settings.gradle.kts`
-- [ ] T002 Tạo root lifecycle/configuration build tại `build.gradle.kts` và `gradle.properties`
-- [ ] T003 Tập trung version/plugin/dependency alias tại `gradle/libs.versions.toml`
-- [ ] T004 [P] Bổ sung Java/Gradle/build/secret patterns còn thiếu vào `.gitignore`, tạo placeholder-only `.env.example` và tạo evidence template có commit/environment/non-secret configuration cùng trạng thái `Planned`/`Verified` tại `specs/002-java-backend-foundation/verification-evidence.md`
+- [x] T001 Tạo Gradle Wrapper 8.14.5 cùng root project metadata tại `gradlew`, `gradlew.bat`, `gradle/wrapper/gradle-wrapper.properties`, `gradle/wrapper/gradle-wrapper.jar` và `settings.gradle.kts`
+- [x] T002 Tạo root lifecycle/configuration build tại `build.gradle.kts` và `gradle.properties`
+- [x] T003 Tập trung version/plugin/dependency alias tại `gradle/libs.versions.toml`
+- [x] T004 [P] Bổ sung Java/Gradle/build/secret patterns còn thiếu vào `.gitignore`, tạo placeholder-only `.env.example` và tạo evidence template có commit/environment/non-secret configuration cùng trạng thái `Planned`/`Verified` tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 ---
 
@@ -35,13 +35,13 @@ Test của mỗi user story phải được viết trước implementation tươ
 
 **⚠️ BẮT BUỘC**: Chưa user story nào bắt đầu cho đến khi convention plugins và toàn bộ project path được Gradle nhận diện.
 
-- [ ] T005 Tạo included convention build tại `build-logic/settings.gradle.kts` và `build-logic/build.gradle.kts`
-- [ ] T006 Tạo Java 21 library convention tại `build-logic/src/main/kotlin/crypto.java-library-conventions.gradle.kts`
-- [ ] T007 Tạo JUnit Platform/test-report convention tại `build-logic/src/main/kotlin/crypto.test-conventions.gradle.kts`
-- [ ] T008 Tạo Spring Boot runnable-application convention tại `build-logic/src/main/kotlin/crypto.spring-application-conventions.gradle.kts`
-- [ ] T009 Khai báo `apps:api`, `apps:worker`, 13 capability project và `architecture-tests` trong `settings.gradle.kts`
-- [ ] T010 [P] Tạo build script cho hai composition root tại `apps/api/build.gradle.kts` và `apps/worker/build.gradle.kts`
-- [ ] T011 Tạo Java-library build script tối thiểu tại `modules/domain/build.gradle.kts`, `modules/contracts/build.gradle.kts`, `modules/market-data/build.gradle.kts`, `modules/strategy-core/build.gradle.kts`, `modules/strategies/build.gradle.kts`, `modules/combination/build.gradle.kts`, `modules/backtesting/build.gradle.kts`, `modules/evaluation/build.gradle.kts`, `modules/experiment/build.gradle.kts`, `modules/search/build.gradle.kts`, `modules/leaderboard/build.gradle.kts`, `modules/news/build.gradle.kts`, `modules/persistence/build.gradle.kts` và verification build tại `architecture-tests/build.gradle.kts`
+- [x] T005 Tạo included convention build tại `build-logic/settings.gradle.kts` và `build-logic/build.gradle.kts`
+- [x] T006 Tạo Java 21 library convention tại `build-logic/src/main/kotlin/crypto.java-library-conventions.gradle.kts`
+- [x] T007 Tạo JUnit Platform/test-report convention tại `build-logic/src/main/kotlin/crypto.test-conventions.gradle.kts`
+- [x] T008 Tạo Spring Boot runnable-application convention tại `build-logic/src/main/kotlin/crypto.spring-application-conventions.gradle.kts`
+- [x] T009 Khai báo `apps:api`, `apps:worker`, 13 capability project và `architecture-tests` trong `settings.gradle.kts`
+- [x] T010 [P] Tạo build script cho hai composition root tại `apps/api/build.gradle.kts` và `apps/worker/build.gradle.kts`
+- [x] T011 Tạo Java-library build script tối thiểu tại `modules/domain/build.gradle.kts`, `modules/contracts/build.gradle.kts`, `modules/market-data/build.gradle.kts`, `modules/strategy-core/build.gradle.kts`, `modules/strategies/build.gradle.kts`, `modules/combination/build.gradle.kts`, `modules/backtesting/build.gradle.kts`, `modules/evaluation/build.gradle.kts`, `modules/experiment/build.gradle.kts`, `modules/search/build.gradle.kts`, `modules/leaderboard/build.gradle.kts`, `modules/news/build.gradle.kts`, `modules/persistence/build.gradle.kts` và verification build tại `architecture-tests/build.gradle.kts`
 
 **Điểm kiểm tra**: `./gradlew projects` liệt kê đúng 2 app, 13 capability và architecture-test project.
 
@@ -55,15 +55,15 @@ Test của mỗi user story phải được viết trước implementation tươ
 
 ### Kiểm thử User Story 1
 
-- [ ] T012 [US1] Tạo Gradle TestKit test cho Java/test/application convention tại `build-logic/src/test/kotlin/ConventionPluginsTest.kt`
-- [ ] T013 [US1] Tạo root project coverage test xác nhận đủ expected project path và `check` task tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/BuildStructureTest.java`
+- [x] T012 [US1] Tạo Gradle TestKit test cho Java/test/application convention tại `build-logic/src/test/kotlin/ConventionPluginsTest.kt`
+- [x] T013 [US1] Tạo root project coverage test xác nhận đủ expected project path và `check` task tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/BuildStructureTest.java`
 
 ### Triển khai User Story 1
 
-- [ ] T014 [US1] Tạo buildable `api`/`internal` package skeleton cùng `package-info.java` tại `modules/domain/src/main/java/com/cryptostrategy/platform/domain/`, `modules/contracts/src/main/java/com/cryptostrategy/platform/contracts/`, `modules/market-data/src/main/java/com/cryptostrategy/platform/marketdata/`, `modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/`, `modules/strategies/src/main/java/com/cryptostrategy/platform/strategies/`, `modules/combination/src/main/java/com/cryptostrategy/platform/combination/`, `modules/backtesting/src/main/java/com/cryptostrategy/platform/backtesting/`, `modules/evaluation/src/main/java/com/cryptostrategy/platform/evaluation/`, `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/`, `modules/search/src/main/java/com/cryptostrategy/platform/search/`, `modules/leaderboard/src/main/java/com/cryptostrategy/platform/leaderboard/`, `modules/news/src/main/java/com/cryptostrategy/platform/news/` và `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/`
-- [ ] T015 [P] [US1] Tạo API application entry point tối thiểu tại `apps/api/src/main/java/com/cryptostrategy/platform/api/ApiApplication.java`
-- [ ] T016 [P] [US1] Tạo Worker application entry point tối thiểu tại `apps/worker/src/main/java/com/cryptostrategy/platform/worker/WorkerApplication.java`
-- [ ] T017 [US1] Viết hướng dẫn prerequisite/build/test/add-module tại `README.md` và `docs/architecture/module-view.md` mà không thay đổi dependency decision
+- [x] T014 [US1] Tạo buildable `api`/`internal` package skeleton cùng `package-info.java` tại `modules/domain/src/main/java/com/cryptostrategy/platform/domain/`, `modules/contracts/src/main/java/com/cryptostrategy/platform/contracts/`, `modules/market-data/src/main/java/com/cryptostrategy/platform/marketdata/`, `modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/`, `modules/strategies/src/main/java/com/cryptostrategy/platform/strategies/`, `modules/combination/src/main/java/com/cryptostrategy/platform/combination/`, `modules/backtesting/src/main/java/com/cryptostrategy/platform/backtesting/`, `modules/evaluation/src/main/java/com/cryptostrategy/platform/evaluation/`, `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/`, `modules/search/src/main/java/com/cryptostrategy/platform/search/`, `modules/leaderboard/src/main/java/com/cryptostrategy/platform/leaderboard/`, `modules/news/src/main/java/com/cryptostrategy/platform/news/` và `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/`
+- [x] T015 [P] [US1] Tạo API application entry point tối thiểu tại `apps/api/src/main/java/com/cryptostrategy/platform/api/ApiApplication.java`
+- [x] T016 [P] [US1] Tạo Worker application entry point tối thiểu tại `apps/worker/src/main/java/com/cryptostrategy/platform/worker/WorkerApplication.java`
+- [x] T017 [US1] Viết hướng dẫn prerequisite/build/test/add-module tại `README.md` và `docs/architecture/module-view.md` mà không thay đổi dependency decision
 - [ ] T018 [US1] Chạy `./gradlew clean check` từ checkout state hiện tại và ghi exact commit, environment/configuration, non-secret result/duration tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 **Điểm kiểm tra**: Một command build/test được toàn foundation khi external service đều tắt.

@@ -11,3 +11,25 @@ infra/database/local-data/
 # Trạng thái local do Supabase CLI tạo ra.
 supabase/.temp/
 supabase/.branches/
+
+# Java and Gradle build output.
+.gradle/
+**/build/
+out/
+*.class
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE, operating-system and temporary files.
+.idea/
+.vscode/
+*.iml
+*.log
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Ignore every local environment file except the committed placeholder template.
+.env*
+!.env.example
