@@ -4,9 +4,9 @@
 
 - Feature: `002-java-backend-foundation`
 - Branch: `feature/002-java-backend-foundation`
-- Trạng thái tổng thể: `Planned`
-- Verification commit: `TBD` — chỉ điền sau khi kết quả thật đã được commit
-- Local environment: macOS, JDK/toolchain identity được ghi tại thời điểm verification
+- Trạng thái tổng thể: `In progress`
+- Verification commit gần nhất: `e9f7eb4e346bceeb6d75a25ce742bb1d89eee11f`
+- Local environment: macOS 26.5.2 arm64, OpenJDK 21.0.12.1, Gradle Wrapper 8.14.5
 - Shared environment: Supabase development; credential chỉ lấy từ environment
 - Non-secret configuration: `offline-check`, `api-local`, `worker-local`, `supabase-readiness`
 
@@ -16,7 +16,7 @@ Không ghi password, token, full JDBC URL hoặc secret value vào tài liệu n
 
 | Evidence | Commit | Environment/configuration | Status | Result |
 |---|---|---|---|---|
-| Root `clean check` | TBD | `offline-check` | Planned | Chưa chạy |
+| Root `clean check` | `e9f7eb4e346bceeb6d75a25ce742bb1d89eee11f` | `offline-check`; external services unset | Verified | PASS, 4.5 giây; không cần Docker, database, Redis hoặc provider |
 | Gradle project/module boundary | TBD | `offline-check` | Planned | Chưa chạy |
 | API/Worker startup và health | TBD | `api-local`, `worker-local` | Planned | Chưa chạy |
 | Authentication matrix | TBD | local signing fixture | Planned | Chưa chạy |

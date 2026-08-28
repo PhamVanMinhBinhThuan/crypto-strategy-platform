@@ -64,7 +64,7 @@ Test của mỗi user story phải được viết trước implementation tươ
 - [x] T015 [P] [US1] Tạo API application entry point tối thiểu tại `apps/api/src/main/java/com/cryptostrategy/platform/api/ApiApplication.java`
 - [x] T016 [P] [US1] Tạo Worker application entry point tối thiểu tại `apps/worker/src/main/java/com/cryptostrategy/platform/worker/WorkerApplication.java`
 - [x] T017 [US1] Viết hướng dẫn prerequisite/build/test/add-module tại `README.md` và `docs/architecture/module-view.md` mà không thay đổi dependency decision
-- [ ] T018 [US1] Chạy `./gradlew clean check` từ checkout state hiện tại và ghi exact commit, environment/configuration, non-secret result/duration tại `specs/002-java-backend-foundation/verification-evidence.md`
+- [x] T018 [US1] Chạy `./gradlew clean check` từ checkout state hiện tại và ghi exact commit, environment/configuration, non-secret result/duration tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 **Điểm kiểm tra**: Một command build/test được toàn foundation khi external service đều tắt.
 
