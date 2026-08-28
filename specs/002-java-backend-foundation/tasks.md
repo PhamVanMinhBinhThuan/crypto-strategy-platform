@@ -146,8 +146,8 @@ Test của mỗi user story phải được viết trước implementation tươ
 **Mục tiêu**: Chứng minh foundation đủ ổn định để ba feature tiếp theo tách nhánh từ cùng commit.
 
 - [x] T042 Đối chiếu implementation với `specs/002-java-backend-foundation/spec.md`, `plan.md`, `data-model.md` và toàn bộ `contracts/`
-- [ ] T043 Chạy `./gradlew clean check` cùng secret scan và hoàn thiện commit/environment/non-secret configuration cùng trạng thái `Verified` thực tế tại `specs/002-java-backend-foundation/verification-evidence.md`
-- [ ] T044 Thực hiện toàn bộ validation phù hợp trong `specs/002-java-backend-foundation/quickstart.md` và cập nhật kết quả tại `specs/002-java-backend-foundation/verification-evidence.md`
+- [x] T043 Chạy `./gradlew clean check` cùng secret scan và hoàn thiện commit/environment/non-secret configuration cùng trạng thái `Verified` thực tế tại `specs/002-java-backend-foundation/verification-evidence.md`
+- [x] T044 Thực hiện toàn bộ validation phù hợp trong `specs/002-java-backend-foundation/quickstart.md` và cập nhật kết quả tại `specs/002-java-backend-foundation/verification-evidence.md`
 - [x] T045 Xác nhận không sửa OpenAPI business contract/applied migration, không âm thầm sửa ADR và chặn merge nếu ADR-0001/0002/0006/0007 chưa `Accepted`; ghi trạng thái tại `specs/002-java-backend-foundation/verification-evidence.md`
 - [ ] T046 Luật tổ chức review cuối: Nghi Văn xác nhận Market/Data extension point, Văn Minh xác nhận Strategy extension point, Tiến xác nhận Experiment/Persistence/Worker extension point tại `specs/002-java-backend-foundation/verification-evidence.md`
 
