@@ -17,7 +17,10 @@ dependencies {
     testRuntimeOnly("com.h2database:h2")
 }
 
-val supabaseIntegrationTest by sourceSets.creating
+val supabaseIntegrationTest by sourceSets.creating {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
 
 configurations[supabaseIntegrationTest.implementationConfigurationName]
     .extendsFrom(configurations.testImplementation.get())

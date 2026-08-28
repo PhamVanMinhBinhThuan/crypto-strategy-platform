@@ -20,8 +20,8 @@ thứ tự triển khai cho nhóm bốn người. Đây là tài liệu điều 
 |---|---|---|
 | **Luật** | Java Foundation, `apps/api`, authentication, public API và realtime | Tech lead, giữ build/module boundary và tích hợp các feature |
 | **Nghi Văn** | Market Data, Dataset, Binance adapter và Java News collection | Cung cấp market/news fixture và provider adapter cho luồng E2E |
-| **Văn Minh** | Strategy Registry, Strategies, Composite và Backtest | Bảo đảm Strategy/Backtest deterministic và reproducible |
-| **Tiến** | Experiment, persistence, ownership, Evaluation, Leaderboard và Worker reliability | Giữ transaction invariant, Outbox, idempotency và recovery |
+| **Văn Minh** | Strategy Registry, Strategies, Composite, Backtest và contract Job–Execution Attempt | Bảo đảm Strategy/Backtest deterministic; định nghĩa rõ lifecycle của một Job và các lần Worker thực thi |
+| **Tiến** | Experiment persistence, ownership, Evaluation, Leaderboard và Worker reliability | Giữ transaction invariant, Outbox, idempotency và recovery; tích hợp Job–Attempt contract vào persistence/Worker |
 
 Ownership chính không có nghĩa chỉ một người được review. Pull request của mỗi capability
 cần ít nhất một người không phải owner review contract và dependency direction.
@@ -91,13 +91,17 @@ việc của mình sẽ sử dụng.
 
 **Phạm vi**:
 
-- Experiment, Manifest, Candidate, Attempt và lifecycle application service.
+- Experiment, Manifest, Candidate, Job, Execution Attempt và lifecycle application service.
 - Ownership authorization theo Supabase user identity.
 - Persistence adapter cho Experiment graph.
 - Transaction-enforced invariant đã hoãn từ database baseline.
 - Idempotency record và durable Outbox write.
 
-**Phụ trách chính**: **Tiến**.
+**Cách chia**: **Văn Minh** định nghĩa contract và state machine
+`Candidate → Job → Execution Attempt`, bao gồm retry/cancel và ranh giới giữa trạng thái
+Job với trạng thái từng Attempt. **Tiến** phụ trách Experiment graph, ownership,
+persistence adapter, transaction invariant, Idempotency và Outbox; đồng thời tích hợp
+contract do Văn Minh định nghĩa. Tiến vẫn là owner tích hợp chính của F-005.
 
 ### F-006 — Backtest, Evaluation and Leaderboard
 
@@ -127,7 +131,8 @@ hợp API.
 - Recovery test khi mất transient queue/cache.
 - Job progress event cho API/WebSocket boundary.
 
-**Phụ trách chính**: **Tiến**; **Luật** phụ trách API/Worker composition.
+**Phụ trách chính**: **Tiến**; **Luật** phụ trách API/Worker composition; **Văn Minh**
+review việc Worker hiện thực đúng Job–Execution Attempt contract đã chốt ở F-005.
 
 ### F-008 — News and Sentiment
 
@@ -212,8 +217,10 @@ F-002 Java Foundation
 2. Tạo Spec Kit feature `002-java-backend-foundation`.
 3. Chạy `speckit-specify`, `speckit-clarify`, `speckit-plan`, `speckit-tasks` và
    `speckit-analyze` cho F-002.
-4. Luật implement F-002; Nghi Văn, Văn Minh và Tiến review public boundary, đồng thời
-   chuẩn bị description lần lượt cho F-003, F-004 và F-005.
+4. Luật implement F-002; Nghi Văn, Văn Minh và Tiến review public boundary. Nghi Văn
+   chuẩn bị description F-003; Văn Minh chuẩn bị F-004 và phần Job–Execution Attempt
+   của F-005; Tiến chuẩn bị các phần Experiment persistence, ownership, Idempotency và
+   Outbox còn lại của F-005.
 5. Khi F-002 merge vào `main`, tạo ba feature branch từ cùng commit để bắt đầu làm
    song song.
 

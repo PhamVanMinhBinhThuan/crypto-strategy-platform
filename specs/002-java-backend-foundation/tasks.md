@@ -86,7 +86,7 @@ Test của mỗi user story phải được viết trước implementation tươ
 
 - [x] T022 [US2] Thêm ArchUnit 1.5.0 và project-under-test dependency cần thiết vào `architecture-tests/build.gradle.kts`
 - [x] T023 [US2] Đồng bộ package ownership/public-boundary description với test rule tại `specs/002-java-backend-foundation/contracts/module-boundaries.md`
-- [ ] T024 [US2] Nhờ Nghi Văn, Văn Minh và Tiến review allowed dependency phục vụ F-003/F-004/F-005 và ghi reviewer, commit, kết quả có thể xem lại tại `specs/002-java-backend-foundation/verification-evidence.md`
+- [ ] T024 [US2] Nhờ Nghi Văn, Văn Minh và Tiến review allowed dependency phục vụ F-003/F-004/F-005 theo `specs/002-java-backend-foundation/review-guide.md`; Văn Minh kiểm tra thêm extension point cho contract Job–Execution Attempt, Tiến kiểm tra phần Experiment persistence/Outbox/Worker tích hợp contract đó; ghi reviewer, commit và kết quả có thể xem lại tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 **Điểm kiểm tra**: Architecture rule có cả bằng chứng pass và bằng chứng chủ động bắt lỗi.
 
@@ -149,7 +149,7 @@ Test của mỗi user story phải được viết trước implementation tươ
 - [x] T043 Chạy `./gradlew clean check` cùng secret scan và hoàn thiện commit/environment/non-secret configuration cùng trạng thái `Verified` thực tế tại `specs/002-java-backend-foundation/verification-evidence.md`
 - [x] T044 Thực hiện toàn bộ validation phù hợp trong `specs/002-java-backend-foundation/quickstart.md` và cập nhật kết quả tại `specs/002-java-backend-foundation/verification-evidence.md`
 - [x] T045 Xác nhận không sửa OpenAPI business contract/applied migration, không âm thầm sửa ADR và chặn merge nếu ADR-0001/0002/0006/0007 chưa `Accepted`; ghi trạng thái tại `specs/002-java-backend-foundation/verification-evidence.md`
-- [ ] T046 Luật tổ chức review cuối: Nghi Văn xác nhận Market/Data extension point, Văn Minh xác nhận Strategy extension point, Tiến xác nhận Experiment/Persistence/Worker extension point tại `specs/002-java-backend-foundation/verification-evidence.md`
+- [ ] T046 Luật tổ chức review cuối theo `specs/002-java-backend-foundation/review-guide.md`: Nghi Văn xác nhận Market/Data extension point; Văn Minh xác nhận Strategy cùng Job–Execution Attempt contract extension point; Tiến xác nhận Experiment persistence/Outbox/Worker integration extension point tại `specs/002-java-backend-foundation/verification-evidence.md`
 
 ---
 

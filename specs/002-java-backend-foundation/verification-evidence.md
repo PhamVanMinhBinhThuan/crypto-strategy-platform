@@ -21,7 +21,7 @@ Không ghi password, token, full JDBC URL hoặc secret value vào tài liệu n
 | API/Worker startup và health | `7fb41549324e1c967f3d65e65408b8670af074eb` | local H2 connection fixture; `api-local`, `worker-local` | Verified | API 3/3 và Worker 2/2 test PASS; liveness độc lập database, readiness theo connection, Worker `IDLE` không Redis/queue consumer |
 | Authentication matrix | `7fb41549324e1c967f3d65e65408b8670af074eb` | local RSA signing/JWKS fixture | Verified | 14/14 test PASS; 12 invalid/missing cases bị chặn trước handler, valid token cung cấp đúng UUID; không gọi Supabase Auth |
 | Correlation/error/log redaction | `7fb41549324e1c967f3d65e65408b8670af074eb` | `api-local`; local H2 fixture | Verified | 5/5 test PASS; header/envelope/log dùng cùng ID, generated ULID hợp lệ, MDC được xóa và Authorization fixture không xuất hiện trong log/response |
-| Supabase readiness | TBD | `supabase-readiness` | Planned | Chưa chạy |
+| Supabase readiness | working tree trên `7739a255d4ae344d4b52cba6ea144c3066c7d392`; final commit pending | `supabase-readiness`; Supabase shared development | Verified locally | API và Worker PASS trong root `supabaseIntegrationTest` (4 giây); readiness chỉ gọi JDBC `Connection.isValid(2)`, không truy vấn/mutation business table; credential không xuất hiện trong output |
 | Repository secret scan | `24d18317b975a9a96ee10f02957ef61b05385a0f` | tracked repository; private-key/cloud-token/JWT/credentialed-PostgreSQL-URI patterns | Verified | Không có match; `git diff --check` PASS; working tree sạch tại thời điểm scan |
 | Cross-owner extension review | TBD | review artifact | Planned | Chưa review |
 
@@ -45,11 +45,31 @@ protected authentication controller chỉ tồn tại dưới `src/test`.
 - Worker `bootRun`: startup khoảng 1.0 giây với database cố tình unreachable; liveness
   `200 UP`, readiness `503 DOWN`; automated test xác nhận mode `IDLE`.
 - Offline authentication command nằm trong root `check` và 14/14 test PASS.
-- `supabaseIntegrationTest`: `Planned`; ba database và ba JWT environment variable chưa
-  có trong shell, nên không chạy giả hoặc ghi evidence thành công giả.
+- `supabaseIntegrationTest`: PASS cho API và Worker trong 4 giây với Supabase shared
+  development; custom source set dùng main output và API test dùng mock web context để
+  load đúng application/security configuration. Chỉ JDBC connection validation được gọi.
+
+## Cross-owner review
+
+Kịch bản và checklist review nằm tại
+`specs/002-java-backend-foundation/review-guide.md`. Điền kết quả thật dưới đây; không
+đánh dấu `APPROVED` thay reviewer.
+
+| Review | Reviewer | Commit | Scope | Build | Decision | Notes |
+|---|---|---|---|---|---|---|
+| T024 Boundary | Nghi Văn | TBD | Market/Data | TBD | TBD | TBD |
+| T024 Boundary | Văn Minh | TBD | Strategy + Job/Attempt | TBD | TBD | TBD |
+| T024 Boundary | Tiến | TBD | Persistence/Outbox/Worker | TBD | TBD | TBD |
+| T046 Final | Nghi Văn | TBD | Market/Data | TBD | TBD | TBD |
+| T046 Final | Văn Minh | TBD | Strategy + Job/Attempt | TBD | TBD | TBD |
+| T046 Final | Tiến | TBD | Persistence/Outbox/Worker | TBD | TBD | TBD |
 
 ## Merge gate
 
 - ADR-0001, ADR-0002, ADR-0006 và ADR-0007 phải `Accepted` trước khi merge.
-- Nghi Văn, Văn Minh và Tiến phải xác nhận extension point thuộc phạm vi của mình.
+- Nghi Văn xác nhận Market/Data extension point; Văn Minh xác nhận Strategy và
+  Job–Execution Attempt contract extension point; Tiến xác nhận Experiment
+  persistence/Outbox/Worker integration extension point.
 - Chỉ đổi evidence từ `Planned` sang `Verified` sau khi có output thật có thể xem lại.
+- T035 chỉ được đánh dấu hoàn thành sau khi thay `final commit pending` bằng commit chứa
+  bản sửa integration test đã được chạy thành công.
