@@ -12,6 +12,9 @@ spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-security-test = { module = "org.springframework.security:spring-security-test" }
 postgresql = { module = "org.postgresql:postgresql" }
+jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
+spring-jdbc = { module = "org.springframework:spring-jdbc" }
+slf4j-api = { module = "org.slf4j:slf4j-api" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }

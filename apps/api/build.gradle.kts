@@ -4,6 +4,9 @@ plugins {
 
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
+    implementation(project(":modules:domain"))
+    implementation(project(":modules:market-data"))
+    implementation(project(":modules:persistence"))
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")

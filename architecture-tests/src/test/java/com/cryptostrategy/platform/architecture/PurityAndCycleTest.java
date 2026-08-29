@@ -61,7 +61,8 @@ class PurityAndCycleTest {
     void productionPublicBoundariesUseCanonicalValues() {
         JavaClasses production = productionClasses();
 
-        assertFalse(canonicalBoundaryValues().evaluate(production).hasViolation());
+        var result = canonicalBoundaryValues().evaluate(production);
+        assertFalse(result.hasViolation(), result.getFailureReport().toString());
     }
 
     @Test
@@ -99,8 +100,9 @@ class PurityAndCycleTest {
                     public void check(JavaClass javaClass, ConditionEvents events) {
                         for (JavaField field : javaClass.getFields()) {
                             checkType(javaClass, field.getName(), field.getRawType(), events);
-                            if (looksLikeIdentity(field.getName()) && !field.getRawType().isEquivalentTo(UUID.class)) {
-                                violation(javaClass, field.getFullName() + " must use UUID for identity", events);
+                            if (looksLikeIdentity(field.getName()) && !isAllowedIdentity(field.getName(), field.getRawType())) {
+                                violation(javaClass, field.getFullName()
+                                        + " must use UUID for user identity or a typed Market ULID", events);
                             }
                         }
                         for (JavaMethod method : javaClass.getMethods()) {
@@ -126,10 +128,20 @@ class PurityAndCycleTest {
 
     private static boolean looksLikeIdentity(String name) {
         String normalized = name.toLowerCase(Locale.ROOT);
-        if (normalized.equals("correlationid")) {
+        if (normalized.equals("correlationid") || normalized.equals("serialversionuid") || normalized.equals("valid")) {
             return false;
         }
         return normalized.equals("id") || normalized.endsWith("id") || normalized.endsWith("identity");
+    }
+
+    private static boolean isAllowedIdentity(String name, JavaClass type) {
+        String normalized = name.toLowerCase(Locale.ROOT);
+        if (normalized.equals("userid") || normalized.equals("ownerid")) {
+            return type.isEquivalentTo(UUID.class);
+        }
+        return type.isEquivalentTo(UUID.class)
+                || (type.getPackageName().equals(PLATFORM + ".domain.api.market")
+                        && type.getSimpleName().endsWith("Id"));
     }
 
     private static void violation(JavaClass owner, String message, ConditionEvents events) {
