@@ -15,7 +15,7 @@ Verification suite là acceptance contract cho migration baseline. Suite MUST tr
 
 | ID | Assertion | Maps to |
 |---|---|---|
-| V-01 | Có đúng 5 business schema và đủ cả 24 baseline tables; forward migration được phép bổ sung bảng mới. | FR-001, FR-002, SC-001 |
+| V-01 | Có đúng 5 business schema và đủ 24 baseline tables. | FR-001, FR-002, SC-001 |
 | V-02 | ULID sai format bị từ chối; Auth user UUID FK được enforce. | FR-003, FR-013, SC-003 |
 | V-03 | Candle identity và Dataset membership duplicates bị từ chối. | FR-004, FR-006, SC-002 |
 | V-04 | Chỉ 8 timeframe canonical được chấp nhận. | FR-005 |

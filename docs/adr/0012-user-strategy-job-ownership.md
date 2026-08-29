@@ -55,6 +55,24 @@ Supabase Auth continues to own passwords, sessions and refresh tokens. `platform
 
 The Java API must authorize User Strategy by authenticated `owner_user_id` and Job through `job → experiment → owner_user_id`. A client-provided Strategy ID or Job ID never grants access. Browser roles remain without direct business-table privileges; foreign keys protect integrity but do not replace application authorization.
 
+### Enforcement boundary
+
+DB setup v2 deliberately divides enforcement as follows; this extends the baseline
+decision instead of silently moving all business policy into PostgreSQL:
+
+| Database constraint/trigger | Application transaction/service |
+| --- | --- |
+| Foreign keys, unique identity, valid status values and Job progress bounds | Authenticate the caller and apply owner predicates to every command/query |
+| Prevent modification/deletion of a published User Strategy version/component | Create draft, components and publication atomically |
+| Validate parent kind, minimum composite component count and same-owner Manifest provenance when publishing/referencing | Validate plugin parameter schema and domain rules such as `fastPeriod < slowPeriod` |
+| Enforce Search Job without Candidate and Backtest Job with a Candidate from the same Experiment | Validate allowed Job state transitions, stop/retry policy and write Job/Outbox atomically |
+| Backfill legacy Attempt references and reject ambiguous legacy mappings | Publish/recover queue work idempotently through Outbox |
+
+Execution Attempt belongs only to a `BACKTEST` Job in the MVP. A top-level `SEARCH`
+Job records Search Coordinator status/progress directly and has no Execution Attempt.
+Each generated Candidate receives its own Backtest Job; Worker retries create Attempts
+under that Backtest Job.
+
 ## Alternatives Considered
 
 - **Add owner and scope to `strategy_version`**: mixes executable plugin metadata with user organization and makes system upgrades/user edits harder to reason about.

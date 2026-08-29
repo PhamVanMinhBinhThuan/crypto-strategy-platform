@@ -93,6 +93,10 @@ Durable identity and lifecycle for one logical long-running operation.
 
 Invariant: at most one Backtest Job exists per Candidate. A Search Experiment can have one top-level Search Job in MVP.
 
+Search Job does not have an Execution Attempt in MVP. It represents Search Coordinator
+progress. Every generated Candidate receives a Backtest Job, and only that Backtest Job
+owns Worker Execution Attempts.
+
 ### `experiment.execution_attempt` (updated)
 
 Represents one Worker try, not the logical Job. Existing columns remain; `job_id` becomes an FK. A composite FK over `(job_id, candidate_id)` prevents an Attempt from pointing at a Candidate different from its Backtest Job.
@@ -118,6 +122,14 @@ QUEUED -> CANCELLED
 ```
 
 The database restricts valid state values. The application service validates allowed transitions atomically.
+
+## Enforcement responsibility
+
+- PostgreSQL enforces structural integrity, published Strategy immutability, composite
+  publication shape, same-owner Manifest provenance, and Job/Candidate relationships.
+- The application transaction authenticates ownership, validates plugin/domain parameters,
+  controls allowed lifecycle transitions, and writes aggregate state with Outbox records.
+- Redis transports work only; it does not enforce or own durable Job state.
 
 ### Execution Attempt
 

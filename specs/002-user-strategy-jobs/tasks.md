@@ -98,3 +98,12 @@
 2. Add User Story 2: durable Job and legacy Attempt backfill.
 3. Confirm User Story 3 without inventing credential storage or direct browser access.
 4. Synchronize every documentation view, then validate without applying remote changes.
+
+## Phase 8: Convergence
+
+- [X] T020 Synchronize the public Job lifecycle to `SUCCEEDED` and all durable Job states in `docs/api/openapi.yaml`, while keeping Backtest Result and Experiment completion as `COMPLETED`, per Constitution IV (contradicts)
+- [X] T021 Restore baseline-only verification by removing v2 Job dependencies from `supabase/tests/database/001_database_baseline_test.sql` and `specs/001-database-baseline/contracts/database-verification.md`, with v2 behavior remaining in `supabase/tests/database/002_user_strategy_jobs_test.sql`, per FR-016 (contradicts)
+- [X] T022 Clarify database-trigger versus application-transaction responsibilities and state explicitly that Execution Attempt belongs only to Backtest Job in `docs/adr/0012-user-strategy-job-ownership.md`, `docs/database/decisions.md`, and `specs/002-user-strategy-jobs/data-model.md`, per plan: ownership and lifecycle decisions (partial)
+- [X] T023 Update separate baseline/v2 validation order and evidence state in `specs/002-user-strategy-jobs/quickstart.md`, per SC-007 (partial)
+- [X] T024 Run independent PostgreSQL baseline verification, PostgreSQL v2 verification, Gradle checks, contract consistency scans, and `git diff --check`, per Constitution V (partial)
+- [X] T025 Attempt non-mutating Supabase dry-run and linked lint without applying remote changes, then record honest evidence or the exact environment blocker in `specs/002-user-strategy-jobs/quickstart.md`, per Constitution V (partial)

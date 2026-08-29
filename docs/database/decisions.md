@@ -251,6 +251,10 @@ versioning khó hiểu, đồng thời có nguy cơ user “sở hữu” nhầm
 **Lưu ý**: API phải query bằng authenticated owner. `owner_user_id`/foreign key
 chứng minh quan hệ dữ liệu nhưng không tự thay thế authorization.
 
+Database trigger bảo vệ published version/component, kiểm tra parent kind, số component
+tối thiểu và provenance cùng owner. Application transaction vẫn chịu trách nhiệm validate
+parameter domain, tạo draft/component/publish nguyên tử và lọc theo authenticated owner.
+
 ## DB-17 — Durable Job và Execution Attempt
 
 **Chọn gì?** Tạo `experiment.job` cho một tác vụ Search/Backtest logic. Một Job có
@@ -262,6 +266,11 @@ Attempt chỉ mô tả một Worker try nên không thể làm aggregate bền v
 
 **Lưu ý**: Migration v2 backfill Job từ Attempt cũ trước khi thêm foreign key và
 dừng an toàn nếu một legacy Job ID trỏ tới nhiều Candidate.
+
+Execution Attempt chỉ thuộc Backtest Job trong MVP. Search Job không có Candidate và
+không có Attempt; nó lưu lifecycle/progress tổng thể của Search Coordinator. Database
+giới hạn shape/status, còn application service kiểm tra transition và ghi Job/Outbox
+trong cùng transaction.
 
 ## Cách thay đổi quyết định
 

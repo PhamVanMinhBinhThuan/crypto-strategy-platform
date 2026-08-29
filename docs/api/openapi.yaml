@@ -586,7 +586,8 @@ components:
         status: { type: string, const: QUEUED }
     JobStatus:
       type: string
-      enum: [QUEUED, RUNNING, COMPLETED, FAILED, CANCELLED]
+      description: Durable Search/Backtest Job lifecycle; `COMPLETED` is reserved for Experiment and Backtest Result representations.
+      enum: [QUEUED, RUNNING, RETRY_SCHEDULED, SUCCEEDED, FAILED, CANCEL_REQUESTED, CANCELLED]
     JobFailure:
       type: object
       additionalProperties: false
