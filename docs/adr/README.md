@@ -19,6 +19,8 @@ Các ADR được tổng hợp thành C4/Dynamic View và ma trận kiểm chứ
 | `0008-sentiment-service-boundary.md` | Tách Sentiment Service |
 | `0009-reproducible-experiments.md` | Versioning và tái lập Experiment |
 | `0010-strategy-generator-contract.md` | Contract thay thế thuật toán sinh Strategy candidate |
+| `0011-supabase-auth-user-ownership.md` | Supabase Auth và ownership dữ liệu theo user |
+| `0012-user-strategy-job-ownership.md` | Strategy riêng của user và Job bền vững tách khỏi Execution Attempt |
 
 ## Quy ước
 

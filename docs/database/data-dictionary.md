@@ -1,9 +1,9 @@
 # Database Data Dictionary
 
-**Trạng thái**: Draft — Database baseline 0.1  
-**Cập nhật**: 2026-08-22
+**Trạng thái**: Baseline 0.1 đã áp dụng; DB setup v2 đang chờ review/apply
+**Cập nhật**: 2026-08-28
 
-Đây là contract vật lý dự kiến để viết migration, chưa phải schema đã deploy.
+Đây là contract vật lý của baseline và forward migration DB setup v2.
 `PK`, `FK`, `UQ` và `CK` lần lượt là primary key, foreign key, unique và
 check constraint.
 
@@ -37,18 +37,25 @@ membership sau khi tạo.
 | `strategy_version` | `strategy_version_id` PK, `plugin_id`, `version`, `display_name`, `parameter_schema jsonb`, `default_parameters jsonb`, `supported_signals jsonb`, `fingerprint` | UQ plugin+version và fingerprint |
 | `composite_version` | `composite_version_id` PK, `composite_id`, `version`, `display_name`, policy ID/version/parameters, `fingerprint` | UQ composite+version và fingerprint |
 | `composite_component` | `composite_version_id` FK, `position`, `strategy_version_id` FK, `parameter_overrides jsonb`, `weight numeric?` | PK composite+position; UQ composite+strategy; CK position >= 0 và weight > 0 khi có |
+| `user_strategy` | User Strategy ID PK, `owner_user_id` FK → `auth.users`, kind, name/description, status, archive/created/updated time | CK kind/status/archive state; partial UQ owner+active name không phân biệt hoa thường; owner listing index |
+| `user_strategy_version` | User Strategy version ID PK, parent FK, version number, frozen kind/plugin/parameters hoặc combination policy, lifecycle, fingerprint, publish/created time | UQ parent+version/fingerprint; CK source theo kind và publish state; published row được trigger bảo vệ bất biến |
+| `user_strategy_component` | User Strategy version FK, position, shared plugin version FK, exact parameters, optional weight | PK version+position; UQ version+plugin; chỉ composite draft được sửa, published components bất biến |
 
 Composite có ít nhất hai component được kiểm tra trong cùng application
 transaction vì CHECK constraint đơn bảng không thể đếm row.
+
+`strategy_version` vẫn là catalog plugin dùng chung. Ba bảng `user_strategy*` là
+cấu hình riêng của user; chúng không chứa Java class, password hoặc token.
 
 ## Schema `experiment`
 
 | Table | Columns chính | Constraints và indexes |
 | --- | --- | --- |
 | `experiment` | `experiment_id` PK, `owner_user_id uuid` FK → `auth.users`, optional `derived_from_experiment_id` self-FK, `name`, `status`, started/completed time, failure code/message | CK lifecycle status; indexes owner+created_at và status+created_at |
-| `experiment_manifest` | `experiment_id` PK/FK, `manifest_version`, `dataset_version_id` FK, strategy kind/ref/version, strategy parameters, backtest/search/evaluation config, optional sentiment config, software version, git commit, fingerprint | Index fingerprint; CK kind SINGLE/COMPOSITE; fingerprint được phép lặp khi reproduce |
+| `experiment_manifest` | `experiment_id` PK/FK, `manifest_version`, `dataset_version_id` FK, optional source User Strategy version FK, strategy snapshot, backtest/search/evaluation config, optional sentiment config, software version, git commit, fingerprint | Index fingerprint/source version; CK kind SINGLE/COMPOSITE; source phải published và cùng owner; fingerprint được phép lặp khi reproduce |
 | `candidate_definition` | `candidate_id` PK, `experiment_id` FK, `generation_index`, `definition jsonb`, `generator_state jsonb?`, fingerprint | UQ experiment+index và experiment+fingerprint |
-| `execution_attempt` | `attempt_id` PK, `job_id`, `candidate_id` FK, `attempt_no`, status, worker/times, failure fields, retryable | UQ job+attempt; CK attempt > 0/status; indexes candidate và status+next_retry_at |
+| `job` | Job ID PK, Experiment FK, optional Candidate, type/status, correlation ID, progress, best score, lifecycle/failure timestamps | FK Candidate+Experiment; CK Search/Backtest shape và progress; UQ Search per Experiment/Backtest per Candidate; recovery/listing indexes |
+| `execution_attempt` | `attempt_id` PK, `job_id` + `candidate_id` composite FK, `attempt_no`, status, worker/times, failure fields, retryable | UQ job+attempt; CK attempt > 0/status; indexes candidate và status+next_retry_at |
 | `backtest_result` | `backtest_result_id` PK, `candidate_id` FK, `successful_attempt_id` FK, initial/final capital, result fingerprint, completed time, `reproduces_result_id?` self-FK | UQ candidate; CK capital >= 0 |
 | `trade` | `trade_id` PK, result FK, sequence, side, entry/exit time, price, quantity, fee, profit_loss | UQ result+sequence; CK side/time/nonnegative execution values; index result+entry_time |
 | `evaluation_result` | `evaluation_result_id` PK, result FK, metric/ranking version, total return, win rate, maximum drawdown, number of trades, overall score, evaluated time | UQ result+metric_version; CK win rate 0..1, drawdown/trade count >= 0; index score |
@@ -58,6 +65,7 @@ transaction vì CHECK constraint đơn bảng không thể đếm row.
 Lifecycle values:
 
 - Experiment: `CREATED, QUEUED, RUNNING, COMPLETED, FAILED, STOP_REQUESTED, STOPPED`.
+- Job: `QUEUED, RUNNING, RETRY_SCHEDULED, SUCCEEDED, FAILED, CANCEL_REQUESTED, CANCELLED`.
 - Attempt: `QUEUED, RUNNING, RETRY_SCHEDULED, SUCCEEDED, FAILED, CANCELLED`.
 
 ## Schema `news`
@@ -84,19 +92,30 @@ overwrite kết quả cũ.
 Outbox aggregate reference là logic reference vì event có thể thuộc nhiều
 schema. Không tạo foreign key đa hình.
 
+`user_profile` không phải bảng đăng nhập. Password hash, access token, refresh token
+và session do Supabase Auth quản lý trong schema `auth`; business schema chỉ lưu UUID
+để xác định owner. Browser không được cấp quyền đọc/ghi trực tiếp các bảng này.
+
 ## Invariant do Backend kiểm tra trong transaction
 
 - Successful Attempt phải thuộc cùng Candidate với Backtest Result.
 - Evaluation đưa vào Leaderboard phải thuộc đúng Experiment của revision.
 - Candle thêm vào Dataset phải đúng provider, pair, timeframe và range.
 - Composite Version phải có tối thiểu hai component.
+- User Strategy version phải cùng kind với parent; chỉ version `PUBLISHED` mới được
+  Experiment tham chiếu và phải có cùng owner với Experiment.
+- Repository/API phải lọc User Strategy theo `owner_user_id` và Job theo
+  `job → experiment → owner_user_id`; ID client gửi không tự cấp quyền.
+- State transition của Job được application service kiểm tra; database giới hạn
+  tập trạng thái và quan hệ Candidate/Experiment hợp lệ.
 - Bảng bất biến không được update/delete sau khi đã được tham chiếu.
 
 Các invariant này liên quan nhiều row hoặc quan hệ đa hình nên không ép bằng
 CHECK constraint đơn giản trong baseline migration.
 
-## Trạng thái trước migration
+## Trạng thái migration
 
 Các lựa chọn ảnh hưởng schema baseline đã được chốt trong
-[Database Decisions](decisions.md). Thay đổi sau khi migration được áp dụng phải
-dùng forward migration mới.
+[Database Decisions](decisions.md). Baseline `20260827000100` đã áp dụng và không
+được sửa. DB setup v2 dùng forward migration `20260828000100`; chỉ cập nhật trạng
+thái `Verified` sau khi dry-run/apply/lint/test thật hoàn tất.
