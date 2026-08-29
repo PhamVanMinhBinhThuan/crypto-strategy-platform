@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-27
 
-**Status**: Draft
+**Status**: Verified (2026-08-27, trước Constitution v1.1.0)
 
 **Input**: User description: "Thiết lập nền tảng dữ liệu bền vững cho market,
 strategy, experiment, backtest, leaderboard, news, sentiment và reliability;

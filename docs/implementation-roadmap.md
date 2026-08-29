@@ -11,7 +11,11 @@ thứ tự triển khai cho nhóm bốn người. Đây là tài liệu điều 
 - Architecture và ADR nền tảng: đã có.
 - Database baseline: đã specification, planning, migration, verification và apply trên
   Supabase shared development.
-- Java, Python và Web application: chưa khởi tạo.
+- Java Backend Foundation đã implement và verification trên nhánh
+  `feature/002-java-backend-foundation`; đang chờ cross-owner review và ADR merge gate.
+- Database setup v2 cho User Strategy và durable Job đã được đề xuất trên nhánh
+  `db-setup-v2`; migration chưa được merge hoặc apply lên Supabase shared development.
+- Python và Web application: chưa khởi tạo.
 - Redis/queue, Binance ingestion, Strategy, Backtest và Sentiment runtime: chưa implement.
 
 ## Phân công ownership chính
@@ -20,8 +24,8 @@ thứ tự triển khai cho nhóm bốn người. Đây là tài liệu điều 
 |---|---|---|
 | **Luật** | Java Foundation, `apps/api`, authentication, public API và realtime | Tech lead, giữ build/module boundary và tích hợp các feature |
 | **Nghi Văn** | Market Data, Dataset, Binance adapter và Java News collection | Cung cấp market/news fixture và provider adapter cho luồng E2E |
-| **Văn Minh** | Strategy Registry, Strategies, Composite và Backtest | Bảo đảm Strategy/Backtest deterministic và reproducible |
-| **Tiến** | Experiment, persistence, ownership, Evaluation, Leaderboard và Worker reliability | Giữ transaction invariant, Outbox, idempotency và recovery |
+| **Văn Minh** | Strategy Registry, Strategies, Composite, Backtest và contract Job–Execution Attempt | Bảo đảm Strategy/Backtest deterministic; định nghĩa rõ lifecycle của một Job và các lần Worker thực thi |
+| **Tiến** | Experiment persistence, ownership, Evaluation, Leaderboard và Worker reliability | Giữ transaction invariant, Outbox, idempotency và recovery; tích hợp Job–Attempt contract vào persistence/Worker |
 
 Ownership chính không có nghĩa chỉ một người được review. Pull request của mỗi capability
 cần ít nhất một người không phải owner review contract và dependency direction.
@@ -57,6 +61,40 @@ validate JWT ở boundary và architecture test phát hiện dependency bị c�
 **Phụ trách chính**: **Luật**. Nghi Văn, Văn Minh và Tiến review module API/port mà phần
 việc của mình sẽ sử dụng.
 
+### Database gate — User Strategy and Durable Job
+
+Đây là schema increment dùng chung cho F-004 và F-005, không phải một business feature
+độc lập. Nhánh `db-setup-v2` được giữ để review và sửa trước khi merge.
+
+**Phạm vi đề xuất**:
+
+- Tách Strategy plugin catalog dùng chung khỏi Strategy configuration thuộc từng user.
+- Version hóa User Strategy và giữ provenance trong Experiment Manifest.
+- Tạo durable Job phía trên Execution Attempt và backfill Attempt hiện có.
+- Giữ Supabase Auth là nơi duy nhất quản lý password/session.
+
+**Merge/apply gate**:
+
+- **[I5]** Giữ nguyên `specs/002-java-backend-foundation` là feature F-002 chính thức.
+- `specs/002-user-strategy-jobs` trên nhánh DB v2 chỉ là thư mục staging; trước khi
+  merge phải chuyển đầy đủ requirement, plan, task, contract và test traceability sang
+  `specs/004-user-strategy-library` và `specs/005-durable-job-persistence`.
+- Chỉ xóa thư mục staging sau khi review xác nhận hai spec mới không mất requirement,
+  acceptance scenario hoặc verification contract; đồng bộ `.specify/feature.json` theo
+  feature đang thao tác và không để hai feature cùng số `002` trong `main`.
+- **[G1]** ADR-0012 và các ADR nền liên quan phải được review/`Accepted` theo Constitution.
+- **[I1]** Quyết định rõ database trigger hay application transaction; không âm thầm mâu thuẫn
+  database baseline đã chốt.
+- **[I2]** Đồng bộ Job status giữa database, ADR và OpenAPI (`SUCCEEDED`/`COMPLETED`).
+- **[I3]** Chốt Search Job có Execution Attempt hay Attempt chỉ thuộc Backtest Job.
+- **[U1]** Không tuyên bố DB v2 đã hỗ trợ Rule DSL/prompt/URL; phần này thuộc
+  specification và ADR riêng của F-004.
+- **[C1]** Tách yêu cầu Java authorization/Redis recovery chưa implement khỏi database evidence.
+- **[I4]** Giữ baseline SQL test chạy độc lập; test v2 không được làm baseline suite phụ
+  thuộc sự tồn tại của bảng Job.
+- `supabase db push --dry-run`, lint và SQL verification phải PASS trước khi xin phép
+  apply migration lên shared development.
+
 ### F-003 — Market Data and Dataset
 
 **Phụ thuộc**: F-002.
@@ -73,13 +111,17 @@ việc của mình sẽ sử dụng.
 
 ### F-004 — Strategy Registry and Strategies
 
-**Phụ thuộc**: F-002; có thể làm song song F-003.
+**Phụ thuộc**: F-002; phần User Strategy persistence phụ thuộc Database gate; có thể làm
+song song F-003.
 
 **Phạm vi**:
 
 - Strategy, StrategyContext, StrategyDecision và descriptor contract.
 - Strategy Registry theo ADR-0005.
 - Một Strategy mẫu deterministic và Composite Strategy contract.
+- Strategy Library riêng theo user, version bất biến và ownership boundary.
+- Rule DSL có version cho Strategy tạo từ form/prompt/URL; phải có specification và ADR
+  riêng trước implementation, không cho user upload/thực thi code tùy ý.
 - Strategy snapshot persistence port.
 - Unit/architecture tests xác nhận Strategy không gọi Spring, database hoặc network.
 
@@ -87,17 +129,22 @@ việc của mình sẽ sử dụng.
 
 ### F-005 — Experiment Persistence and Ownership
 
-**Phụ thuộc**: F-002; contract tích hợp cuối cần F-003 và F-004.
+**Phụ thuộc**: F-002 và Database gate; contract tích hợp cuối cần F-003 và F-004.
 
 **Phạm vi**:
 
-- Experiment, Manifest, Candidate, Attempt và lifecycle application service.
+- Experiment, Manifest, Candidate, Job, Execution Attempt và lifecycle application service.
+- Durable Job là trạng thái tổng thể; Execution Attempt là lịch sử từng lần Worker thử.
 - Ownership authorization theo Supabase user identity.
 - Persistence adapter cho Experiment graph.
 - Transaction-enforced invariant đã hoãn từ database baseline.
 - Idempotency record và durable Outbox write.
 
-**Phụ trách chính**: **Tiến**.
+**Cách chia**: **Văn Minh** định nghĩa contract và state machine
+`Candidate → Job → Execution Attempt`, bao gồm retry/cancel và ranh giới giữa trạng thái
+Job với trạng thái từng Attempt. **Tiến** phụ trách Experiment graph, ownership,
+persistence adapter, transaction invariant, Idempotency và Outbox; đồng thời tích hợp
+contract do Văn Minh định nghĩa. Tiến vẫn là owner tích hợp chính của F-005.
 
 ### F-006 — Backtest, Evaluation and Leaderboard
 
@@ -127,7 +174,8 @@ hợp API.
 - Recovery test khi mất transient queue/cache.
 - Job progress event cho API/WebSocket boundary.
 
-**Phụ trách chính**: **Tiến**; **Luật** phụ trách API/Worker composition.
+**Phụ trách chính**: **Tiến**; **Luật** phụ trách API/Worker composition; **Văn Minh**
+review việc Worker hiện thực đúng Job–Execution Attempt contract đã chốt ở F-005.
 
 ### F-008 — News and Sentiment
 
@@ -195,27 +243,28 @@ nhiệm bằng chứng cho capability mình sở hữu.
 ```text
 F-002 Java Foundation
         │
-        ├── F-003 Market/Data ──────────────┐
-        ├── F-004 Strategy ─────────────────┤
-        ├── F-005 Experiment/Persistence ───┼── F-006 Backtest/Evaluation
-        └── F-008 News/Sentiment ───────────┘             │
-                                                          ├── F-007 Worker
-                                                          ├── F-009 API/Realtime
-                                                          └── F-010 Web
-                                                                  │
-                                                                  └── F-011 E2E
+        ├── F-003 Market/Data ─────────────────────────────┐
+        ├── DB-v2 review/apply gate ──┬── F-004 Strategy ─┤
+        │                             └── F-005 Experiment ┼── F-006 Backtest/Evaluation
+        └── F-008 News/Sentiment ─────────────────────────┘             │
+                                                                        ├── F-007 Worker
+                                                                        ├── F-009 API/Realtime
+                                                                        └── F-010 Web
+                                                                                │
+                                                                                └── F-011 E2E
 ```
 
 ## Việc cần làm ngay
 
-1. Cả nhóm review roadmap và xác nhận phạm vi F-002.
-2. Tạo Spec Kit feature `002-java-backend-foundation`.
-3. Chạy `speckit-specify`, `speckit-clarify`, `speckit-plan`, `speckit-tasks` và
-   `speckit-analyze` cho F-002.
-4. Luật implement F-002; Nghi Văn, Văn Minh và Tiến review public boundary, đồng thời
-   chuẩn bị description lần lượt cho F-003, F-004 và F-005.
-5. Khi F-002 merge vào `main`, tạo ba feature branch từ cùng commit để bắt đầu làm
-   song song.
+1. Nghi Văn, Văn Minh và Tiến hoàn thành review T024/T046 cho F-002 theo review guide.
+2. Review và chuyển ADR-0001/0002/0006/0007 sang `Accepted` trước khi merge F-002.
+3. Sửa `db-setup-v2` theo Database gate; chuyển spec staging thành F-004/F-005 có
+   traceability đầy đủ, review ADR-0012 và chưa apply migration.
+4. Merge F-002 vào `main` sau khi toàn bộ merge gate của F-002 đạt.
+5. Chạy dry-run/lint/SQL verification cho DB v2; chỉ apply shared development sau phê
+   duyệt riêng rồi mới merge database evidence cuối.
+6. Tạo feature branch F-003/F-004/F-005 từ `main` đã đồng bộ; Rule DSL đi qua Spec Kit
+   và ADR riêng trước khi code.
 
 ## Quy tắc Git cho nhóm
 

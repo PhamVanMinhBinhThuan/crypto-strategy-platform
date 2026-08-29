@@ -59,6 +59,7 @@ Chỉ trả field thật sự phù hợp với lỗi. Không trả field với g
 | Status | Ý nghĩa trong hệ thống |
 | ---: | --- |
 | `400 Bad Request` | Request không đọc/parse/validate cấu trúc được |
+| `401 Unauthorized` | Bearer token thiếu hoặc không vượt qua xác thực |
 | `403 Forbidden` | Origin hoặc hành động bị policy từ chối |
 | `404 Not Found` | Resource/version không tồn tại hoặc không được expose |
 | `405 Method Not Allowed` | Method không được endpoint hỗ trợ |
@@ -89,6 +90,15 @@ Không dùng `404` để che mọi lỗi và không trả `200` kèm error objec
 | `RATE_LIMIT_EXCEEDED` | 429 | Có | Client vượt giới hạn request/subscription | Chờ `Retry-After` rồi thử lại |
 
 `REQUEST_VALIDATION_FAILED` dùng cho lỗi schema/format. Error domain cụ thể phải ưu tiên code cụ thể hơn nếu đã có trong catalog.
+
+## 4.1. Authentication
+
+| Code | HTTP | Retry | Khi xảy ra | Client xử lý |
+| --- | ---: | --- | --- | --- |
+| `AUTHENTICATION_REQUIRED` | 401 | Không tự động | Bearer token thiếu, malformed, hết hạn, sai signature/issuer/audience hoặc subject không hợp lệ | Đăng nhập hoặc refresh session; không dựa vào message để phân biệt nguyên nhân token |
+
+Các lỗi xác thực dùng chung một public code/message an toàn; chi tiết validation token
+không được trả về client hoặc ghi raw JWT vào log.
 
 ## 5. Resource, state và idempotency
 

@@ -26,14 +26,18 @@ Thiết lập database baseline có version cho Supabase hosted bằng một for
 
 | Nguyên tắc | Trạng thái | Bằng chứng |
 |---|---|---|
-| ADR-first | PASS | ADR-0003, ADR-0007, ADR-0009 và ADR-0011 đã chốt các quyết định liên quan. |
+| Specification-first / ADR governance | VERIFIED dưới Constitution v1.0.0; đã impact review với v1.1.0 | Feature có spec/acceptance evidence trước implementation. ADR-0011 đã Accepted; ADR-0003/0007/0009 còn Proposed và phải được review/Accepted trước khi future implementation phụ thuộc được merge. |
 | Module/data ownership | PASS | Năm schema ánh xạ trực tiếp Market, Strategy, Experiment, News và Platform; foreign key không cấp quyền ghi. |
 | Reproducibility/immutability | PASS | Dataset membership, strategy snapshot, manifest, candidate, result và leaderboard revision được lưu bền vững. |
 | Versioned contracts/provider isolation | PASS | Thay đổi qua ordered migration; provider được lưu như dữ liệu, không rò abstraction vào schema khác. |
 | Security/reliability/testing | PASS có điều kiện | Quyền client bị revoke; Phase 1 phải định nghĩa verification cho constraint, permission và recovery records. |
 | Remote mutation approval | PASS | Plan tách dry-run khỏi apply và yêu cầu approval trước shared-development mutation. |
 
-**Kiểm tra lại sau Phase 1**: PASS. `data-model.md` phân biệt rõ invariant thuộc database và application; verification contract bao phủ schema, constraint, ownership, permission và durable recovery. Không có ngoại lệ constitution cần biện minh.
+**Kiểm tra lại sau Phase 1**: PASS tại thời điểm thực hiện theo Constitution v1.0.0.
+`data-model.md` phân biệt rõ invariant thuộc database và application; verification contract
+bao phủ schema, constraint, ownership, permission và durable recovery. Impact review sau
+Constitution v1.1.0 không yêu cầu sửa migration đã apply; governance gate của ADR liên quan
+được chuyển cho future implementation phụ thuộc.
 
 ## Project Structure
 
@@ -84,4 +88,6 @@ Các quyết định và phương án bị loại được ghi tại [research.m
 
 ## Complexity Tracking
 
-Không có vi phạm constitution cần biện minh.
+Không có complexity violation cần biện minh. Feature đã hoàn thành trước amendment
+Constitution v1.1.0; migration/evidence lịch sử được giữ nguyên và mọi correction schema
+tương lai phải dùng forward migration.

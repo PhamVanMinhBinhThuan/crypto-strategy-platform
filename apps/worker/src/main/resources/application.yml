@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: crypto-strategy-worker
+  datasource:
+    url: ${DATABASE_URL:}
+    username: ${DATABASE_USERNAME:}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      initialization-fail-timeout: -1
+      connection-timeout: 3000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,databaseReadiness
+  health:
+    db:
+      enabled: false
+
+logging:
+  level:
+    root: INFO
+    org.springframework: INFO
+    org.apache: INFO
+  structured:
+    format:
+      console: logstash
+
+server:
+  port: 8081

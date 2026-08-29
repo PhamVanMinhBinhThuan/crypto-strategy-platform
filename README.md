@@ -25,7 +25,7 @@ Trọng tâm của dự án là **khả năng thay đổi, mở rộng và vận
 
 ## Trạng thái dự án
 
-🚧 **Đang trong giai đoạn phân tích yêu cầu và thiết kế kiến trúc.**
+🚧 **Đang triển khai Java Backend Foundation theo feature F-002.**
 
 Tài liệu đề bài gốc: [Crypto Strategy Lab – Đồ án cuối kỳ](docs/Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
 
@@ -172,20 +172,31 @@ Backtester, Evaluator và Leaderboard không cần biết candidate được t�
 
 Các hướng mở rộng gồm MACD, SMC, Wyckoff, Genetic Search, Bayesian Optimization và News Sentiment Strategy.
 
-## Cấu trúc repository dự kiến
+## Cấu trúc repository
 
 ```text
-crypto-strategy-lab/
+crypto-strategy-platform/
 ├── apps/
 │   ├── web/                   # Dashboard và realtime visualization
 │   ├── api/                   # API, orchestration và WebSocket gateway
-│   └── worker/                # Backtest/news/sentiment background jobs
-├── packages/
-│   ├── domain/                # Entity, value object và domain contract
-│   ├── strategies/            # Strategy plugins và registry
+│   ├── worker/                # Background runtime; idle trong F-002
+│   └── sentiment/             # Python/FastAPI sentiment boundary
+├── modules/                   # 13 Java capability/library projects
+│   ├── domain/                # Stable domain values
+│   ├── contracts/             # Versioned integration contracts
+│   ├── market-data/           # Market provider boundary
+│   ├── strategy-core/         # Strategy contract và registry
+│   ├── strategies/            # Strategy plugins
+│   ├── combination/           # Composite Strategy
 │   ├── backtesting/           # Simulation engine
-│   ├── evaluation/            # Metrics và ranking policy
-│   └── contracts/             # API/event schemas dùng chung
+│   ├── evaluation/            # Metrics
+│   ├── experiment/            # Experiment ownership/lifecycle
+│   ├── search/                # Candidate generation
+│   ├── leaderboard/           # Ranking và Top-K
+│   ├── news/                  # News/Sentiment ownership
+│   └── persistence/           # PostgreSQL/Redis adapters
+├── architecture-tests/        # Automated module-boundary verification
+├── build-logic/               # Shared Gradle convention plugins
 ├── docs/
 │   ├── architecture/          # C4 diagrams và quality scenarios
 │   ├── adr/                   # Architecture Decision Records
@@ -195,7 +206,8 @@ crypto-strategy-lab/
 └── README.md
 ```
 
-Cấu trúc này là định hướng ban đầu và sẽ được điều chỉnh sau khi chốt technology stack.
+Cấu trúc Java trên được khai báo trong Gradle multi-project build. `apps/web` và
+`apps/sentiment` là runtime riêng, không import trực tiếp Java capability implementation.
 
 ## Dữ liệu chính
 
@@ -226,33 +238,55 @@ Strategy definition là **immutable theo version**; thay đổi logic hoặc par
 - [ ] Pipeline thu thập, lưu trữ và phân tích sentiment tin tức
 - [ ] Logging, error handling và trạng thái job cơ bản
 
-## Cài đặt và chạy dự án
+## Cài đặt và chạy Java Backend Foundation
 
-Source code và technology stack đang được khởi tạo. Hướng dẫn dưới đây sẽ được hoàn thiện khi các ứng dụng đầu tiên được scaffold:
+Prerequisite:
+
+- JDK 21;
+- network ở lần chạy đầu để Gradle Wrapper tải distribution/dependency;
+- không cần Docker, Redis, database hoặc provider cho lệnh kiểm thử mặc định.
 
 ```bash
 # 1. Clone repository
 git clone <repository-url>
-cd crypto-strategy-lab
+cd crypto-strategy-platform
 
-# 2. Tạo cấu hình local
-cp .env.example .env
+# 2. Build và chạy toàn bộ test offline
+./gradlew clean check
 
-# 3. Khởi động dependencies và ứng dụng
-docker compose up --build
+# 3. Xem toàn bộ app/module đã khai báo
+./gradlew projects
 ```
 
-Các biến môi trường dự kiến:
+Khi cần chạy API hoặc Worker, copy tên biến từ `.env.example` vào environment local
+không được commit, sau đó chạy:
+
+```bash
+./gradlew :apps:api:bootRun
+./gradlew :apps:worker:bootRun
+```
+
+Các biến foundation:
 
 ```dotenv
-BINANCE_API_BASE_URL=
-BINANCE_WS_BASE_URL=
 DATABASE_URL=
-REDIS_URL=
-NEWS_PROVIDER_API_KEY=
+DATABASE_USERNAME=
+DATABASE_PASSWORD=
+SUPABASE_JWT_ISSUER=
+SUPABASE_JWT_JWKS_URI=
+SUPABASE_JWT_AUDIENCE=
 ```
 
 Không commit API key, credential hoặc file `.env` lên repository.
+
+### Thêm Java module mới
+
+1. Chỉ thêm module khi capability có owner rõ ràng và dependency phù hợp ADR-0002.
+2. Khai báo project path trong `settings.gradle.kts`.
+3. Áp dụng `crypto.java-library-conventions` trong `build.gradle.kts` của module.
+4. Đặt public boundary dưới `..api..` và implementation dưới `..internal..`.
+5. Bổ sung module vào build-structure và architecture dependency tests.
+6. Chạy `./gradlew clean check`; không merge nếu module đứng ngoài root verification.
 
 ## Kiểm thử
 
