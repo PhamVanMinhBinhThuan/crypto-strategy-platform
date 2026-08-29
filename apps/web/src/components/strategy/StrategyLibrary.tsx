@@ -3,6 +3,7 @@ import { StrategyDefinition } from '../../types/strategy';
 import { STRATEGY_CATEGORIES, STRATEGY_LIBRARY } from '../../data/strategyLibraryData';
 import { StrategyLibraryItem } from './StrategyLibraryItem';
 import { Search } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
 
 export interface StrategyLibraryProps {
   onAddStrategy: (strategy: StrategyDefinition) => void;
@@ -14,18 +15,20 @@ export const StrategyLibrary: React.FC<StrategyLibraryProps> = ({
   activeDefinitionIds,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { strategyLibrary = STRATEGY_LIBRARY } = useApp();
 
   const filteredLibrary = useMemo(() => {
-    if (!searchQuery.trim()) return STRATEGY_LIBRARY;
+    const libraryToFilter = strategyLibrary || STRATEGY_LIBRARY;
+    if (!searchQuery.trim()) return libraryToFilter;
     const q = searchQuery.toLowerCase();
-    return STRATEGY_LIBRARY.filter(
+    return libraryToFilter.filter(
       (s) =>
         s.name.toLowerCase().includes(q) ||
         s.category.toLowerCase().includes(q) ||
         s.description.toLowerCase().includes(q) ||
         s.tags?.some((t) => t.toLowerCase().includes(q))
     );
-  }, [searchQuery]);
+  }, [searchQuery, strategyLibrary]);
 
   return (
     <section className="w-80 bg-[#1E2329] flex flex-col rounded-[2px] border border-[#2B3139] shrink-0 overflow-hidden select-none">

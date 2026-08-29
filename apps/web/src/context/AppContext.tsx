@@ -21,6 +21,14 @@ import { BacktestConfig, BacktestMetrics, Trade, EquityPoint, BacktestCandle } f
 import { NewsCoinFilter, NewsTimeRange, NewsSentimentFilter } from '../types/news';
 import { INITIAL_SELECTED_BLOCKS, STRATEGY_LIBRARY } from '../data/strategyLibraryData';
 import {
+  AIStrategyJSON,
+  RecentAIStrategy,
+} from '../types/aiStrategy';
+import {
+  convertAIStrategyToCompositeStrategy,
+  convertAIStrategyToDefinition,
+} from '../utils/aiStrategyParser';
+import {
   INITIAL_SEARCH_FEATURES,
   INITIAL_STOP_CONDITIONS,
   INITIAL_LEADERBOARD,
@@ -33,6 +41,114 @@ import {
   generateMockBacktestData,
   resolveBacktestResult,
 } from '../data/mockBacktestData';
+
+export const INITIAL_RECENT_AI_STRATEGIES: RecentAIStrategy[] = [
+  {
+    id: 'recent-ai-1',
+    name: 'RSI_BB_LONG_SL2_TP4',
+    description: 'LONG when RSI < 30 and price closes below Bollinger Lower Band. Stop loss 2%, take profit 4%.',
+    source: 'AI_PROMPT',
+    createdAt: '10m ago',
+    version: '1.0.0',
+    tags: ['RSI', 'Bollinger', 'Mean Reversion', 'Long'],
+    status: 'Valid',
+    strategyJson: {
+      name: 'RSI_BB_LONG_SL2_TP4',
+      version: '1.0.0',
+      description: 'LONG when RSI < 30 and price closes below Bollinger Lower Band. Stop loss 2%, take profit 4%.',
+      source: 'AI_PROMPT',
+      indicators: [
+        { name: 'RSI', period: 14, parameters: { period: 14, buyThreshold: 30, sellThreshold: 70 } },
+        { name: 'BollingerBands', period: 20, stdDev: 2, parameters: { period: 20, stdDev: 2 } },
+      ],
+      conditions: {
+        long: [
+          { indicator: 'RSI', operator: '<', value: 30, text: 'RSI (14) < 30' },
+          { indicator: 'Close', operator: '<', indicatorRef: 'BB_Lower', text: 'Close < Bollinger Lower Band (20, 2)' },
+        ],
+        short: [],
+      },
+      riskManagement: {
+        stopLoss: { type: 'percent', value: 2 },
+        takeProfit: { type: 'percent', value: 4 },
+      },
+      timeframe: '1h',
+      isTimeframeDefault: true,
+      market: 'spot',
+      pairs: 'USDT_ALL',
+      isMarketDefault: true,
+      tags: ['RSI', 'Bollinger', 'Mean Reversion', 'Long'],
+    },
+  },
+  {
+    id: 'recent-ai-2',
+    name: 'MACD_EMA_TrendFollow',
+    description: 'TradingView Script: Trend following system. When EMA 20 crosses above EMA 50, enter LONG. When EMA 20 crosses below EMA 50, enter SHORT.',
+    source: 'URL_IMPORT',
+    sourceUrl: 'https://www.tradingview.com/script/macd-ema-trend/',
+    createdAt: 'Today 14:20',
+    version: '1.1.0',
+    tags: ['Moving Average', 'Trend', 'Long & Short'],
+    status: 'Valid',
+    strategyJson: {
+      name: 'MACD_EMA_TrendFollow',
+      version: '1.1.0',
+      description: 'TradingView Script: Trend following system. When EMA 20 crosses above EMA 50, enter LONG. When EMA 20 crosses below EMA 50, enter SHORT.',
+      source: 'URL_IMPORT',
+      sourceUrl: 'https://www.tradingview.com/script/macd-ema-trend/',
+      indicators: [
+        { name: 'MovingAverage', fastPeriod: 20, slowPeriod: 50, parameters: { fastPeriod: 20, slowPeriod: 50 } },
+      ],
+      conditions: {
+        long: [{ indicator: 'MA_Fast', operator: 'crosses_above', indicatorRef: 'MA_Slow', text: 'MA Fast (20) crosses above MA Slow (50)' }],
+        short: [{ indicator: 'MA_Fast', operator: 'crosses_below', indicatorRef: 'MA_Slow', text: 'MA Fast (20) crosses below MA Slow (50)' }],
+      },
+      riskManagement: {
+        stopLoss: { type: 'percent', value: 1.8 },
+        takeProfit: { type: 'percent', value: 3.6 },
+      },
+      timeframe: '1h',
+      market: 'spot',
+      pairs: 'USDT_ALL',
+      tags: ['Moving Average', 'Trend', 'Long & Short'],
+    },
+  },
+  {
+    id: 'recent-ai-3',
+    name: 'Breakout_SR_Momentum',
+    description: 'Breakout strategy: buy when price breaks above Support/Resistance 100-period high with News Sentiment > 65.',
+    source: 'AI_PROMPT',
+    createdAt: 'Yesterday',
+    version: '1.0.0',
+    tags: ['Key Levels', 'Structure', 'News Sentiment', 'Long'],
+    status: 'Valid',
+    strategyJson: {
+      name: 'Breakout_SR_Momentum',
+      version: '1.0.0',
+      description: 'Breakout strategy: buy when price breaks above Support/Resistance 100-period high with News Sentiment > 65.',
+      source: 'AI_PROMPT',
+      indicators: [
+        { name: 'SupportResistance', lookback: 100, sensitivity: 5, parameters: { lookback: 100, sensitivity: 5 } },
+        { name: 'NewsSentiment', parameters: { minScore: 65, lookbackHours: 24 } },
+      ],
+      conditions: {
+        long: [
+          { indicator: 'Price', operator: '>', indicatorRef: 'Resistance_Level', text: 'Price breaks above Resistance level (100)' },
+          { indicator: 'NewsSentiment', operator: '>', value: 65, text: 'News Sentiment Score > 65' },
+        ],
+        short: [],
+      },
+      riskManagement: {
+        stopLoss: { type: 'percent', value: 2.5 },
+        takeProfit: { type: 'percent', value: 5.0 },
+      },
+      timeframe: '1h',
+      market: 'spot',
+      pairs: 'USDT_ALL',
+      tags: ['Key Levels', 'Structure', 'News Sentiment', 'Long'],
+    },
+  },
+];
 
 export const DEFAULT_BACKTEST_STRATEGY: CompositeStrategy = {
   id: 'strat-primary-1',
@@ -133,6 +249,18 @@ export interface AppContextType {
     version?: string,
     strategyId?: string
   ) => void;
+
+  // Dynamic Strategy Library & AI Strategies
+  strategyLibrary: StrategyDefinition[];
+  addStrategyToLibrary: (def: StrategyDefinition) => void;
+  recentAIStrategies: RecentAIStrategy[];
+  saveAIStrategyToLibrary: (aiJson: AIStrategyJSON) => {
+    savedDefinition: StrategyDefinition;
+    compositeStrategy: CompositeStrategy;
+    recentItem: RecentAIStrategy;
+  };
+  loadAIStrategyIntoComposer: (aiJson: AIStrategyJSON) => void;
+  deleteRecentAIStrategy: (id: string) => void;
 
   // Search & Leaderboard State
   searchConfig: SearchConfigurationState;
@@ -368,6 +496,62 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     },
     [setCompositeStrategy]
   );
+
+  // Dynamic Strategy Library State & AI Strategy Engine
+  const [strategyLibrary, setStrategyLibrary] = useState<StrategyDefinition[]>(STRATEGY_LIBRARY);
+  const [recentAIStrategies, setRecentAIStrategies] = useState<RecentAIStrategy[]>(INITIAL_RECENT_AI_STRATEGIES);
+
+  const addStrategyToLibrary = useCallback((def: StrategyDefinition) => {
+    setStrategyLibrary((prev) => {
+      if (prev.some((s) => s.id === def.id || s.name.toLowerCase() === def.name.toLowerCase())) {
+        return prev.map((s) => (s.id === def.id || s.name.toLowerCase() === def.name.toLowerCase() ? def : s));
+      }
+      return [def, ...prev];
+    });
+  }, []);
+
+  const saveAIStrategyToLibrary = useCallback(
+    (aiJson: AIStrategyJSON) => {
+      const savedDefinition = convertAIStrategyToDefinition(aiJson);
+      const compositeStrategy = convertAIStrategyToCompositeStrategy(aiJson);
+
+      // Add to Library
+      addStrategyToLibrary(savedDefinition);
+
+      // Add to Recent Strategies List
+      const recentItem: RecentAIStrategy = {
+        id: `recent-ai-${Date.now()}`,
+        name: aiJson.name,
+        description: aiJson.description,
+        source: aiJson.source || 'AI_PROMPT',
+        sourceUrl: aiJson.sourceUrl,
+        createdAt: 'Just now',
+        version: aiJson.version || '1.0.0',
+        tags: aiJson.tags || ['AI Generated'],
+        status: 'Valid',
+        strategyJson: aiJson,
+        definition: savedDefinition,
+        compositeStrategy,
+      };
+
+      setRecentAIStrategies((prev) => [recentItem, ...prev.filter((r) => r.name !== aiJson.name)]);
+
+      return { savedDefinition, compositeStrategy, recentItem };
+    },
+    [addStrategyToLibrary]
+  );
+
+  const loadAIStrategyIntoComposer = useCallback(
+    (aiJson: AIStrategyJSON) => {
+      const comp = convertAIStrategyToCompositeStrategy(aiJson);
+      setCompositeStrategy(comp);
+    },
+    [setCompositeStrategy]
+  );
+
+  const deleteRecentAIStrategy = useCallback((id: string) => {
+    setRecentAIStrategies((prev) => prev.filter((r) => r.id !== id));
+  }, []);
 
   // 3. Search & Leaderboard State
   const [searchResetKey, setSearchResetKey] = useState<number>(0);
@@ -668,6 +852,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     addNewsSentimentToComposer,
     setCompositeStrategy,
     loadStrategyIntoComposer,
+
+    strategyLibrary,
+    addStrategyToLibrary,
+    recentAIStrategies,
+    saveAIStrategyToLibrary,
+    loadAIStrategyIntoComposer,
+    deleteRecentAIStrategy,
 
     searchConfig,
     setSearchConfig,
