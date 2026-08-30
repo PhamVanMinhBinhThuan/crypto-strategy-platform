@@ -16,7 +16,7 @@ supabase/.branches/
 .gradle/
 **/build/
 **/bin/
-out/
+/out/
 *.class
 *.jar
 !gradle/wrapper/gradle-wrapper.jar

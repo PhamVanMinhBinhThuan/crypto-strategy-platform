@@ -2,6 +2,7 @@ package com.cryptostrategy.platform.domain.api.market;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.cryptostrategy.platform.domain.api.identity.UlidIdentifier;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
@@ -14,6 +15,8 @@ class MarketDomainModelTest {
         assertEquals(ULID, new CandleId(ULID).value());
         assertThrows(IllegalArgumentException.class, () -> new AssetId(ULID.toLowerCase()));
         assertThrows(IllegalArgumentException.class, () -> new TradingPairId("550e8400-e29b-41d4-a716-446655440000"));
+        assertThrows(IllegalArgumentException.class, () -> new CandleId("81ARZ3NDEKTSV4RRFFQ69G5FAV"));
+        assertInstanceOf(UlidIdentifier.class, new DatasetVersionId(ULID));
         assertEquals(26, DatasetVersionId.generate().value().length());
     }
 

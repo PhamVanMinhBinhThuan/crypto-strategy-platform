@@ -1,4 +1,4 @@
-package com.cryptostrategy.platform.domain.internal.identity;
+package com.cryptostrategy.platform.domain.api.identity;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -6,18 +6,19 @@ import java.time.Clock;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-public final class MarketUlid {
-    private static final Pattern FORMAT = Pattern.compile("^[0-9A-HJKMNP-TV-Z]{26}$");
+/** Shared validation and generation for typed domain ULID values. */
+public final class Ulids {
+    private static final Pattern FORMAT = Pattern.compile("^[0-7][0-9A-HJKMNP-TV-Z]{25}$");
     private static final char[] ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ".toCharArray();
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private MarketUlid() {
+    private Ulids() {
     }
 
     public static String requireValid(String value) {
         Objects.requireNonNull(value, "ULID");
         if (!FORMAT.matcher(value).matches()) {
-            throw new IllegalArgumentException("Market ID must be an uppercase Crockford ULID");
+            throw new IllegalArgumentException("Business ID must be a canonical uppercase Crockford ULID");
         }
         return value;
     }

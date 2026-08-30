@@ -8,7 +8,7 @@
 
 **Created**: 2026-08-29
 
-**Status**: Planned — implementation not started; applicable ADR governance gate accepted
+**Status**: Implemented — local deterministic verification complete; PostgreSQL integration and ADR governance review remain pending
 
 **Input**: User description: "Create the F-003 Market Data and Dataset capability on the existing Java foundation, including canonical market values, a provider-independent market-data boundary, Binance historical data normalization, closed-Candle validation, Candle and Dataset persistence, deterministic Dataset membership/checksums, deduplication, and deterministic tests."
 
@@ -211,4 +211,4 @@ As a strategy researcher, I want Dataset creation to detect gaps and mixed marke
 - **Architectural inputs**: Constitution v1.1.0; ADR-0001, ADR-0002, ADR-0003, ADR-0007, ADR-0009, and ADR-0011; existing Market Data, data-flow, quality-scenario, and data-model documentation.
 - **Provides to later features**: canonical frozen Dataset input and fixtures for Experiment/Backtest, plus provider-neutral historical retrieval and upstream realtime subscriptions for later public API/WebSocket integration.
 - **Does not provide**: Strategy evaluation, Backtest execution, Experiment ownership/lifecycle, queue processing, browser endpoints/protocol, realtime browser delivery, or UI behavior.
-- **Governance gate**: ADR-0001, ADR-0002, ADR-0003, ADR-0007, and ADR-0009 are accepted. Dependent implementation must conform to them, as required by the Constitution.
+- **Governance gate**: ADR-0001, ADR-0002, ADR-0003, ADR-0007, and ADR-0009 remain `Proposed`. This is an explicit governance gap: the team must review and accept or supersede them before merging implementation that depends on those decisions, as required by the Constitution.
