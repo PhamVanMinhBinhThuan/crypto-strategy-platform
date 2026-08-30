@@ -1,6 +1,6 @@
 # ADR-0008: Tách Sentiment Analysis thành Python Service
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-11
 **Owners**: Tiến Luật
 

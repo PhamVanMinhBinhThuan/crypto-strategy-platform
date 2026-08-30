@@ -1,6 +1,6 @@
 # ADR-0003: Sử dụng Adapter cho Market Data Provider
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-10
 **Owners**: Tiến Luật
 

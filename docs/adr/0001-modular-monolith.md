@@ -1,6 +1,6 @@
 # ADR-0001: Sử dụng Modular Monolith cho Backend cốt lõi
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-10
 **Owners**: Tiến Luật
 

@@ -1,6 +1,6 @@
 # ADR-0010: Strategy Generator Contract
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-13
 **Owners**: Tiến Luật
 
