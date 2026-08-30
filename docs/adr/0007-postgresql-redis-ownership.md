@@ -1,6 +1,6 @@
 # ADR-0007: Phân chia trách nhiệm PostgreSQL/Supabase và Redis
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-11
 **Owners**: Tiến Luật
 

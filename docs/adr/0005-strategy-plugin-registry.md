@@ -1,6 +1,6 @@
 # ADR-0005: Strategy Contract và Plugin Registry
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-11
 **Owners**: Strategy Owner và Tech Lead
 
@@ -358,4 +358,3 @@ Quy tắc:
 
 - Supersedes: None
 - Superseded by: None
-

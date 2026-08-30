@@ -1,6 +1,6 @@
 # ADR-0012: User Strategy Ownership and Durable Job Identity
 
-**Status**: Proposed  
+**Status**: Accepted
 **Date**: 2026-08-28  
 **Owners**: Tiến Luật  
 **Extends**: ADR-0006 and ADR-0011

@@ -1,6 +1,6 @@
 # ADR-0002: Ranh giới và phụ thuộc giữa các Module
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-10
 **Owners**: Tiến Luật
 

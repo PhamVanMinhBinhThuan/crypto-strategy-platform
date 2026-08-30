@@ -1,6 +1,6 @@
 # ADR-0006: Queue và Worker cho Backtest/Search
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-11
 **Owners**: Luật
 

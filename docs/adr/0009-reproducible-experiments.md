@@ -1,6 +1,6 @@
 # ADR-0009: Strategy Versioning và Reproducible Experiments
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-11
 **Owners**: Tiến Luật
 
