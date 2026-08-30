@@ -7,6 +7,7 @@ dependencies {
     implementation(project(":modules:domain"))
     implementation(project(":modules:market-data"))
     implementation(project(":modules:strategy-core"))
+    implementation(project(":modules:experiment"))
     implementation(libs.spring.jdbc)
     implementation(libs.jackson.databind)
     implementation(libs.slf4j.api)
@@ -51,6 +52,29 @@ tasks.register<Test>("strategyIntegrationTest") {
     description = "Runs F-004 Strategy persistence verification against isolated local Supabase."
     testClassesDirs = strategyIntegrationTest.output.classesDirs
     classpath = strategyIntegrationTest.runtimeClasspath
+    shouldRunAfter(tasks.test)
+    doFirst {
+        val required = listOf("DATABASE_URL", "DATABASE_USERNAME", "DATABASE_PASSWORD")
+        val missing = required.filter { System.getenv(it).isNullOrBlank() }
+        check(missing.isEmpty()) { "Missing local database configuration: ${missing.joinToString()}" }
+    }
+}
+
+val experimentIntegrationTest by sourceSets.creating {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+
+configurations[experimentIntegrationTest.implementationConfigurationName]
+    .extendsFrom(configurations.testImplementation.get())
+configurations[experimentIntegrationTest.runtimeOnlyConfigurationName]
+    .extendsFrom(configurations.testRuntimeOnly.get())
+
+tasks.register<Test>("experimentIntegrationTest") {
+    group = "verification"
+    description = "Runs F-005 Experiment persistence and concurrency verification against isolated local Supabase."
+    testClassesDirs = experimentIntegrationTest.output.classesDirs
+    classpath = experimentIntegrationTest.runtimeClasspath
     shouldRunAfter(tasks.test)
     doFirst {
         val required = listOf("DATABASE_URL", "DATABASE_USERNAME", "DATABASE_PASSWORD")
