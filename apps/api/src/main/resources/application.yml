@@ -10,6 +10,25 @@ spring:
       connection-timeout: 3000
 
 platform:
+  market-data:
+    provider: ${PLATFORM_MARKET_DATA_PROVIDER:fixture}
+    normalization-version: ${PLATFORM_MARKET_DATA_NORMALIZATION_VERSION:binance-v1}
+    checksum-contract-version: ${PLATFORM_MARKET_DATA_CHECKSUM_CONTRACT_VERSION:candle-v1}
+    binance:
+      rest-base-url: ${PLATFORM_MARKET_DATA_BINANCE_REST_BASE_URL:https://api.binance.com}
+      websocket-base-url: ${PLATFORM_MARKET_DATA_BINANCE_WEBSOCKET_BASE_URL:wss://stream.binance.com:9443}
+      connect-timeout: ${PLATFORM_MARKET_DATA_BINANCE_CONNECT_TIMEOUT:PT5S}
+      request-timeout: ${PLATFORM_MARKET_DATA_BINANCE_REQUEST_TIMEOUT:PT10S}
+      page-size: ${PLATFORM_MARKET_DATA_BINANCE_PAGE_SIZE:1000}
+      max-pages: ${PLATFORM_MARKET_DATA_BINANCE_MAX_PAGES:1000}
+      retry:
+        max-attempts: ${PLATFORM_MARKET_DATA_BINANCE_RETRY_MAX_ATTEMPTS:3}
+        initial-delay: ${PLATFORM_MARKET_DATA_BINANCE_RETRY_INITIAL_DELAY:PT0.25S}
+        max-delay: ${PLATFORM_MARKET_DATA_BINANCE_RETRY_MAX_DELAY:PT5S}
+      reconnect:
+        max-attempts: ${PLATFORM_MARKET_DATA_BINANCE_RECONNECT_MAX_ATTEMPTS:5}
+        initial-delay: ${PLATFORM_MARKET_DATA_BINANCE_RECONNECT_INITIAL_DELAY:PT0.5S}
+        max-delay: ${PLATFORM_MARKET_DATA_BINANCE_RECONNECT_MAX_DELAY:PT5S}
   security:
     jwt:
       issuer: ${SUPABASE_JWT_ISSUER:}

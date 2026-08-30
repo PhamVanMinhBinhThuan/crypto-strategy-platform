@@ -1,0 +1,12 @@
+package com.cryptostrategy.platform.marketdata.api.error;
+
+public enum MarketDataErrorCode {
+    INVALID_MARKET_QUERY,
+    MARKET_PROVIDER_UNAVAILABLE,
+    MARKET_PROVIDER_RATE_LIMITED,
+    MARKET_DATA_GAP,
+    MARKET_DATA_MAPPING_FAILED,
+    MARKET_DATA_INTEGRITY_CONFLICT,
+    DATASET_NOT_FOUND,
+    DATASET_INTEGRITY_FAILED
+}

@@ -1,3 +1,35 @@
 plugins {
     id("crypto.java-library-conventions")
 }
+
+dependencies {
+    implementation(platform(libs.spring.boot.dependencies))
+    implementation(project(":modules:domain"))
+    implementation(project(":modules:market-data"))
+    implementation(libs.spring.jdbc)
+    implementation(libs.slf4j.api)
+    runtimeOnly(libs.postgresql)
+}
+
+val marketDataIntegrationTest by sourceSets.creating {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+
+configurations[marketDataIntegrationTest.implementationConfigurationName]
+    .extendsFrom(configurations.testImplementation.get())
+configurations[marketDataIntegrationTest.runtimeOnlyConfigurationName]
+    .extendsFrom(configurations.testRuntimeOnly.get())
+
+tasks.register<Test>("marketDataIntegrationTest") {
+    group = "verification"
+    description = "Runs F-003 persistence verification against isolated local Supabase."
+    testClassesDirs = marketDataIntegrationTest.output.classesDirs
+    classpath = marketDataIntegrationTest.runtimeClasspath
+    shouldRunAfter(tasks.test)
+    doFirst {
+        val required = listOf("DATABASE_URL", "DATABASE_USERNAME", "DATABASE_PASSWORD")
+        val missing = required.filter { System.getenv(it).isNullOrBlank() }
+        check(missing.isEmpty()) { "Missing local database configuration: ${missing.joinToString()}" }
+    }
+}
