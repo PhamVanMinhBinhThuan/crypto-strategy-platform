@@ -82,10 +82,16 @@ class ExperimentEnumsTest {
     @DisplayName("FailureClassification defines transient vs deterministic failures")
     void failureClassifications() {
         assertThat(FailureClassification.values()).containsExactly(
-                FailureClassification.TRANSIENT,
-                FailureClassification.DETERMINISTIC
+                FailureClassification.TRANSIENT_NETWORK_ERROR,
+                FailureClassification.DATA_UNAVAILABLE_RETRY,
+                FailureClassification.WORKER_CRASHED,
+                FailureClassification.PERMANENT_LOGIC_ERROR,
+                FailureClassification.UNKNOWN_ERROR
         );
-        assertThat(FailureClassification.TRANSIENT.isRetryable()).isTrue();
-        assertThat(FailureClassification.DETERMINISTIC.isRetryable()).isFalse();
+        assertThat(FailureClassification.TRANSIENT_NETWORK_ERROR.isRetryable()).isTrue();
+        assertThat(FailureClassification.DATA_UNAVAILABLE_RETRY.isRetryable()).isTrue();
+        assertThat(FailureClassification.WORKER_CRASHED.isRetryable()).isTrue();
+        assertThat(FailureClassification.PERMANENT_LOGIC_ERROR.isRetryable()).isFalse();
+        assertThat(FailureClassification.UNKNOWN_ERROR.isRetryable()).isFalse();
     }
 }

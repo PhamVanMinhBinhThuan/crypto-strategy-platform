@@ -43,7 +43,7 @@ class JobAggregateTest {
         // Transient failure on Attempt 1 -> Attempt is FAILED, Job is RETRY_SCHEDULED
         Instant finish1 = Instant.now();
         Instant nextRetry = finish1.plusSeconds(30);
-        aggregate.finalizeAttemptFailure(attempt1.attemptId(), "RATE_LIMIT", "Rate limit exceeded", FailureClassification.TRANSIENT, finish1, nextRetry);
+        aggregate.finalizeAttemptFailure(attempt1.attemptId(), "RATE_LIMIT", "Rate limit exceeded", FailureClassification.TRANSIENT_NETWORK_ERROR, finish1, nextRetry);
 
         assertThat(aggregate.getAttempts().get(0).status()).isEqualTo(AttemptStatus.FAILED);
         assertThat(aggregate.getAttempts().get(0).retryable()).isTrue();
@@ -72,7 +72,7 @@ class JobAggregateTest {
         JobAggregate aggregate = new JobAggregate(job, new ArrayList<>());
 
         ExecutionAttempt attempt = aggregate.startAttempt("worker-1", Instant.now());
-        aggregate.finalizeAttemptFailure(attempt.attemptId(), "INVALID_DATA", "Data corrupted", FailureClassification.DETERMINISTIC, Instant.now(), null);
+        aggregate.finalizeAttemptFailure(attempt.attemptId(), "INVALID_DATA", "Data corrupted", FailureClassification.PERMANENT_LOGIC_ERROR, Instant.now(), null);
 
         assertThat(aggregate.getAttempts().get(0).status()).isEqualTo(AttemptStatus.FAILED);
         assertThat(aggregate.getAttempts().get(0).retryable()).isFalse();
