@@ -17,6 +17,7 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import com.cryptostrategy.platform.domain.api.identity.UlidIdentifier;
 import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.Set;
@@ -61,7 +62,7 @@ class PurityAndCycleTest {
     void productionPublicBoundariesUseCanonicalValues() {
         JavaClasses production = productionClasses();
 
-        var result = canonicalBoundaryValues().evaluate(production);
+        var result = productionCanonicalBoundaryValues().evaluate(production);
         assertFalse(result.hasViolation(), result.getFailureReport().toString());
     }
 
@@ -71,6 +72,14 @@ class PurityAndCycleTest {
                 .importPackages(PLATFORM + ".architecture.fixtures.canonical");
 
         assertTrue(canonicalBoundaryValues().evaluate(fixtures).hasViolation());
+    }
+
+    @Test
+    void capabilitySpecificTypedUlidFixtureIsAccepted() {
+        JavaClasses fixtures = new ClassFileImporter()
+                .importPackages(PLATFORM + ".architecture.fixtures.typedid");
+
+        assertFalse(canonicalBoundaryValues().evaluate(fixtures).hasViolation());
     }
 
     private static ArchRule forbiddenTechnologyDependencies(String root) {
@@ -95,14 +104,25 @@ class PurityAndCycleTest {
     private static ArchRule canonicalBoundaryValues() {
         return classes()
                 .that().resideInAnyPackage("..domain..", "..api..", "..port.in..", "..port.out..", "..event..")
-                .should(new ArchCondition<>("use UUID identities, exact decimals and UTC instants") {
+                .should(canonicalValuesCondition());
+    }
+
+    private static ArchRule productionCanonicalBoundaryValues() {
+        return classes()
+                .that().resideInAnyPackage("..domain..", "..api..", "..port.in..", "..port.out..", "..event..")
+                .and().resideOutsideOfPackage(PLATFORM + ".architecture..")
+                .should(canonicalValuesCondition());
+    }
+
+    private static ArchCondition<JavaClass> canonicalValuesCondition() {
+        return new ArchCondition<>("use UUID user identities, typed ULID business identities, exact decimals and UTC instants") {
                     @Override
                     public void check(JavaClass javaClass, ConditionEvents events) {
                         for (JavaField field : javaClass.getFields()) {
                             checkType(javaClass, field.getName(), field.getRawType(), events);
                             if (looksLikeIdentity(field.getName()) && !isAllowedIdentity(field.getName(), field.getRawType())) {
                                 violation(javaClass, field.getFullName()
-                                        + " must use UUID for user identity or a typed Market ULID", events);
+                                        + " must use UUID for user identity or a typed domain ULID", events);
                             }
                         }
                         for (JavaMethod method : javaClass.getMethods()) {
@@ -114,7 +134,7 @@ class PurityAndCycleTest {
                             }
                         }
                     }
-                });
+                };
     }
 
     private static void checkType(JavaClass owner, String location, JavaClass type, ConditionEvents events) {
@@ -136,12 +156,10 @@ class PurityAndCycleTest {
 
     private static boolean isAllowedIdentity(String name, JavaClass type) {
         String normalized = name.toLowerCase(Locale.ROOT);
-        if (normalized.equals("userid") || normalized.equals("ownerid")) {
+        if (normalized.endsWith("userid") || normalized.equals("ownerid")) {
             return type.isEquivalentTo(UUID.class);
         }
-        return type.isEquivalentTo(UUID.class)
-                || (type.getPackageName().equals(PLATFORM + ".domain.api.market")
-                        && type.getSimpleName().endsWith("Id"));
+        return type.isEquivalentTo(UUID.class) || type.isAssignableTo(UlidIdentifier.class);
     }
 
     private static void violation(JavaClass owner, String message, ConditionEvents events) {
