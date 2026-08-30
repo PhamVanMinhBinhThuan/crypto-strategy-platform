@@ -21,7 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
         properties = {
             "spring.datasource.url=jdbc:h2:mem:worker-health;DB_CLOSE_DELAY=-1",
             "spring.datasource.username=sa",
-            "spring.datasource.password=fixture-password"
+            "spring.datasource.password=fixture-password",
+            "management.endpoint.health.group.readiness.include=readinessState,databaseReadiness",
+            "spring.main.cloud-platform=kubernetes"
         })
 @AutoConfigureMockMvc(addFilters = false)
 class WorkerHealthIntegrationTest {

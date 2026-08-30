@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.plugins.JavaPluginExtension
 
 plugins {
     `java-library`
@@ -8,7 +9,7 @@ plugins {
 group = "com.cryptostrategy.platform"
 version = "0.1.0-SNAPSHOT"
 
-java {
+extensions.configure<JavaPluginExtension> {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(21))
     }

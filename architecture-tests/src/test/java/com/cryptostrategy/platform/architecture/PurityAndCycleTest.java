@@ -159,7 +159,24 @@ class PurityAndCycleTest {
         if (normalized.endsWith("userid") || normalized.equals("ownerid")) {
             return type.isEquivalentTo(UUID.class);
         }
-        return type.isEquivalentTo(UUID.class) || type.isAssignableTo(UlidIdentifier.class);
+        return type.isEquivalentTo(UUID.class)
+                || type.isAssignableTo(UlidIdentifier.class)
+                || isTypedSlugIdentity(type);
+    }
+
+    /**
+     * Slug-based domain identities such as {@code StrategyPluginId} and
+     * {@code CombinationPolicyId} are intentionally modeled as typed records
+     * wrapping a validated String slug (e.g. "ma-crossover", "majority-vote").
+     * They are not ULIDs or UUIDs but are still properly typed domain identities,
+     * not raw Strings. Recognized when the type is a record in the platform's
+     * api.model package hierarchy.
+     */
+    private static boolean isTypedSlugIdentity(JavaClass type) {
+        return type.getName().startsWith(PLATFORM + ".")
+                && (type.getName().contains(".api.model.") || type.getName().contains(".api."))
+                && type.isRecord()
+                && type.getName().endsWith("Id");
     }
 
     private static void violation(JavaClass owner, String message, ConditionEvents events) {

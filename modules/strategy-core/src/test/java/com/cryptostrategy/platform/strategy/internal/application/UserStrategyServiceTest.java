@@ -1,0 +1,31 @@
+package com.cryptostrategy.platform.strategy.internal.application;
+import static org.junit.jupiter.api.Assertions.*;
+import com.cryptostrategy.platform.strategy.api.*;
+import com.cryptostrategy.platform.strategy.api.error.*;
+import com.cryptostrategy.platform.strategy.api.model.*;
+import com.cryptostrategy.platform.strategy.api.model.parameter.*;
+import com.cryptostrategy.platform.strategy.api.model.user.*;
+import com.cryptostrategy.platform.strategy.api.model.user.command.*;
+import com.cryptostrategy.platform.strategy.api.model.user.query.*;
+import com.cryptostrategy.platform.strategy.api.port.out.UserStrategyStore;
+import com.cryptostrategy.platform.strategy.internal.registry.DefaultStrategyRegistry;
+import java.time.*;
+import java.util.*;
+import org.junit.jupiter.api.Test;
+class UserStrategyServiceTest {
+    @Test void ownerCanPublishStableSnapshotAndOtherOwnerCannotRead(){UUID owner=UUID.randomUUID(),other=UUID.randomUUID();FakeStore store=new FakeStore();StrategyPlugin plugin=plugin();UserStrategyService service=new UserStrategyService(new DefaultStrategyRegistry(List.of(plugin)),store,Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"),ZoneOffset.UTC));SingleStrategyDraftSource source=new SingleStrategyDraftSource(plugin.descriptor().reference(),StrategyParameterSet.empty());UserStrategyVersion draft=service.createUserStrategy(owner,new CreateUserStrategyCommand("Mine","",StrategyKind.SINGLE,source));assertEquals(1,service.listUsableStrategies(owner,UsableStrategyPageRequest.defaults()).systemStrategies().items().size());assertEquals(1,service.listUsableStrategies(owner,UsableStrategyPageRequest.defaults()).privateStrategies().items().size());StrategySnapshot snapshot=service.publish(owner,new PublishStrategyVersionCommand(draft.id(),1));assertEquals(snapshot,service.resolveSnapshot(owner,new ResolveStrategySnapshotQuery(draft.id())));assertThrows(StrategyException.class,()->service.resolveSnapshot(other,new ResolveStrategySnapshotQuery(draft.id())));}
+    private static StrategyPlugin plugin(){StrategyDescriptor descriptor=new StrategyDescriptor(new StrategyReference(new StrategyVersionId("01J00000000000000000000000"),new StrategyPluginId("fixture"),new SemanticVersion(1,0,0)),"strategy-contract-v1","Fixture","Fixture","TEST",Set.of(StrategySignal.HOLD),1,StrategyParameterSchema.empty(),"fixture-v1");return new StrategyPlugin(){public StrategyDescriptor descriptor(){return descriptor;}public Strategy create(StrategyParameterSet parameters){return context->new StrategyDecision(StrategySignal.HOLD,context.evaluationTime(),descriptor.reference(),"FIXTURE","Fixture",Map.of());}};}
+    private static final class FakeStore implements UserStrategyStore {
+        private final Map<UserStrategyId,UserStrategy> roots=new HashMap<>();private final Map<UserStrategyVersionId,UserStrategyVersion> versions=new HashMap<>();
+        public UserStrategyVersion create(UserStrategy root,UserStrategyVersion version){if(roots.values().stream().anyMatch(value->value.ownerUserId().equals(root.ownerUserId())&&value.name().equalsIgnoreCase(root.name())))conflict();roots.put(root.id(),root);versions.put(version.id(),version);return version;}
+        public List<UserStrategySummary> listActive(UUID owner,int limit,Optional<String> cursor){return roots.values().stream().filter(value->value.ownerUserId().equals(owner)&&value.status()==UserStrategyStatus.ACTIVE).limit(limit).map(value->new UserStrategySummary(value.id(),value.kind(),value.name(),value.description(),value.createdAt())).toList();}
+        public Optional<UserStrategy> findRoot(UUID owner,UserStrategyId id){return Optional.ofNullable(roots.get(id)).filter(value->value.ownerUserId().equals(owner));}
+        public Optional<UserStrategyVersion> findVersion(UUID owner,UserStrategyVersionId id){UserStrategyVersion version=versions.get(id);return version==null?Optional.empty():findRoot(owner,version.userStrategyId()).map(root->version);}
+        public UserStrategyVersion createNext(UUID owner,UserStrategyVersion draft,int expected){int latest=versions.values().stream().filter(value->value.userStrategyId().equals(draft.userStrategyId())).mapToInt(UserStrategyVersion::versionNo).max().orElse(0);if(latest!=expected)conflict();versions.put(draft.id(),draft);return draft;}
+        public UserStrategyVersion publish(UUID owner,UserStrategyVersionId id,int expected,Instant at){UserStrategyVersion current=findVersion(owner,id).orElseThrow(UserStrategyServiceTest::missing);if(current.versionNo()!=expected||current.status()!=UserStrategyVersionStatus.DRAFT)conflict();UserStrategyVersion result=current.publish(at);versions.put(id,result);return result;}
+        public UserStrategy archive(UUID owner,UserStrategyId id,Instant at){UserStrategy result=findRoot(owner,id).orElseThrow(UserStrategyServiceTest::missing).archive(at);roots.put(id,result);return result;}
+        public Optional<StrategySnapshot> resolvePublished(UUID owner,UserStrategyVersionId id){return findVersion(owner,id).filter(value->value.status()==UserStrategyVersionStatus.PUBLISHED).map(value->new SingleStrategySnapshot(value.userStrategyId(),value.id(),value.versionNo(),owner,(SingleStrategyDraftSource)value.source(),value.fingerprint()));}
+        private static void conflict(){throw new StrategyException(StrategyErrorCode.STRATEGY_CONFLICT,"conflict");}
+    }
+    private static StrategyException missing(){return new StrategyException(StrategyErrorCode.STRATEGY_NOT_FOUND,"missing");}
+}
