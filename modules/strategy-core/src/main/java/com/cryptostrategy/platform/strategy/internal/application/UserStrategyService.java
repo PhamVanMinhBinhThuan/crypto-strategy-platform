@@ -76,10 +76,17 @@ public final class UserStrategyService implements UserStrategyApplication {
     @Override public StrategySnapshot resolveSnapshot(UUID owner, ResolveStrategySnapshotQuery query) { return store.resolvePublished(owner,query.versionId()).orElseThrow(UserStrategyService::notFound); }
     @Override public UserStrategy archive(UUID owner, ArchiveUserStrategyCommand command) { requireRoot(owner,command.userStrategyId()); return store.archive(owner,command.userStrategyId(),clock.instant()); }
     private StrategyDraftSource validate(StrategyDraftSource source) {
-        if(source instanceof SingleStrategyDraftSource single){ registry.descriptor(single.strategyReference().pluginId(),single.strategyReference().implementationVersion()); return single; }
+        if(source instanceof SingleStrategyDraftSource single){
+            StrategyParameterSet resolved = registry.resolveParameters(single.strategyReference().pluginId(), single.strategyReference().implementationVersion(), single.parameters().values());
+            return new SingleStrategyDraftSource(single.strategyReference(), resolved);
+        }
         CompositeStrategyDraftSource composite=(CompositeStrategyDraftSource)source;
         if(!composite.policyId().value().equals("majority-vote")||!composite.policyVersion().toString().equals("1.0.0")) throw new StrategyException(StrategyErrorCode.UNSUPPORTED_VERSION,"Unsupported combination policy");
-        composite.components().forEach(component->registry.descriptor(component.strategyReference().pluginId(),component.strategyReference().implementationVersion())); return composite;
+        List<UserStrategyComponent> resolvedComponents = composite.components().stream().map(component -> {
+            StrategyParameterSet resolved = registry.resolveParameters(component.strategyReference().pluginId(), component.strategyReference().implementationVersion(), component.parameters().values());
+            return new UserStrategyComponent(component.strategyReference(), resolved);
+        }).toList();
+        return new CompositeStrategyDraftSource(composite.policyId(), composite.policyVersion(), composite.policyParameters(), resolvedComponents);
     }
     private String fingerprint(StrategyDraftSource source) {
         if(source instanceof SingleStrategyDraftSource single) return fingerprint.single(single.strategyReference(),single.parameters());
