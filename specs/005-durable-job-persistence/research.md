@@ -138,6 +138,6 @@
 ### Decision 6.1: Typed Placeholders for External Dependencies
 - **Chosen Design**:
   - **F-003 Dataset Provenance — resolved**: `DatasetVersionId` is the canonical immutable Dataset identity; F-003 defines no separate Dataset root. `DatasetProvenanceSnapshot` binds to the published Dataset Version provenance: `datasetVersionId`, `version` (`candle-v1`), `checksum`, provider, Trading Pair, Timeframe, `normalizationVersion`, `rangeStart`, `rangeEnd`, and `candleCount`. F-005 does NOT duplicate Dataset membership, checksum calculation, provider normalization, or Market Data ingestion logic.
-  - **F-004 Strategy Provenance**: Represented as `StrategyProvenanceSnapshot` (`pluginId`, `strategyVersion`, `parameters`, `compositePolicyId`, `compositePolicyVersion`, `components`, `sourceUserStrategyVersionId`). Does NOT duplicate strategy execution or plugin catalog logic.
+  - **F-004 Strategy Provenance**: Represented with F-004 public types (`StrategyKind`, `StrategyReference`, `StrategyParameterSet`, typed policy ID/version, typed components, optional `UserStrategyVersionId`, and required `strategy-v1` fingerprint). Does NOT duplicate strategy execution or plugin catalog logic.
   - If final contracts are not yet merged, these value objects live in `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api/provenance/` as typed contracts.
 - **Rationale**: Prevents inventing parallel models while allowing F-005 persistence and validation logic to be fully specified and tested.

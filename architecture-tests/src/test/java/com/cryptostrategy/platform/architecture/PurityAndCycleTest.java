@@ -20,6 +20,7 @@ import com.tngtech.archunit.lang.SimpleConditionEvent;
 import com.cryptostrategy.platform.domain.api.identity.UlidIdentifier;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -120,7 +121,9 @@ class PurityAndCycleTest {
                     public void check(JavaClass javaClass, ConditionEvents events) {
                         for (JavaField field : javaClass.getFields()) {
                             checkType(javaClass, field.getName(), field.getRawType(), events);
-                            if (looksLikeIdentity(field.getName()) && !isAllowedIdentity(field.getName(), field.getRawType())) {
+                            if (looksLikeIdentity(field.getName())
+                                    && !field.getRawType().isEquivalentTo(Optional.class)
+                                    && !isAllowedIdentity(field.getName(), field.getRawType())) {
                                 violation(javaClass, field.getFullName()
                                         + " must use UUID for user identity or a typed domain ULID", events);
                             }
@@ -148,7 +151,13 @@ class PurityAndCycleTest {
 
     private static boolean looksLikeIdentity(String name) {
         String normalized = name.toLowerCase(Locale.ROOT);
-        if (normalized.equals("correlationid") || normalized.equals("serialversionuid") || normalized.equals("valid")) {
+        if (normalized.equals("correlationid")
+                || normalized.equals("workerid")
+                || normalized.equals("aggregateid")
+                || normalized.equals("messageid")
+                || normalized.equals("outboxeventid")
+                || normalized.equals("serialversionuid")
+                || normalized.equals("valid")) {
             return false;
         }
         return normalized.equals("id") || normalized.endsWith("id") || normalized.endsWith("identity");

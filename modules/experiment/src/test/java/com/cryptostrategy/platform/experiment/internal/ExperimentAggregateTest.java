@@ -38,7 +38,7 @@ class ExperimentAggregateTest {
                 1440
         );
 
-        StrategyProvenanceSnapshot strategy = StrategyProvenanceSnapshot.single(
+        StrategyProvenanceSnapshot strategy = ProvenanceTestFixtures.single(
                 "sma-crossover",
                 "1.0.0",
                 Map.of("fastPeriod", 10, "slowPeriod", 20),

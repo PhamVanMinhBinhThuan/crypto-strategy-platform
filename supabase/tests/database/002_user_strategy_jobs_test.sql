@@ -213,12 +213,14 @@ insert into experiment.experiment_manifest (
     experiment_id, manifest_version, dataset_version_id, strategy_kind,
     strategy_ref_id, strategy_version, strategy_parameters, backtest_config,
     search_config, evaluation_config, software_version, git_commit, fingerprint,
-    source_user_strategy_version_id
+    source_user_strategy_version_id, dataset_provenance, strategy_provenance
 ) values (
     '60000000000000000000000001', 'v1', '50000000000000000000000005',
     'SINGLE', 'macd', '1.0.0', '{"fastPeriod":12,"slowPeriod":26}'::jsonb,
     '{}'::jsonb, '{}'::jsonb, '{}'::jsonb, 'v2-test', 'test-commit',
-    'user-a-manifest', '40000000000000000000000001'
+    'user-a-manifest', '40000000000000000000000001',
+    '{"datasetVersionId":"50000000000000000000000005","version":"v2-test","checksum":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","provider":"fixture-v2","tradingPair":"V2BTC/V2USDT","timeframe":"1h","normalizationVersion":"v1","rangeStart":"2026-08-01T00:00:00Z","rangeEnd":"2026-08-01T01:00:00Z","candleCount":1}'::jsonb,
+    '{"kind":"SINGLE","parameters":{"fastPeriod":{"type":"INTEGER","value":"12"},"slowPeriod":{"type":"INTEGER","value":"26"}},"strategyFingerprint":"strategy-v1:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","sourceUserStrategyVersionId":"40000000000000000000000001","singleStrategy":{"strategyVersionId":"20000000000000000000000001","pluginId":"macd","implementationVersion":"1.0.0"},"components":[]}'::jsonb
 );
 
 -- V2-06: a Manifest cannot use another owner's saved Strategy.
@@ -229,12 +231,13 @@ begin
             experiment_id, manifest_version, dataset_version_id, strategy_kind,
             strategy_ref_id, strategy_version, strategy_parameters, backtest_config,
             search_config, evaluation_config, software_version, git_commit, fingerprint,
-            source_user_strategy_version_id
+            source_user_strategy_version_id, dataset_provenance, strategy_provenance
         ) values (
             '60000000000000000000000002', 'v1', '50000000000000000000000005',
             'SINGLE', 'macd', '1.0.0', '{}'::jsonb, '{}'::jsonb, '{}'::jsonb,
             '{}'::jsonb, 'v2-test', 'test-commit', 'wrong-owner-manifest',
-            '40000000000000000000000001'
+            '40000000000000000000000001',
+            '{}'::jsonb, '{}'::jsonb
         );
         raise exception 'Manifest accepted another owner Strategy';
     exception when raise_exception then
@@ -319,7 +322,7 @@ insert into experiment.execution_attempt (
     ('80000000000000000000000001', '70000000000000000000000002',
      '60000000000000000000000003', 1, 'FAILED'),
     ('80000000000000000000000002', '70000000000000000000000002',
-     '60000000000000000000000003', 2, 'RETRY_SCHEDULED'),
+     '60000000000000000000000003', 2, 'FAILED'),
     ('80000000000000000000000003', '70000000000000000000000002',
      '60000000000000000000000003', 3, 'SUCCEEDED');
 

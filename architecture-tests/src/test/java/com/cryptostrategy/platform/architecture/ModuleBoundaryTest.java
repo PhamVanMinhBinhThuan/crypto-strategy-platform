@@ -36,7 +36,7 @@ class ModuleBoundaryTest {
             Map.entry("combination", Set.of("domain", "strategy")),
             Map.entry("backtesting", Set.of("domain", "strategy")),
             Map.entry("evaluation", Set.of("domain")),
-            Map.entry("experiment", Set.of("domain")),
+            Map.entry("experiment", Set.of("domain", "marketdata", "strategy")),
             Map.entry("search", Set.of("domain", "strategy")),
             Map.entry("leaderboard", Set.of("domain", "evaluation")),
             Map.entry("news", Set.of("domain")),

@@ -58,23 +58,20 @@ public record DatasetProvenanceSnapshot(
 
 /** Typed snapshot of single strategy component for composite configurations. */
 public record StrategyComponentSnapshot(
-    int position,
-    String strategyVersionId,
-    Map<String, Object> parameters,
-    Optional<Double> weight
+    StrategyReference strategyReference,
+    StrategyParameterSet parameters
 ) {}
 
 /** Typed snapshot of Strategy / User Strategy provenance from F-004. */
 public record StrategyProvenanceSnapshot(
-    String strategyKind, // SINGLE or COMPOSITE
-    String strategyRefId,
-    String strategyVersion,
-    Map<String, Object> strategyParameters,
-    Optional<String> compositePolicyId,
-    Optional<String> compositePolicyVersion,
-    Optional<Map<String, Object>> compositePolicyParameters,
+    StrategyKind kind,
+    Optional<StrategyReference> singleStrategy,
+    StrategyParameterSet parameters,
+    Optional<CombinationPolicyId> compositePolicyId,
+    Optional<SemanticVersion> compositePolicyVersion,
     List<StrategyComponentSnapshot> components,
-    Optional<String> sourceUserStrategyVersionId
+    Optional<UserStrategyVersionId> sourceUserStrategyVersionId,
+    String strategyFingerprint
 ) {}
 ```
 
@@ -84,6 +81,7 @@ public record StrategyProvenanceSnapshot(
 - The snapshot is populated from F-003's immutable Dataset Version metadata and participates in the Experiment fingerprint.
 - Dataset membership, provider normalization, checksum computation, and Dataset integrity verification remain owned by F-003.
 - F-005 persists the `dataset_version_id` provenance anchor and must not mutate `market.*` Dataset evidence.
+- Persistence stores the complete Dataset and Strategy provenance JSON snapshots; row mapping must never invent provider, pair, checksum, policy, version, or fingerprint defaults.
 
 ---
 

@@ -4,6 +4,7 @@ import com.cryptostrategy.platform.strategy.api.error.StrategyErrorCode;
 import com.cryptostrategy.platform.strategy.api.error.StrategyException;
 import com.cryptostrategy.platform.strategy.api.model.StrategyDescriptor;
 import com.cryptostrategy.platform.strategy.api.model.StrategyKind;
+import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 import com.cryptostrategy.platform.strategy.api.model.UserStrategyId;
 import com.cryptostrategy.platform.strategy.api.model.UserStrategyStatus;
 import com.cryptostrategy.platform.strategy.api.model.UserStrategyVersionId;
@@ -15,6 +16,7 @@ import com.cryptostrategy.platform.strategy.api.model.user.SingleStrategySnapsho
 import com.cryptostrategy.platform.strategy.api.model.user.StrategyDraftSource;
 import com.cryptostrategy.platform.strategy.api.model.user.StrategySnapshot;
 import com.cryptostrategy.platform.strategy.api.model.user.UserStrategy;
+import com.cryptostrategy.platform.strategy.api.model.user.UserStrategyComponent;
 import com.cryptostrategy.platform.strategy.api.model.user.UserStrategyVersion;
 import com.cryptostrategy.platform.strategy.api.model.user.command.ArchiveUserStrategyCommand;
 import com.cryptostrategy.platform.strategy.api.model.user.command.CreateNextStrategyVersionCommand;

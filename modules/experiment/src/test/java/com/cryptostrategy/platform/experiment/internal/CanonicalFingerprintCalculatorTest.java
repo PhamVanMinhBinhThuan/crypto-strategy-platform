@@ -32,7 +32,7 @@ class CanonicalFingerprintCalculatorTest {
                 1440
         );
 
-        StrategyProvenanceSnapshot strategy = StrategyProvenanceSnapshot.single(
+        StrategyProvenanceSnapshot strategy = ProvenanceTestFixtures.single(
                 "sma-crossover",
                 "1.0.0",
                 Map.of("fastPeriod", 10, "slowPeriod", 20),
@@ -82,8 +82,8 @@ class CanonicalFingerprintCalculatorTest {
         map2.put("b", "val2");
 
         DatasetProvenanceSnapshot dataset = manifest1.datasetProvenance();
-        StrategyProvenanceSnapshot strategy1 = StrategyProvenanceSnapshot.single("sma-crossover", "1.0.0", map1, null);
-        StrategyProvenanceSnapshot strategy2 = StrategyProvenanceSnapshot.single("sma-crossover", "1.0.0", map2, null);
+        StrategyProvenanceSnapshot strategy1 = ProvenanceTestFixtures.single("sma-crossover", "1.0.0", map1, null);
+        StrategyProvenanceSnapshot strategy2 = ProvenanceTestFixtures.single("sma-crossover", "1.0.0", map2, null);
 
         ExperimentManifest m1 = new ExperimentManifest(manifest1.experimentId(), manifest1.manifestVersion(), dataset, strategy1, manifest1.backtestConfig(), manifest1.searchConfig(), manifest1.evaluationConfig(), manifest1.sentimentConfig(), manifest1.softwareVersion(), manifest1.gitCommit(), null, manifest1.createdAt());
         ExperimentManifest m2 = new ExperimentManifest(manifest1.experimentId(), manifest1.manifestVersion(), dataset, strategy2, manifest1.backtestConfig(), manifest1.searchConfig(), manifest1.evaluationConfig(), manifest1.sentimentConfig(), manifest1.softwareVersion(), manifest1.gitCommit(), null, manifest1.createdAt());
@@ -97,7 +97,7 @@ class CanonicalFingerprintCalculatorTest {
         ExperimentManifest original = createSampleManifest();
         String originalFp = calculator.calculate(original);
 
-        StrategyProvenanceSnapshot modifiedStrategy = StrategyProvenanceSnapshot.single(
+        StrategyProvenanceSnapshot modifiedStrategy = ProvenanceTestFixtures.single(
                 "sma-crossover",
                 "1.0.0",
                 Map.of("fastPeriod", 11, "slowPeriod", 20),
