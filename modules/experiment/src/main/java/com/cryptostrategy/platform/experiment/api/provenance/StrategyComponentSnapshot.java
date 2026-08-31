@@ -1,22 +1,15 @@
 package com.cryptostrategy.platform.experiment.api.provenance;
 
-import java.math.BigDecimal;
-import java.util.Map;
+import com.cryptostrategy.platform.strategy.api.model.StrategyReference;
+import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 import java.util.Objects;
 
 public record StrategyComponentSnapshot(
-        String strategyRefId,
-        String version,
-        Map<String, Object> parameterOverrides,
-        BigDecimal weight,
-        int position
+        StrategyReference strategyReference,
+        StrategyParameterSet parameters
 ) {
     public StrategyComponentSnapshot {
-        Objects.requireNonNull(strategyRefId, "strategyRefId cannot be null");
-        Objects.requireNonNull(version, "version cannot be null");
-        parameterOverrides = parameterOverrides != null ? Map.copyOf(parameterOverrides) : Map.of();
-        if (position < 0) {
-            throw new IllegalArgumentException("position cannot be negative");
-        }
+        Objects.requireNonNull(strategyReference, "strategyReference cannot be null");
+        Objects.requireNonNull(parameters, "parameters cannot be null");
     }
 }

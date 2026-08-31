@@ -17,8 +17,9 @@ public final class ExperimentSql {
                 experiment_id, manifest_version, dataset_version_id, strategy_kind,
                 strategy_ref_id, strategy_version, strategy_parameters, backtest_config,
                 search_config, evaluation_config, sentiment_config, software_version,
-                git_commit, fingerprint, created_at, source_user_strategy_version_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?, ?, ?)
+                git_commit, fingerprint, created_at, source_user_strategy_version_id,
+                dataset_provenance, strategy_provenance
+            ) VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb)
             """;
 
     public static final String SELECT_EXPERIMENT_BY_ID = """
@@ -32,7 +33,8 @@ public final class ExperimentSql {
             SELECT m.experiment_id, m.manifest_version, m.dataset_version_id, m.strategy_kind,
                    m.strategy_ref_id, m.strategy_version, m.strategy_parameters, m.backtest_config,
                    m.search_config, m.evaluation_config, m.sentiment_config, m.software_version,
-                   m.git_commit, m.fingerprint, m.created_at, m.source_user_strategy_version_id
+                   m.git_commit, m.fingerprint, m.created_at, m.source_user_strategy_version_id,
+                   m.dataset_provenance, m.strategy_provenance
             FROM experiment.experiment_manifest m
             JOIN experiment.experiment e ON e.experiment_id = m.experiment_id
             WHERE m.experiment_id = ? AND e.owner_user_id = ?
@@ -43,7 +45,8 @@ public final class ExperimentSql {
             SET dataset_version_id = ?, strategy_kind = ?, strategy_ref_id = ?, strategy_version = ?,
                 strategy_parameters = ?::jsonb, backtest_config = ?::jsonb, search_config = ?::jsonb,
                 evaluation_config = ?::jsonb, sentiment_config = ?::jsonb, software_version = ?,
-                git_commit = ?, source_user_strategy_version_id = ?
+                git_commit = ?, source_user_strategy_version_id = ?, dataset_provenance = ?::jsonb,
+                strategy_provenance = ?::jsonb
             FROM experiment.experiment e
             WHERE m.experiment_id = e.experiment_id AND m.experiment_id = ? AND e.owner_user_id = ?
             """;

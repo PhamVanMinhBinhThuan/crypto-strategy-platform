@@ -12,6 +12,8 @@ dependencies {
     implementation(libs.jackson.databind)
     implementation(libs.slf4j.api)
     runtimeOnly(libs.postgresql)
+    testImplementation(platform(libs.spring.boot.dependencies))
+    testImplementation("org.assertj:assertj-core")
 }
 
 val marketDataIntegrationTest by sourceSets.creating {

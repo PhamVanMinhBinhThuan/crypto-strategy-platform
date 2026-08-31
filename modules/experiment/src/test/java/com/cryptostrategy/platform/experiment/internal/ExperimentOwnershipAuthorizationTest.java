@@ -96,7 +96,7 @@ class ExperimentOwnershipAuthorizationTest {
                 ExperimentId.generate(),
                 "v1",
                 new DatasetProvenanceSnapshot(new DatasetVersionId("01ARZ3NDEKTSV4RRFFQ69G5FAV"), "candle-v1", "sha256:abcd", "BINANCE", "BTC/USDT", "1m", "v1", Instant.EPOCH, Instant.EPOCH, 0),
-                StrategyProvenanceSnapshot.single("sma", "1.0", Map.of(), null),
+                ProvenanceTestFixtures.single("sma", "1.0", Map.of(), null),
                 Map.of(), Map.of(), Map.of(), null, "0.1", "git", null, Instant.now()
         );
 

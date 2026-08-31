@@ -90,6 +90,9 @@ erDiagram
 4. Candidate không trùng generation index hoặc fingerprint trong Experiment.
 5. Mỗi Candidate có tối đa một Backtest Result thành công.
 6. Evaluation duy nhất theo Result và metric version.
+7. Backtest Result, successful Execution Attempt và Candidate phải thuộc cùng Candidate/Experiment.
+8. Leaderboard Entry chỉ được tham chiếu Evaluation Result thuộc cùng Experiment với Revision.
+9. Experiment Manifest lưu đầy đủ Dataset/Strategy provenance; adapter không được dựng metadata mặc định khi đọc.
 7. Rank và Evaluation không trùng trong một Leaderboard revision.
 8. Sentiment duy nhất theo News, content hash và model version.
 9. Một consumer chỉ xử lý một message ID một lần.

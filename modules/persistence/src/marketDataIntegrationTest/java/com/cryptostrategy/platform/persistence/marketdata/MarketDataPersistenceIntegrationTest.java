@@ -34,14 +34,21 @@ class MarketDataPersistenceIntegrationTest {
     private static DataSource dataSource;
 
     @BeforeAll
-    static void connectToIsolatedLocalDatabase() {
+    static void connectToIsolatedTestDatabase() {
         String url = required("DATABASE_URL");
-        if (!url.contains("localhost") && !url.contains("127.0.0.1")) {
-            throw new IllegalStateException("marketDataIntegrationTest only accepts a local database URL");
+        String username = required("DATABASE_USERNAME");
+        boolean local = url.contains("localhost") || url.contains("127.0.0.1");
+        String testProjectRef = System.getenv("DATABASE_TEST_PROJECT_REF");
+        boolean isolatedRemote = testProjectRef != null
+                && !testProjectRef.isBlank()
+                && username.endsWith("." + testProjectRef);
+        if (!local && !isolatedRemote) {
+            throw new IllegalStateException(
+                    "Integration tests require local PostgreSQL or an explicitly identified Supabase test project");
         }
         dataSource = new DriverManagerDataSource(
                 url,
-                required("DATABASE_USERNAME"),
+                username,
                 required("DATABASE_PASSWORD"));
     }
 

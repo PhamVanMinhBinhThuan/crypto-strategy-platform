@@ -61,9 +61,9 @@ public class JdbcExperimentStore implements ExperimentStore {
                     draftManifest.experimentId().value(),
                     draftManifest.manifestVersion(),
                     draftManifest.datasetProvenance().datasetVersionId().value(),
-                    draftManifest.strategyProvenance().strategyKind(),
-                    draftManifest.strategyProvenance().strategyRefId(),
-                    draftManifest.strategyProvenance().strategyVersion(),
+                    draftManifest.strategyProvenance().kind().name(),
+                    legacyStrategyReference(draftManifest),
+                    legacyStrategyVersion(draftManifest),
                     jsonMapper.writeJson(draftManifest.strategyProvenance().parameters()),
                     jsonMapper.writeJson(draftManifest.backtestConfig()),
                     jsonMapper.writeJson(draftManifest.searchConfig()),
@@ -73,7 +73,9 @@ public class JdbcExperimentStore implements ExperimentStore {
                     draftManifest.gitCommit(),
                     draftManifest.fingerprint(),
                     toTimestamp(draftManifest.createdAt()),
-                    draftManifest.strategyProvenance().sourceUserStrategyVersionId()
+                    draftManifest.strategyProvenance().sourceUserStrategyVersionId().map(id -> id.value()).orElse(null),
+                    jsonMapper.writeDatasetProvenance(draftManifest.datasetProvenance()),
+                    jsonMapper.writeStrategyProvenance(draftManifest.strategyProvenance())
             );
         });
     }
@@ -113,9 +115,9 @@ public class JdbcExperimentStore implements ExperimentStore {
         jdbcTemplate.update(
                 ExperimentSql.UPDATE_MANIFEST,
                 updatedManifest.datasetProvenance().datasetVersionId().value(),
-                updatedManifest.strategyProvenance().strategyKind(),
-                updatedManifest.strategyProvenance().strategyRefId(),
-                updatedManifest.strategyProvenance().strategyVersion(),
+                updatedManifest.strategyProvenance().kind().name(),
+                legacyStrategyReference(updatedManifest),
+                legacyStrategyVersion(updatedManifest),
                 jsonMapper.writeJson(updatedManifest.strategyProvenance().parameters()),
                 jsonMapper.writeJson(updatedManifest.backtestConfig()),
                 jsonMapper.writeJson(updatedManifest.searchConfig()),
@@ -123,7 +125,9 @@ public class JdbcExperimentStore implements ExperimentStore {
                 updatedManifest.sentimentConfig() != null ? jsonMapper.writeJson(updatedManifest.sentimentConfig()) : null,
                 updatedManifest.softwareVersion(),
                 updatedManifest.gitCommit(),
-                updatedManifest.strategyProvenance().sourceUserStrategyVersionId(),
+                updatedManifest.strategyProvenance().sourceUserStrategyVersionId().map(id -> id.value()).orElse(null),
+                jsonMapper.writeDatasetProvenance(updatedManifest.datasetProvenance()),
+                jsonMapper.writeStrategyProvenance(updatedManifest.strategyProvenance()),
                 experimentId.value(),
                 ownerUserId
         );
@@ -256,5 +260,17 @@ public class JdbcExperimentStore implements ExperimentStore {
 
     private static Timestamp toTimestamp(Instant instant) {
         return instant != null ? Timestamp.from(instant) : null;
+    }
+
+    private static String legacyStrategyReference(ExperimentManifest manifest) {
+        var provenance = manifest.strategyProvenance();
+        return provenance.singleStrategy().map(reference -> reference.pluginId().value())
+                .orElseGet(() -> provenance.compositePolicyId().orElseThrow().value());
+    }
+
+    private static String legacyStrategyVersion(ExperimentManifest manifest) {
+        var provenance = manifest.strategyProvenance();
+        return provenance.singleStrategy().map(reference -> reference.implementationVersion().toString())
+                .orElseGet(() -> provenance.compositePolicyVersion().orElseThrow().toString());
     }
 }

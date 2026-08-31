@@ -54,30 +54,10 @@ public class ExperimentRows {
     }
 
     public ExperimentManifest mapManifest(ResultSet rs, int rowNum) throws SQLException {
-        String strategyParametersJson = rs.getString("strategy_parameters");
-        Map<String, Object> strategyParams = jsonMapper.readMap(strategyParametersJson);
-
-        DatasetProvenanceSnapshot datasetProvenance = new DatasetProvenanceSnapshot(
-                new DatasetVersionId(rs.getString("dataset_version_id")),
-                "candle-v1",
-                "sha256:verified",
-                "BINANCE",
-                "BTC/USDT",
-                "1m",
-                "v1",
-                Instant.EPOCH,
-                Instant.EPOCH,
-                0
-        );
-
-        String strategyKind = rs.getString("strategy_kind");
-        String strategyRefId = rs.getString("strategy_ref_id");
-        String strategyVersion = rs.getString("strategy_version");
-        String sourceUserStrategyVersionId = rs.getString("source_user_strategy_version_id");
-
-        StrategyProvenanceSnapshot strategyProvenance = "COMPOSITE".equals(strategyKind) ?
-                StrategyProvenanceSnapshot.composite(strategyRefId, strategyVersion, "MAJORITY", strategyParams, List.of(), sourceUserStrategyVersionId) :
-                StrategyProvenanceSnapshot.single(strategyRefId, strategyVersion, strategyParams, sourceUserStrategyVersionId);
+        DatasetProvenanceSnapshot datasetProvenance =
+                jsonMapper.readDatasetProvenance(rs.getString("dataset_provenance"));
+        StrategyProvenanceSnapshot strategyProvenance =
+                jsonMapper.readStrategyProvenance(rs.getString("strategy_provenance"));
 
         return new ExperimentManifest(
                 new ExperimentId(rs.getString("experiment_id")),
