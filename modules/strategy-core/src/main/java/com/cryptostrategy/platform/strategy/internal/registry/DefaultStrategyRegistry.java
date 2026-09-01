@@ -36,6 +36,10 @@ public final class DefaultStrategyRegistry implements StrategyRegistry {
     @Override public StrategyParameterSet resolveParameters(StrategyPluginId pluginId, SemanticVersion version, Map<String, StrategyParameterValue> supplied) {
         return validator.resolve(plugin(pluginId, version).descriptor().parameterSchema(), supplied);
     }
+    @Override public int requiredLookback(StrategyPluginId pluginId, SemanticVersion version, Map<String, StrategyParameterValue> supplied) {
+        StrategyPlugin plugin=plugin(pluginId,version); StrategyParameterSet parameters=validator.resolve(plugin.descriptor().parameterSchema(),supplied);
+        int lookback=plugin.requiredLookback(parameters); if(lookback<plugin.descriptor().requiredLookback()) throw new StrategyException(StrategyErrorCode.INVALID_PARAMETERS,"Resolved lookback is below descriptor minimum"); return lookback;
+    }
     @Override public Strategy create(StrategyPluginId pluginId, SemanticVersion version, Map<String, StrategyParameterValue> supplied) {
         StrategyPlugin plugin = plugin(pluginId, version); return plugin.create(validator.resolve(plugin.descriptor().parameterSchema(), supplied));
     }

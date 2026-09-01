@@ -1,2 +1,2 @@
-/** Public Backtest use cases and output ports. */
+/** Public deterministic backtesting contracts. */
 package com.cryptostrategy.platform.backtesting.api;

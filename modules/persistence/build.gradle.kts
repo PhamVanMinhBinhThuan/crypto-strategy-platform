@@ -8,6 +8,9 @@ dependencies {
     implementation(project(":modules:market-data"))
     implementation(project(":modules:strategy-core"))
     implementation(project(":modules:experiment"))
+    implementation(project(":modules:backtesting"))
+    implementation(project(":modules:evaluation"))
+    implementation(project(":modules:leaderboard"))
     implementation(libs.spring.jdbc)
     implementation(libs.jackson.databind)
     implementation(libs.slf4j.api)
@@ -82,5 +85,28 @@ tasks.register<Test>("experimentIntegrationTest") {
         val required = listOf("DATABASE_URL", "DATABASE_USERNAME", "DATABASE_PASSWORD")
         val missing = required.filter { System.getenv(it).isNullOrBlank() }
         check(missing.isEmpty()) { "Missing local database configuration: ${missing.joinToString()}" }
+    }
+}
+
+val backtestEvaluationLeaderboardIntegrationTest by sourceSets.creating {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+
+configurations[backtestEvaluationLeaderboardIntegrationTest.implementationConfigurationName]
+    .extendsFrom(configurations.testImplementation.get())
+configurations[backtestEvaluationLeaderboardIntegrationTest.runtimeOnlyConfigurationName]
+    .extendsFrom(configurations.testRuntimeOnly.get())
+
+tasks.register<Test>("backtestEvaluationLeaderboardIntegrationTest") {
+    group = "verification"
+    description = "Runs F-006 persistence verification against an isolated test database."
+    testClassesDirs = backtestEvaluationLeaderboardIntegrationTest.output.classesDirs
+    classpath = backtestEvaluationLeaderboardIntegrationTest.runtimeClasspath
+    shouldRunAfter(tasks.test)
+    doFirst {
+        val required = listOf("DATABASE_URL", "DATABASE_USERNAME", "DATABASE_PASSWORD")
+        val missing = required.filter { System.getenv(it).isNullOrBlank() }
+        check(missing.isEmpty()) { "Missing isolated database configuration: ${missing.joinToString()}" }
     }
 }

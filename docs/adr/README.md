@@ -21,6 +21,7 @@ Các ADR được tổng hợp thành C4/Dynamic View và ma trận kiểm chứ
 | `0010-strategy-generator-contract.md` | Contract thay thế thuật toán sinh Strategy candidate |
 | `0011-supabase-auth-user-ownership.md` | Supabase Auth và ownership dữ liệu theo user |
 | `0012-user-strategy-job-ownership.md` | Strategy riêng của user và Job bền vững tách khỏi Execution Attempt |
+| `0013-backtest-execution-integration.md` | Next-open Backtest và public dependency/Strategy integration cho F-006 |
 
 ## Quy ước
 
