@@ -2,15 +2,18 @@ package com.cryptostrategy.platform.persistence.internal.experiment;
 
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.job.DueRetryJob;
 import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.job.JobStatus;
+import com.cryptostrategy.platform.experiment.api.job.RecoverableQueuedJob;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
 import com.cryptostrategy.platform.experiment.api.port.out.JobStore;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
@@ -64,17 +67,17 @@ public class JdbcJobStore implements JobStore {
 
             if (outboxEvent != null) {
                 jdbcTemplate.update(
-                        ExperimentSql.INSERT_OUTBOX_EVENT,
-                        outboxEvent.outboxEventId(),
-                        outboxEvent.messageId(),
-                        outboxEvent.aggregateType(),
-                        outboxEvent.aggregateId(),
-                        outboxEvent.eventType(),
-                        outboxEvent.eventVersion(),
-                        outboxEvent.payloadJson(),
-                        jsonMapper.writeJson(outboxEvent.headers()),
-                        toTimestamp(outboxEvent.occurredAt()),
-                        toTimestamp(Instant.now())
+                    ExperimentSql.INSERT_OUTBOX_EVENT,
+                    outboxEvent.outboxEventId(),
+                    outboxEvent.messageId(),
+                    outboxEvent.aggregateType(),
+                    outboxEvent.aggregateId(),
+                    outboxEvent.eventType(),
+                    outboxEvent.eventVersion(),
+                    outboxEvent.payloadJson(),
+                    jsonMapper.writeJson(outboxEvent.headers()),
+                    toTimestamp(outboxEvent.occurredAt()),
+                    toTimestamp(Instant.now())
                 );
             }
         });
@@ -226,6 +229,63 @@ public class JdbcJobStore implements JobStore {
                 );
             }
         });
+    }
+
+    @Override
+    public Optional<UUID> findOwnerUserIdByJobId(JobId jobId) {
+        try {
+            UUID ownerUserId = jdbcTemplate.queryForObject(
+                    ExperimentSql.SELECT_OWNER_BY_JOB_ID,
+                    UUID.class,
+                    jobId.value()
+            );
+            return Optional.ofNullable(ownerUserId);
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void updateProgress(UUID ownerUserId, JobId jobId, int completedWork, int failedWork, BigDecimal bestScore, Instant updatedAt) {
+        jdbcTemplate.update(
+                ExperimentSql.UPDATE_JOB_PROGRESS,
+                completedWork,
+                failedWork,
+                bestScore,
+                toTimestamp(updatedAt),
+                jobId.value(),
+                ownerUserId
+        );
+    }
+
+    @Override
+    public List<RecoverableQueuedJob> findRecoverableQueuedJobs(Instant olderThan, int limit) {
+        return jdbcTemplate.query(
+                ExperimentSql.SELECT_RECOVERABLE_QUEUED_JOBS,
+                (rs, rowNum) -> new RecoverableQueuedJob(
+                        new JobId(rs.getString("job_id")),
+                        new ExperimentId(rs.getString("experiment_id")),
+                        rs.getString("candidate_id") != null ? new CandidateId(rs.getString("candidate_id")) : null,
+                        rs.getTimestamp("queued_at").toInstant()
+                ),
+                toTimestamp(olderThan),
+                limit
+        );
+    }
+
+    @Override
+    public List<DueRetryJob> findDueRetries(Instant dueAtOrBefore, int limit) {
+        return jdbcTemplate.query(
+                ExperimentSql.SELECT_DUE_RETRIES,
+                (rs, rowNum) -> new DueRetryJob(
+                        new JobId(rs.getString("job_id")),
+                        new ExperimentId(rs.getString("experiment_id")),
+                        rs.getString("candidate_id") != null ? new CandidateId(rs.getString("candidate_id")) : null,
+                        rs.getTimestamp("next_retry_at").toInstant()
+                ),
+                toTimestamp(dueAtOrBefore),
+                limit
+        );
     }
 
     private static Timestamp toTimestamp(Instant instant) {

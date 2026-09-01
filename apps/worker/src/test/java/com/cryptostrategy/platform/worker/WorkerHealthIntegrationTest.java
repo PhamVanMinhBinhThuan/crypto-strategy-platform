@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -34,7 +33,7 @@ class WorkerHealthIntegrationTest {
     private ListableBeanFactory beanFactory;
 
     @Test
-    void workerStartsHealthyAndIdleWithoutQueueOrRedisConsumer() throws Exception {
+    void workerStartsHealthyAndIdle() throws Exception {
         mockMvc.perform(get("/actuator/health/liveness"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"));
@@ -43,10 +42,6 @@ class WorkerHealthIntegrationTest {
                 .andExpect(jsonPath("$.status").value("UP"));
 
         assertThat(beanFactory.getBean("workerRuntimeState").toString()).contains("IDLE");
-        assertThat(Arrays.stream(beanFactory.getBeanDefinitionNames())
-                        .map(String::toLowerCase)
-                        .filter(name -> name.contains("redis") || name.contains("queue") || name.contains("jobconsumer")))
-                .isEmpty();
     }
 
     @Test

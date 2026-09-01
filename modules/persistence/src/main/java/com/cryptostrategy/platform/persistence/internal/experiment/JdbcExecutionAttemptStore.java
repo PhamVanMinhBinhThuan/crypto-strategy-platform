@@ -1,12 +1,14 @@
 package com.cryptostrategy.platform.persistence.internal.experiment;
 
 import com.cryptostrategy.platform.experiment.api.CandidateId;
+import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.job.AttemptId;
 import com.cryptostrategy.platform.experiment.api.job.AttemptStatus;
 import com.cryptostrategy.platform.experiment.api.job.ExecutionAttempt;
 import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.job.JobStatus;
+import com.cryptostrategy.platform.experiment.api.job.StaleRunningAttempt;
 import com.cryptostrategy.platform.experiment.api.port.out.ExecutionAttemptStore;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -112,10 +114,10 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
     }
 
     @Override
-    public void finalizeAttemptSuccess(UUID ownerUserId, JobId jobId, AttemptId attemptId, Instant finishTime) {
-        transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.update(
-                    ExperimentSql.UPDATE_ATTEMPT_STATUS,
+    public boolean finalizeAttemptSuccess(UUID ownerUserId, JobId jobId, AttemptId attemptId, Instant finishTime) {
+        return Boolean.TRUE.equals(transactionTemplate.execute(status -> {
+            int attemptRows = jdbcTemplate.update(
+                    ExperimentSql.UPDATE_ATTEMPT_STATUS_GUARDED,
                     AttemptStatus.SUCCEEDED.name(),
                     toTimestamp(finishTime),
                     null,
@@ -126,9 +128,12 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
                     jobId.value(),
                     ownerUserId
             );
+            if (attemptRows == 0) {
+                return false;
+            }
 
-            jdbcTemplate.update(
-                    ExperimentSql.UPDATE_JOB_STATUS,
+            int jobRows = jdbcTemplate.update(
+                    ExperimentSql.UPDATE_JOB_STATUS_GUARDED,
                     JobStatus.SUCCEEDED.name(),
                     null,
                     toTimestamp(finishTime),
@@ -139,11 +144,16 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
                     jobId.value(),
                     ownerUserId
             );
-        });
+            if (jobRows == 0) {
+                status.setRollbackOnly();
+                return false;
+            }
+            return true;
+        }));
     }
 
     @Override
-    public void finalizeAttemptRetryableFailure(
+    public boolean finalizeAttemptRetryableFailure(
             UUID ownerUserId,
             JobId jobId,
             AttemptId attemptId,
@@ -152,9 +162,9 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
             Instant finishTime,
             Instant nextRetryTime
     ) {
-        transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.update(
-                    ExperimentSql.UPDATE_ATTEMPT_STATUS,
+        return Boolean.TRUE.equals(transactionTemplate.execute(status -> {
+            int attemptRows = jdbcTemplate.update(
+                    ExperimentSql.UPDATE_ATTEMPT_STATUS_GUARDED,
                     AttemptStatus.FAILED.name(),
                     toTimestamp(finishTime),
                     toTimestamp(nextRetryTime),
@@ -165,9 +175,12 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
                     jobId.value(),
                     ownerUserId
             );
+            if (attemptRows == 0) {
+                return false;
+            }
 
-            jdbcTemplate.update(
-                    ExperimentSql.UPDATE_JOB_STATUS,
+            int jobRows = jdbcTemplate.update(
+                    ExperimentSql.UPDATE_JOB_STATUS_GUARDED,
                     JobStatus.RETRY_SCHEDULED.name(),
                     null,
                     toTimestamp(finishTime),
@@ -178,11 +191,16 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
                     jobId.value(),
                     ownerUserId
             );
-        });
+            if (jobRows == 0) {
+                status.setRollbackOnly();
+                return false;
+            }
+            return true;
+        }));
     }
 
     @Override
-    public void finalizeAttemptTerminalFailure(
+    public boolean finalizeAttemptTerminalFailure(
             UUID ownerUserId,
             JobId jobId,
             AttemptId attemptId,
@@ -190,9 +208,9 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
             String failureMessage,
             Instant finishTime
     ) {
-        transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.update(
-                    ExperimentSql.UPDATE_ATTEMPT_STATUS,
+        return Boolean.TRUE.equals(transactionTemplate.execute(status -> {
+            int attemptRows = jdbcTemplate.update(
+                    ExperimentSql.UPDATE_ATTEMPT_STATUS_GUARDED,
                     AttemptStatus.FAILED.name(),
                     toTimestamp(finishTime),
                     null,
@@ -203,9 +221,12 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
                     jobId.value(),
                     ownerUserId
             );
+            if (attemptRows == 0) {
+                return false;
+            }
 
-            jdbcTemplate.update(
-                    ExperimentSql.UPDATE_JOB_STATUS,
+            int jobRows = jdbcTemplate.update(
+                    ExperimentSql.UPDATE_JOB_STATUS_GUARDED,
                     JobStatus.FAILED.name(),
                     null,
                     toTimestamp(finishTime),
@@ -216,14 +237,19 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
                     jobId.value(),
                     ownerUserId
             );
-        });
+            if (jobRows == 0) {
+                status.setRollbackOnly();
+                return false;
+            }
+            return true;
+        }));
     }
 
     @Override
-    public void finalizeAttemptCancelled(UUID ownerUserId, JobId jobId, AttemptId attemptId, Instant finishTime) {
-        transactionTemplate.executeWithoutResult(status -> {
-            jdbcTemplate.update(
-                    ExperimentSql.UPDATE_ATTEMPT_STATUS,
+    public boolean finalizeAttemptCancelled(UUID ownerUserId, JobId jobId, AttemptId attemptId, Instant finishTime) {
+        return Boolean.TRUE.equals(transactionTemplate.execute(status -> {
+            int attemptRows = jdbcTemplate.update(
+                    ExperimentSql.UPDATE_ATTEMPT_STATUS_GUARDED,
                     AttemptStatus.CANCELLED.name(),
                     toTimestamp(finishTime),
                     null,
@@ -234,20 +260,23 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
                     jobId.value(),
                     ownerUserId
             );
+            if (attemptRows == 0) {
+                return false;
+            }
 
-            jdbcTemplate.update(
-                    ExperimentSql.UPDATE_JOB_STATUS,
-                    JobStatus.CANCELLED.name(),
-                    null,
+            int jobRows = jdbcTemplate.update(
+                    ExperimentSql.UPDATE_JOB_STATUS_CANCEL_GUARDED,
                     toTimestamp(finishTime),
-                    null,
-                    null,
-                    null,
                     toTimestamp(finishTime),
                     jobId.value(),
                     ownerUserId
             );
-        });
+            if (jobRows == 0) {
+                status.setRollbackOnly();
+                return false;
+            }
+            return true;
+        }));
     }
 
     @Override
@@ -257,6 +286,23 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
                 rows::mapAttempt,
                 jobId.value(),
                 ownerUserId
+        );
+    }
+
+    @Override
+    public List<StaleRunningAttempt> findStaleRunningAttempts(Instant startedBefore, int limit) {
+        return jdbcTemplate.query(
+                ExperimentSql.SELECT_STALE_RUNNING_ATTEMPTS,
+                (rs, rowNum) -> new StaleRunningAttempt(
+                        new JobId(rs.getString("job_id")),
+                        new AttemptId(rs.getString("attempt_id")),
+                        new ExperimentId(rs.getString("experiment_id")),
+                        new CandidateId(rs.getString("candidate_id")),
+                        rs.getString("worker_id"),
+                        rs.getTimestamp("started_at").toInstant()
+                ),
+                toTimestamp(startedBefore),
+                limit
         );
     }
 
