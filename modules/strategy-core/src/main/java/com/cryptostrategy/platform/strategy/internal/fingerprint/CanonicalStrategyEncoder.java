@@ -12,9 +12,16 @@ public final class CanonicalStrategyEncoder {
         parameters.values().forEach((name, parameter) -> value.append(field(name)).append(field(parameter.type().name())).append(field(parameter.canonicalText())));
         return value.toString().getBytes(StandardCharsets.UTF_8);
     }
+    public String encodePolicy(com.cryptostrategy.platform.strategy.api.model.CombinationPolicyId policyId,
+                               com.cryptostrategy.platform.strategy.api.model.SemanticVersion version,
+                               StrategyParameterSet parameters) {
+        StringBuilder value = new StringBuilder("policy|").append(field(policyId.value())).append(field(version.toString()));
+        parameters.values().forEach((name, parameter) -> value.append(field(name)).append(field(parameter.type().name())).append(field(parameter.canonicalText())));
+        return value.toString();
+    }
     public byte[] encodeComposite(String policy, List<byte[]> components) {
-        List<String> sorted = components.stream().map(bytes -> java.util.HexFormat.of().formatHex(bytes)).sorted().toList();
-        StringBuilder value = new StringBuilder("composite|").append(field(policy)); sorted.forEach(component -> value.append(field(component)));
+        List<String> ordered = components.stream().map(bytes -> java.util.HexFormat.of().formatHex(bytes)).toList();
+        StringBuilder value = new StringBuilder("composite|").append(field(policy)); ordered.forEach(component -> value.append(field(component)));
         return value.toString().getBytes(StandardCharsets.UTF_8);
     }
     private static String field(String value) { return value.length() + ":" + value + "|"; }

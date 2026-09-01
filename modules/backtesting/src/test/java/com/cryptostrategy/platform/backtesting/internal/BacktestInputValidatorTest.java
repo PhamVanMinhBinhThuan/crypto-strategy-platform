@@ -1,0 +1,3 @@
+package com.cryptostrategy.platform.backtesting.internal;
+import static org.junit.jupiter.api.Assertions.*;import com.cryptostrategy.platform.backtesting.api.error.BacktestException;import org.junit.jupiter.api.Test;
+class BacktestInputValidatorTest{@Test void rejectsMembershipSequenceMismatchBeforeOutput(){BacktestTestFixture f=new BacktestTestFixture();var member=f.members.getFirst();assertThrows(BacktestException.class,()->new BacktestInputValidator().validate(f.command(1),member.candle().candle(),member,1,null));}@Test void acceptsFrozenIdentityAndFirstSequence(){BacktestTestFixture f=new BacktestTestFixture();var member=f.members.getFirst();assertDoesNotThrow(()->new BacktestInputValidator().validate(f.command(1),member.candle().candle(),member,0,null));}}

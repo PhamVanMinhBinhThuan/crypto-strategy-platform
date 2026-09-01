@@ -89,7 +89,9 @@ class PurityAndCycleTest {
                         root + ".domain..",
                         root + ".strategy..",
                         root + ".strategies..",
-                        root + ".evaluation..")
+                        root + ".backtesting..",
+                        root + ".evaluation..",
+                        root + ".leaderboard..")
                 .should().dependOnClassesThat().resideInAnyPackage(
                         "org.springframework..",
                         "java.sql..",
@@ -98,6 +100,7 @@ class PurityAndCycleTest {
                         "org.hibernate..",
                         "org.postgresql..",
                         "com.binance..",
+                        "org.springframework.web..",
                         PLATFORM + ".persistence..")
                 .allowEmptyShould(true);
     }

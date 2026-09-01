@@ -34,20 +34,21 @@ class ModuleBoundaryTest {
             Map.entry("strategy", Set.of("domain")),
             Map.entry("strategies", Set.of("domain", "strategy")),
             Map.entry("combination", Set.of("domain", "strategy")),
-            Map.entry("backtesting", Set.of("domain", "strategy")),
-            Map.entry("evaluation", Set.of("domain")),
+            Map.entry("backtesting", Set.of("domain", "marketdata", "strategy", "combination", "experiment")),
+            Map.entry("evaluation", Set.of("domain", "backtesting", "experiment")),
             Map.entry("experiment", Set.of("domain", "marketdata", "strategy")),
             Map.entry("search", Set.of("domain", "strategy")),
-            Map.entry("leaderboard", Set.of("domain", "evaluation")),
+            Map.entry("leaderboard", Set.of("domain", "evaluation", "experiment")),
             Map.entry("news", Set.of("domain")),
+            Map.entry("execution", Set.of("domain", "backtesting", "evaluation", "leaderboard", "experiment", "strategy", "combination")),
             Map.entry("persistence", Set.of(
-                    "domain", "marketdata", "strategy", "backtesting", "evaluation", "experiment", "search", "leaderboard", "news")),
+                    "domain", "marketdata", "strategy", "backtesting", "evaluation", "experiment", "execution", "search", "leaderboard", "news")),
             Map.entry("api", Set.of(
                     "domain", "contracts", "marketdata", "strategy", "strategies", "combination", "backtesting",
-                    "evaluation", "experiment", "search", "leaderboard", "news", "persistence")),
+                    "evaluation", "experiment", "execution", "search", "leaderboard", "news", "persistence")),
             Map.entry("worker", Set.of(
                     "domain", "contracts", "marketdata", "strategy", "strategies", "combination", "backtesting",
-                    "evaluation", "experiment", "search", "leaderboard", "news", "persistence")));
+                    "evaluation", "experiment", "execution", "search", "leaderboard", "news", "persistence")));
 
     @Test
     void productionPackagesRespectTheAllowedDependencyMatrix() {
@@ -162,6 +163,7 @@ class ModuleBoundaryTest {
         projects.put("modules/search", "search");
         projects.put("modules/leaderboard", "leaderboard");
         projects.put("modules/news", "news");
+        projects.put("modules/experiment-execution", "execution");
         projects.put("modules/persistence", "persistence");
         projects.put("apps/api", "api");
         projects.put("apps/worker", "worker");

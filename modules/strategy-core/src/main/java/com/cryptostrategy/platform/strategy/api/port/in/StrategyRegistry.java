@@ -13,5 +13,6 @@ public interface StrategyRegistry {
     List<StrategyDescriptor> listAvailable();
     StrategyDescriptor descriptor(StrategyPluginId pluginId, SemanticVersion version);
     StrategyParameterSet resolveParameters(StrategyPluginId pluginId, SemanticVersion version, Map<String, StrategyParameterValue> supplied);
+    int requiredLookback(StrategyPluginId pluginId, SemanticVersion version, Map<String, StrategyParameterValue> supplied);
     Strategy create(StrategyPluginId pluginId, SemanticVersion version, Map<String, StrategyParameterValue> supplied);
 }

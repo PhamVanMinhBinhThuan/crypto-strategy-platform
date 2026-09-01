@@ -1,0 +1,3 @@
+package com.cryptostrategy.platform.evaluation.internal;
+import com.cryptostrategy.platform.evaluation.api.model.*;import java.nio.charset.StandardCharsets;import java.security.*;import java.util.HexFormat;
+final class EvaluationFingerprintV1 {String calculate(String backtest,MetricVersion metric,RankingVersion ranking,MetricCalculator.Metrics m,NormalizedMetrics n){String value="evaluation-v1\n"+backtest+'\n'+metric.value()+'\n'+ranking.value()+'\n'+m.totalReturn()+'|'+m.winRate()+'|'+m.maximumDrawdown()+'|'+m.numberOfTrades()+'|'+n.overallScore();try{return "sha256:"+HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}}}

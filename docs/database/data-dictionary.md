@@ -56,11 +56,11 @@ cấu hình riêng của user; chúng không chứa Java class, password hoặc 
 | `candidate_definition` | `candidate_id` PK, `experiment_id` FK, `generation_index`, `definition jsonb`, `generator_state jsonb?`, fingerprint | UQ experiment+index và experiment+fingerprint |
 | `job` | Job ID PK, Experiment FK, optional Candidate, type/status, correlation ID, progress, best score, lifecycle/failure timestamps | FK Candidate+Experiment; CK Search/Backtest shape và progress; UQ Search per Experiment/Backtest per Candidate; recovery/listing indexes |
 | `execution_attempt` | `attempt_id` PK, `job_id` + `candidate_id` composite FK, `attempt_no`, status, worker/times, failure fields, retryable | UQ job+attempt; CK attempt > 0/status; indexes candidate và status+next_retry_at |
-| `backtest_result` | `backtest_result_id` PK, `experiment_id`, `candidate_id`, `successful_attempt_id`, initial/final capital, result fingerprint, completed time, `reproduces_result_id?` self-FK | UQ candidate; composite FK buộc Candidate và successful Attempt thuộc cùng lineage |
-| `trade` | `trade_id` PK, result FK, sequence, side, entry/exit time, price, quantity, fee, profit_loss | UQ result+sequence; CK side/time/nonnegative execution values; index result+entry_time |
-| `evaluation_result` | `evaluation_result_id` PK, `experiment_id`, result FK, metric/ranking version, total return, win rate, maximum drawdown, number of trades, overall score, evaluated time | Composite FK buộc Evaluation và Backtest Result cùng Experiment; UQ result+metric_version |
-| `leaderboard_revision` | revision ID PK, experiment FK, `revision_no bigint`, `top_k` | UQ experiment+revision; CK values > 0; descending latest-revision index |
-| `leaderboard_entry` | `experiment_id`, revision FK, `rank`, evaluation FK, score snapshot | Composite FK buộc Revision và Evaluation cùng Experiment; PK revision+rank; UQ revision+evaluation |
+| `backtest_result` | PK, Experiment/Candidate/Job/successful Attempt lineage, capital/fees, Manifest/Dataset/Strategy fingerprints, assumptions version+JSON, equity summary/digest, `backtest-v1`, completed time | One immutable Result per Candidate; composite FKs require the same Experiment and a matching BACKTEST Job/Attempt |
+| `trade` | PK, Result FK, zero-based sequence, side, entry/exit time and price, quantity, entry/exit/total fee, net P&L, post-trade cash, exit reason | Immutable; UQ Result+sequence; total fee equals entry fee plus exit fee |
+| `evaluation_result` | PK, Experiment+Result, metric/ranking versions, four metrics, normalized component scores, overall score, eligibility, `evaluation-v1` | Immutable; same-Experiment FK; UQ Result+metric+ranking version; scores constrained to `[0,1]` |
+| `leaderboard_revision` | PK, Experiment FK, increasing revision number, Top-K, ranking version, `leaderboard-v1`, created time | Immutable; UQ Experiment+revision and Experiment+ranking+fingerprint |
+| `leaderboard_entry` | Experiment+Revision, contiguous rank, Evaluation FK, score/drawdown/evaluation-fingerprint snapshots | Immutable; same-Experiment FK; PK Revision+rank; UQ Revision+Evaluation |
 
 Lifecycle values:
 

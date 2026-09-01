@@ -94,11 +94,11 @@ Không module nào được tạo dependency ngược từ `domain` vào Spring,
 | `strategy-core` | `domain`                                                                  |
 | `strategies`    | `domain`, `strategy-core`                                                 |
 | `combination`   | `domain`, `strategy-core`                                                 |
-| `backtesting`   | `domain`, `strategy-core`                                                 |
-| `evaluation`    | `domain`                                                                  |
+| `backtesting`   | `domain`, public API của `market-data`, `strategy-core`, `combination`, `experiment` |
+| `evaluation`    | `domain`, public API của `backtesting`, `experiment`                      |
 | `experiment`    | `domain`                                                                  |
 | `search`        | `domain`, `strategy-core`                                                 |
-| `leaderboard`   | `domain` và public API của `evaluation` khi cần                           |
+| `leaderboard`   | `domain` và public API của `evaluation`, `experiment`                     |
 | `news`          | `domain`                                                                  |
 | `persistence`   | `domain` và output port công khai của module sở hữu dữ liệu               |
 | `apps/api`      | Public API của các capability module, `contracts`, `persistence`          |
