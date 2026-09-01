@@ -13,6 +13,7 @@ class FrozenWhitespaceTokenizer:
 
     def encode(self, text: str) -> list[int]:
         tokens = unicodedata.normalize("NFC", text).lower().split()
+        tokens = ["<TITLE_CONTENT>" if t == "<title_content>" else t for t in tokens]
         ids = [self.vocabulary.get(token, 1) for token in tokens][-self.length:]
         return [0] * (self.length - len(ids)) + ids
 
