@@ -12,7 +12,7 @@
 
 - [ ] T001 Cập nhật endpoint inventory, schema và status mapping trong `docs/api/openapi.yaml` theo `specs/009-public-api-realtime/contracts/rest-api-contract.md`.
 - [ ] T002 Cập nhật `docs/api/error-catalog.md` và `docs/api/websocket-events.md` cho F-009 operation, ticket, snapshot marker và compatibility rules.
-- [ ] T003 [P] Thêm dependency/configuration cần cho native WebSocket và JSON transport trong `apps/api/build.gradle.kts` và `apps/api/src/main/resources/application.yml`.
+- [X] T003 [P] Thêm dependency/configuration cần cho native WebSocket và JSON transport trong `apps/api/build.gradle.kts` và `apps/api/src/main/resources/application.yml`.
 - [ ] T004 [P] Tạo package skeleton transport tại `apps/api/src/main/java/com/cryptostrategy/platform/api/market/`, `strategy/`, `experiment/`, `backtest/`, `leaderboard/` và `realtime/`.
 - [ ] T005 [P] Tạo test fixture/support cho authenticated users, opaque IDs, correlation IDs và fake published application ports tại `apps/api/src/test/java/com/cryptostrategy/platform/api/support/`.
 
@@ -23,7 +23,7 @@
 - [ ] T006 [P] Viết contract test kiểm tra public error envelope, UTC timestamp, correlation header và không có sensitive fields tại `apps/api/src/test/java/com/cryptostrategy/platform/api/error/PublicErrorContractTest.java`.
 - [ ] T007 [P] Viết architecture test cấm API import persistence/internal/provider implementation tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/PublicApiBoundaryTest.java`.
 - [ ] T008 [P] Implement typed `AuthenticatedUserContext` và mapping UUID từ JWT subject tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticatedUserContext.java`.
-- [ ] T009 Implement one-time WebSocket ticket model/store/issuer với expiry, origin binding và single-use enforcement tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketService.java`.
+- [X] T009 Implement one-time WebSocket ticket model/store/issuer với expiry, origin binding và single-use enforcement tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketService.java`.
 - [ ] T010 Implement correlation context/filter/response propagation cho REST và realtime tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java` và package `observability/`.
 - [ ] T011 Implement public `ErrorEnvelope`, safe details và exception-to-status mapper theo error contract tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/`.
 - [ ] T012 Implement owner authorization facade nhận authenticated UUID và parent-chain lookup qua published ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/OwnerAuthorizationService.java`.
@@ -49,7 +49,7 @@
 ### Implementation for User Story 1
 
 - [ ] T020 [US1] Tích hợp `SecurityFilterChain` với authenticated user context và public endpoint policy tại `apps/api/src/main/java/com/cryptostrategy/platform/api/config/SecurityConfiguration.java`.
-- [ ] T021 [US1] Tạo endpoint cấp one-time WebSocket ticket, không trả access token hoặc đặt token dài hạn trong URL tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketController.java`.
+- [X] T021 [US1] Tạo endpoint cấp one-time WebSocket ticket, không trả access token hoặc đặt token dài hạn trong URL tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketController.java`.
 - [ ] T022 [US1] Tích hợp `ApiExceptionHandler` với error catalog, ownership-safe 404 và retry headers tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/ApiExceptionHandler.java`.
 - [ ] T023 [US1] Tích hợp correlation ID vào mọi REST response và log context tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java`.
 - [ ] T024 [US1] Tạo security configuration tests cho origin allowlist, internal service-token boundary và browser-to-internal denial tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/SecurityBoundaryIntegrationTest.java`.

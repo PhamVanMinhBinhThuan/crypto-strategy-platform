@@ -34,6 +34,7 @@ platform:
       issuer: ${SUPABASE_JWT_ISSUER:}
       jwk-set-uri: ${SUPABASE_JWT_JWKS_URI:}
       audience: ${SUPABASE_JWT_AUDIENCE:}
+    websocket-ticket-lifetime: ${PLATFORM_SECURITY_WEBSOCKET_TICKET_LIFETIME:PT60S}
 
 management:
   endpoints:
