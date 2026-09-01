@@ -23,7 +23,7 @@ class ReproductionPersistenceIntegrationTest {
     void linkedReproductionRunDoesNotOverwriteOriginalEvidenceAndMismatchIsDetected() {
         var source = F006DatabaseFixture.dataSource();
         F006DatabaseFixture.transaction(source).executeWithoutResult(status -> {
-            status.setRollbackOnly(); // test is always rolled back — no permanent DB state
+            status.setRollbackOnly(); // test is always rolled back â€” no permanent DB state
 
             var jdbc = new JdbcTemplate(source);
             F006DatabaseFixture.seed(jdbc);
@@ -38,7 +38,7 @@ class ReproductionPersistenceIntegrationTest {
             assertEquals(original.resultId(), savedOriginal.resultId(),
                     "Saving original must return the canonical ID");
 
-            // 2. Read back — must match exactly (proves MATCHED reproduction)
+            // 2. Read back â€” must match exactly (proves MATCHED reproduction)
             var reloaded = reader.findById(original.resultId()).orElseThrow(
                     () -> new AssertionError("Original result must be readable after persist"));
             var matchReport = new BacktestReproductionVerifier().verify(original, reloaded);
@@ -68,7 +68,7 @@ class ReproductionPersistenceIntegrationTest {
                                     t.realizedPnl(), t.postTradeCash(), t.exitReason()))
                             .toList(),
                     original.equityCurveSummary(),
-                    original.fingerprint(), // same fingerprint → idempotent
+                    original.fingerprint(), // same fingerprint â†’ idempotent
                     original.completedAt()
             );
             // Idempotent save must return the ORIGINAL canonical ID, not the reproduction ID
@@ -76,7 +76,7 @@ class ReproductionPersistenceIntegrationTest {
             assertEquals(original.resultId(), idempotentReturn.resultId(),
                     "Idempotent retry with same fingerprint must return canonical persisted ID");
 
-            // 4. Exactly ONE row must exist for this candidate — original not duplicated
+            // 4. Exactly ONE row must exist for this candidate â€” original not duplicated
             var count = jdbc.queryForObject(
                     "select count(*) from experiment.backtest_result where candidate_id = ?",
                     Integer.class, F006DatabaseFixture.CANDIDATE);
@@ -93,9 +93,9 @@ class ReproductionPersistenceIntegrationTest {
                     original.provenance(),
                     original.assumptions(),
                     original.initialCapital(),
-                    Money.of(BigDecimal.valueOf(999)), // different final capital → different fingerprint
+                    Money.of(BigDecimal.valueOf(999)), // different final capital â†’ different fingerprint
                     original.totalFees(),
-                    List.of(), // no trades → different fingerprint
+                    List.of(), // no trades â†’ different fingerprint
                     new EquityCurveSummary(0, original.initialCapital(), original.initialCapital(),
                             0, 0, "sha256:" + "F".repeat(64)),
                     "sha256:" + "A".repeat(64), // deliberate mismatch
@@ -107,11 +107,10 @@ class ReproductionPersistenceIntegrationTest {
             assertFalse(mismatchReport.differences().isEmpty(),
                     "MISMATCHED report must contain structured differences");
 
-            // 6. Original row is still exactly as persisted — mismatch detection did not mutate it
+            // 6. Original row is still exactly as persisted â€” mismatch detection did not mutate it
             var afterMismatch = reader.findById(original.resultId()).orElseThrow();
             assertEquals(original.fingerprint(), afterMismatch.fingerprint(),
                     "Original fingerprint must be unchanged after mismatch detection");
         });
     }
 }
-
