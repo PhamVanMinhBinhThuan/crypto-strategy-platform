@@ -65,6 +65,22 @@ class ReproductionLineageTest {
 
         @Override
         public Optional<CandidateDefinition> findCandidateById(UUID ownerUserId, CandidateId candidateId) { return Optional.empty(); }
+
+        @Override
+        public Optional<UUID> findOwnerUserIdByExperimentId(ExperimentId experimentId) {
+            Experiment exp = experiments.get(experimentId);
+            return exp != null ? Optional.of(exp.ownerUserId()) : Optional.empty();
+        }
+
+        @Override
+        public List<com.cryptostrategy.platform.experiment.api.job.StopCandidateExperiment> findStopCompletionCandidates(int limit) {
+            return List.of();
+        }
+
+        @Override
+        public List<com.cryptostrategy.platform.experiment.api.job.Job> listAllJobsByExperimentId(ExperimentId experimentId) {
+            return List.of();
+        }
     }
 
     private final FakeExperimentStore store = new FakeExperimentStore();

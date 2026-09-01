@@ -2,11 +2,14 @@ package com.cryptostrategy.platform.experiment.api.port.out;
 
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.job.DueRetryJob;
 import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.job.JobStatus;
+import com.cryptostrategy.platform.experiment.api.job.RecoverableQueuedJob;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -22,4 +25,9 @@ public interface JobStore {
     void cancelJobWithOutbox(UUID ownerUserId, JobId jobId, JobStatus newStatus, OutboxEvent outboxEvent, Instant updatedAt);
     void cancelJobWithoutOutbox(UUID ownerUserId, JobId jobId, JobStatus newStatus, Instant updatedAt);
     void requeueRetryWithOutbox(UUID ownerUserId, JobId jobId, OutboxEvent outboxEvent, Instant queuedAt);
+
+    Optional<UUID> findOwnerUserIdByJobId(JobId jobId);
+    void updateProgress(UUID ownerUserId, JobId jobId, int completedWork, int failedWork, BigDecimal bestScore, Instant updatedAt);
+    List<RecoverableQueuedJob> findRecoverableQueuedJobs(Instant olderThan, int limit);
+    List<DueRetryJob> findDueRetries(Instant dueAtOrBefore, int limit);
 }

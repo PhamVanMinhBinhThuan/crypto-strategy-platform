@@ -7,4 +7,11 @@ dependencies {
     implementation(project(":modules:experiment"))
     implementation(project(":modules:strategy-core"))
     implementation(project(":modules:combination"))
+    implementation(platform(libs.spring.boot.dependencies))
+    implementation(libs.spring.jdbc)
+
+    testImplementation(platform(libs.spring.boot.dependencies))
+    testImplementation("org.assertj:assertj-core")
+    testImplementation("org.mockito:mockito-core")
+    testImplementation("org.mockito:mockito-junit-jupiter")
 }

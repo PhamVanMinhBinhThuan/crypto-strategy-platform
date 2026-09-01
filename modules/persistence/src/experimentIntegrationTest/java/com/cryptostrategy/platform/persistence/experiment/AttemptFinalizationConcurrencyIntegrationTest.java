@@ -1,0 +1,112 @@
+package com.cryptostrategy.platform.persistence.experiment;
+
+import com.cryptostrategy.platform.experiment.api.CandidateDefinition;
+import com.cryptostrategy.platform.experiment.api.CandidateId;
+import com.cryptostrategy.platform.experiment.api.Experiment;
+import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
+import com.cryptostrategy.platform.experiment.api.job.AttemptId;
+import com.cryptostrategy.platform.experiment.api.job.ExecutionAttempt;
+import com.cryptostrategy.platform.experiment.api.job.FailureClassification;
+import com.cryptostrategy.platform.experiment.api.job.Job;
+import com.cryptostrategy.platform.experiment.api.job.JobId;
+import com.cryptostrategy.platform.experiment.api.job.JobStatus;
+import com.cryptostrategy.platform.experiment.api.job.JobType;
+import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenance;
+import com.cryptostrategy.platform.experiment.api.provenance.DatasetVersionId;
+import com.cryptostrategy.platform.experiment.api.provenance.StrategyKind;
+import com.cryptostrategy.platform.experiment.api.provenance.StrategyPluginId;
+import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenance;
+import com.cryptostrategy.platform.persistence.api.ExperimentPersistenceFactory;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class AttemptFinalizationConcurrencyIntegrationTest {
+
+    private ExperimentPersistenceFactory factory;
+
+    @BeforeEach
+    void setUp() {
+        DriverManagerDataSource dataSource = new DriverManagerDataSource();
+        dataSource.setUrl(System.getenv("DATABASE_URL"));
+        dataSource.setUsername(System.getenv("DATABASE_USERNAME"));
+        dataSource.setPassword(System.getenv("DATABASE_PASSWORD"));
+        dataSource.setDriverClassName("org.postgresql.Driver");
+        factory = new ExperimentPersistenceFactory(dataSource);
+    }
+
+    @Test
+    void competingTerminalFinalizationsEnsureExactlyOneWinner() throws Exception {
+        UUID ownerUserId = UUID.randomUUID();
+        ExperimentId experimentId = ExperimentId.generate();
+        CandidateId candidateId = CandidateId.generate();
+        JobId jobId = JobId.generate();
+        Instant now = Instant.now();
+
+        var experimentStore = factory.createExperimentStore();
+        var jobStore = factory.createJobStore();
+        var attemptStore = factory.createExecutionAttemptStore();
+
+        // 1. Setup Experiment, Manifest, Candidate, Job
+        Experiment experiment = Experiment.create(experimentId, ownerUserId, "Concurrent Finalization", null, null, now);
+        ExperimentManifest manifest = new ExperimentManifest(
+                experimentId, 1,
+                new DatasetProvenance(new DatasetVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W1"), "BTCUSDT", "1m", now.minusSeconds(3600), now, 100, "hash"),
+                StrategyProvenance.single(new StrategyPluginId("momentum"), 1, Map.of("period", 14), null),
+                Map.of("capital", 10000), Map.of(), Map.of(), null, "1.0", "commit-1", "fingerprint-1", now
+        );
+        experimentStore.insertExperiment(ownerUserId, experiment, manifest);
+
+        CandidateDefinition candidate = new CandidateDefinition(
+                candidateId, experimentId, 0, Map.of("period", 14), null, "cand-fingerprint", now
+        );
+        experimentStore.insertCandidate(ownerUserId, candidate);
+
+        Job job = new Job(
+                jobId, experimentId, candidateId, JobType.BACKTEST, JobStatus.QUEUED, "corr-1",
+                1, 0, 0, null, now, null, null, null, null, null, now, now
+        );
+        jobStore.insertJob(ownerUserId, job, null);
+
+        // 2. Start attempt
+        ExecutionAttempt attempt = attemptStore.startNextAttempt(ownerUserId, jobId, "worker-1", now);
+        AttemptId attemptId = attempt.attemptId();
+
+        // 3. Compete: Worker A (finalizeSuccess) vs Worker B / Stale Reconciler (finalizeTerminalFailure)
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CountDownLatch latch = new CountDownLatch(1);
+
+        Future<Boolean> workerA = executor.submit(() -> {
+            latch.await();
+            return attemptStore.finalizeAttemptSuccess(ownerUserId, jobId, attemptId, Instant.now());
+        });
+
+        Future<Boolean> workerB = executor.submit(() -> {
+            latch.await();
+            return attemptStore.finalizeAttemptTerminalFailure(ownerUserId, jobId, attemptId, "TIMEOUT", "Execution timed out", Instant.now());
+        });
+
+        latch.countDown();
+        boolean resultA = workerA.get(5, TimeUnit.SECONDS);
+        boolean resultB = workerB.get(5, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        // Exactly one should succeed (true), other must lose (false)
+        assertThat(resultA ^ resultB).isTrue();
+
+        Job finalJob = jobStore.findJobById(ownerUserId, jobId).orElseThrow();
+        assertThat(finalJob.status().isTerminal()).isTrue();
+    }
+}
