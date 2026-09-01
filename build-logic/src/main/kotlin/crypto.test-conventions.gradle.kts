@@ -1,7 +1,11 @@
-import org.gradle.api.tasks.testing.Test
-
 plugins {
     java
+}
+
+extensions.configure<org.gradle.api.plugins.JavaPluginExtension> {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(21))
+    }
 }
 
 dependencies {

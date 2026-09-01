@@ -70,6 +70,20 @@ public final class ExperimentSql {
             WHERE experiment_id = ? AND owner_user_id = ?
             """;
 
+    public static final String SELECT_OWNER_BY_EXPERIMENT_ID = """
+            SELECT owner_user_id
+            FROM experiment.experiment
+            WHERE experiment_id = ?
+            """;
+
+    public static final String SELECT_STOP_COMPLETION_CANDIDATES = """
+            SELECT experiment_id, completed_at
+            FROM experiment.experiment
+            WHERE status = 'STOP_REQUESTED'
+            ORDER BY created_at ASC
+            LIMIT ?
+            """;
+
     // Candidate queries
     public static final String INSERT_CANDIDATE = """
             INSERT INTO experiment.candidate_definition (
@@ -141,6 +155,15 @@ public final class ExperimentSql {
             ORDER BY j.created_at ASC
             """;
 
+    public static final String SELECT_ALL_JOBS_BY_EXPERIMENT_ID = """
+            SELECT j.job_id, j.experiment_id, j.candidate_id, j.job_type, j.status, j.correlation_id,
+                   j.total_work, j.completed_work, j.failed_work, j.best_score, j.queued_at, j.started_at,
+                   j.finished_at, j.next_retry_at, j.failure_code, j.failure_message, j.created_at, j.updated_at
+            FROM experiment.job j
+            WHERE j.experiment_id = ?
+            ORDER BY j.created_at ASC
+            """;
+
     public static final String SELECT_UNFINISHED_JOBS = """
             SELECT job_id, experiment_id, candidate_id, job_type, status, correlation_id,
                    total_work, completed_work, failed_work, best_score, queued_at, started_at,
@@ -150,12 +173,61 @@ public final class ExperimentSql {
             ORDER BY created_at ASC
             """;
 
+    public static final String SELECT_OWNER_BY_JOB_ID = """
+            SELECT e.owner_user_id
+            FROM experiment.job j
+            JOIN experiment.experiment e ON e.experiment_id = j.experiment_id
+            WHERE j.job_id = ?
+            """;
+
     public static final String UPDATE_JOB_STATUS = """
             UPDATE experiment.job j
             SET status = ?, started_at = coalesce(started_at, ?), finished_at = ?,
                 next_retry_at = ?, failure_code = ?, failure_message = ?, updated_at = ?
             FROM experiment.experiment e
             WHERE j.experiment_id = e.experiment_id AND j.job_id = ? AND e.owner_user_id = ?
+            """;
+
+    public static final String UPDATE_JOB_STATUS_GUARDED = """
+            UPDATE experiment.job j
+            SET status = ?, started_at = coalesce(started_at, ?), finished_at = ?,
+                next_retry_at = ?, failure_code = ?, failure_message = ?, updated_at = ?
+            FROM experiment.experiment e
+            WHERE j.experiment_id = e.experiment_id AND j.job_id = ? AND e.owner_user_id = ?
+              AND j.status = 'RUNNING'
+            """;
+
+    public static final String UPDATE_JOB_STATUS_CANCEL_GUARDED = """
+            UPDATE experiment.job j
+            SET status = 'CANCELLED', finished_at = ?, updated_at = ?
+            FROM experiment.experiment e
+            WHERE j.experiment_id = e.experiment_id AND j.job_id = ? AND e.owner_user_id = ?
+              AND j.status IN ('RUNNING', 'CANCEL_REQUESTED')
+            """;
+
+    public static final String UPDATE_JOB_PROGRESS = """
+            UPDATE experiment.job j
+            SET completed_work = ?, failed_work = ?, best_score = coalesce(?, best_score), updated_at = ?
+            FROM experiment.experiment e
+            WHERE j.experiment_id = e.experiment_id AND j.job_id = ? AND e.owner_user_id = ?
+            """;
+
+    public static final String SELECT_RECOVERABLE_QUEUED_JOBS = """
+            SELECT j.job_id, j.experiment_id, j.candidate_id, j.queued_at
+            FROM experiment.job j
+            JOIN experiment.experiment e ON e.experiment_id = j.experiment_id
+            WHERE j.status = 'QUEUED' AND j.queued_at < ? AND e.status = 'QUEUED'
+            ORDER BY j.queued_at ASC
+            LIMIT ?
+            """;
+
+    public static final String SELECT_DUE_RETRIES = """
+            SELECT j.job_id, j.experiment_id, j.candidate_id, j.next_retry_at
+            FROM experiment.job j
+            JOIN experiment.experiment e ON e.experiment_id = j.experiment_id
+            WHERE j.status = 'RETRY_SCHEDULED' AND j.next_retry_at <= ? AND e.status NOT IN ('CANCELLED', 'STOPPED')
+            ORDER BY j.next_retry_at ASC
+            LIMIT ?
             """;
 
     // Attempt queries
@@ -181,6 +253,15 @@ public final class ExperimentSql {
             WHERE ea.job_id = j.job_id AND ea.attempt_id = ? AND j.job_id = ? AND e.owner_user_id = ?
             """;
 
+    public static final String UPDATE_ATTEMPT_STATUS_GUARDED = """
+            UPDATE experiment.execution_attempt ea
+            SET status = ?, finished_at = ?, next_retry_at = ?, failure_code = ?, failure_message = ?, retryable = ?
+            FROM experiment.job j
+            JOIN experiment.experiment e ON e.experiment_id = j.experiment_id
+            WHERE ea.job_id = j.job_id AND ea.attempt_id = ? AND j.job_id = ? AND e.owner_user_id = ?
+              AND ea.status = 'RUNNING'
+            """;
+
     public static final String SELECT_ATTEMPTS_BY_JOB_ID = """
             SELECT ea.attempt_id, ea.job_id, ea.candidate_id, ea.attempt_no, ea.status, ea.worker_id,
                    ea.started_at, ea.finished_at, ea.next_retry_at, ea.failure_code, ea.failure_message,
@@ -190,6 +271,15 @@ public final class ExperimentSql {
             JOIN experiment.experiment e ON e.experiment_id = j.experiment_id
             WHERE ea.job_id = ? AND e.owner_user_id = ?
             ORDER BY ea.attempt_no ASC
+            """;
+
+    public static final String SELECT_STALE_RUNNING_ATTEMPTS = """
+            SELECT ea.job_id, ea.attempt_id, j.experiment_id, ea.candidate_id, ea.worker_id, ea.started_at
+            FROM experiment.execution_attempt ea
+            JOIN experiment.job j ON j.job_id = ea.job_id
+            WHERE ea.status = 'RUNNING' AND ea.started_at < ?
+            ORDER BY ea.started_at ASC
+            LIMIT ?
             """;
 
     // Idempotency queries

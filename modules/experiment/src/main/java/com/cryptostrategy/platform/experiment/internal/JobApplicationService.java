@@ -15,6 +15,7 @@ import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.job.JobStatus;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
+import com.cryptostrategy.platform.experiment.api.job.TerminalWorkOutcome;
 import com.cryptostrategy.platform.experiment.api.port.in.CancelJobUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.CreateBacktestJobUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.CreateSearchJobUseCase;
@@ -25,6 +26,7 @@ import com.cryptostrategy.platform.experiment.api.port.out.ExecutionAttemptStore
 import com.cryptostrategy.platform.experiment.api.port.out.ExperimentStore;
 import com.cryptostrategy.platform.experiment.api.port.out.JobStore;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -123,7 +125,10 @@ public class JobApplicationService implements
         Objects.requireNonNull(attemptId, "attemptId cannot be null");
 
         Instant now = Instant.now();
-        attemptStore.finalizeAttemptSuccess(ownerUserId, jobId, attemptId, now);
+        boolean updated = attemptStore.finalizeAttemptSuccess(ownerUserId, jobId, attemptId, now);
+        if (!updated) {
+            throw new InvalidStateTransitionException("Cannot finalize success: attempt " + attemptId + " is not in active RUNNING state");
+        }
     }
 
     @Override
@@ -142,10 +147,14 @@ public class JobApplicationService implements
         Objects.requireNonNull(classification, "classification cannot be null");
 
         Instant now = Instant.now();
+        boolean updated;
         if (classification.isRetryable()) {
-            attemptStore.finalizeAttemptRetryableFailure(ownerUserId, jobId, attemptId, failureCode, failureMessage, now, nextRetryAt);
+            updated = attemptStore.finalizeAttemptRetryableFailure(ownerUserId, jobId, attemptId, failureCode, failureMessage, now, nextRetryAt);
         } else {
-            attemptStore.finalizeAttemptTerminalFailure(ownerUserId, jobId, attemptId, failureCode, failureMessage, now);
+            updated = attemptStore.finalizeAttemptTerminalFailure(ownerUserId, jobId, attemptId, failureCode, failureMessage, now);
+        }
+        if (!updated) {
+            throw new InvalidStateTransitionException("Cannot finalize failure: attempt " + attemptId + " is not in active RUNNING state");
         }
     }
 
@@ -156,7 +165,39 @@ public class JobApplicationService implements
         Objects.requireNonNull(attemptId, "attemptId cannot be null");
 
         Instant now = Instant.now();
-        attemptStore.finalizeAttemptCancelled(ownerUserId, jobId, attemptId, now);
+        boolean updated = attemptStore.finalizeAttemptCancelled(ownerUserId, jobId, attemptId, now);
+        if (!updated) {
+            throw new InvalidStateTransitionException("Cannot finalize cancelled: attempt " + attemptId + " is not in active RUNNING state");
+        }
+    }
+
+    public void recordTerminalProgress(UUID ownerUserId, JobId jobId, TerminalWorkOutcome outcome, BigDecimal score) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId cannot be null");
+        Objects.requireNonNull(jobId, "jobId cannot be null");
+        Objects.requireNonNull(outcome, "outcome cannot be null");
+
+        Job job = jobStore.findJobById(ownerUserId, jobId)
+                .orElseThrow(() -> new ResourceInaccessibleException("Job not found or inaccessible"));
+
+        int completedWork = outcome == TerminalWorkOutcome.SUCCEEDED ? 1 : 0;
+        int failedWork = outcome == TerminalWorkOutcome.FAILED ? 1 : 0;
+
+        if (job.completedWork() > 0 && outcome == TerminalWorkOutcome.SUCCEEDED) {
+            completedWork = job.completedWork();
+        }
+        if (job.failedWork() > 0 && outcome == TerminalWorkOutcome.FAILED) {
+            failedWork = job.failedWork();
+        }
+
+        BigDecimal bestScore = job.bestScore();
+        if (score != null) {
+            if (bestScore == null || score.compareTo(bestScore) > 0) {
+                bestScore = score;
+            }
+        }
+
+        Instant now = Instant.now();
+        jobStore.updateProgress(ownerUserId, jobId, completedWork, failedWork, bestScore, now);
     }
 
     @Override

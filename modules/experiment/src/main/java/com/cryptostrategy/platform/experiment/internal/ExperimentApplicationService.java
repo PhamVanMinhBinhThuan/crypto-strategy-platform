@@ -10,6 +10,7 @@ import com.cryptostrategy.platform.experiment.api.ExperimentStatus;
 import com.cryptostrategy.platform.experiment.api.error.ExperimentValidationException;
 import com.cryptostrategy.platform.experiment.api.error.ResourceInaccessibleException;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
+import com.cryptostrategy.platform.experiment.api.port.in.CompleteStoppedExperimentUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.CreateCandidateUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.CreateExperimentUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.FreezeExperimentUseCase;
@@ -18,6 +19,7 @@ import com.cryptostrategy.platform.experiment.api.port.in.ListCandidatesUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.ReproduceExperimentUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.StopExperimentUseCase;
 import com.cryptostrategy.platform.experiment.api.port.out.ExperimentStore;
+import com.cryptostrategy.platform.experiment.api.job.Job;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,6 +33,7 @@ public class ExperimentApplicationService implements
         FreezeExperimentUseCase,
         GetExperimentUseCase,
         StopExperimentUseCase,
+        CompleteStoppedExperimentUseCase,
         ReproduceExperimentUseCase,
         CreateCandidateUseCase,
         ListCandidatesUseCase {
@@ -228,5 +231,34 @@ public class ExperimentApplicationService implements
 
         experimentStore.insertExperiment(ownerUserId, newExperiment, newManifest);
         return newExperiment;
+    }
+
+    @Override
+    public boolean completeIfEligible(ExperimentId experimentId) {
+        Objects.requireNonNull(experimentId, "experimentId cannot be null");
+        UUID ownerUserId = experimentStore.findOwnerUserIdByExperimentId(experimentId)
+                .orElse(null);
+        if (ownerUserId == null) {
+            return false;
+        }
+        Experiment experiment = experimentStore.findExperimentById(ownerUserId, experimentId)
+                .orElse(null);
+        if (experiment == null) {
+            return false;
+        }
+        if (experiment.status() == ExperimentStatus.STOPPED) {
+            return true;
+        }
+        if (experiment.status() != ExperimentStatus.STOP_REQUESTED) {
+            return false;
+        }
+        List<Job> jobs = experimentStore.listAllJobsByExperimentId(experimentId);
+        boolean allTerminal = jobs.stream().allMatch(j -> j.status().isTerminal());
+        if (!allTerminal) {
+            return false;
+        }
+        Instant now = Instant.now();
+        experimentStore.updateExperimentStatus(ownerUserId, experimentId, ExperimentStatus.STOPPED, now);
+        return true;
     }
 }

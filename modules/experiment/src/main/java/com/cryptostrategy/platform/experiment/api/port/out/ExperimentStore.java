@@ -6,6 +6,8 @@ import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
 import com.cryptostrategy.platform.experiment.api.ExperimentStatus;
+import com.cryptostrategy.platform.experiment.api.job.Job;
+import com.cryptostrategy.platform.experiment.api.job.StopCandidateExperiment;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
 
 import java.time.Instant;
@@ -24,4 +26,8 @@ public interface ExperimentStore {
     void insertCandidate(UUID ownerUserId, CandidateDefinition candidate);
     List<CandidateDefinition> listCandidatesByExperimentId(UUID ownerUserId, ExperimentId experimentId);
     Optional<CandidateDefinition> findCandidateById(UUID ownerUserId, CandidateId candidateId);
+
+    Optional<UUID> findOwnerUserIdByExperimentId(ExperimentId experimentId);
+    List<StopCandidateExperiment> findStopCompletionCandidates(int limit);
+    List<Job> listAllJobsByExperimentId(ExperimentId experimentId);
 }

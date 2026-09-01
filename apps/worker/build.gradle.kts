@@ -4,13 +4,32 @@ plugins {
 
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
-    implementation("org.springframework.boot:spring-boot-starter-jdbc")
+    implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.spring.boot.starter.data.redis)
+    implementation(libs.spring.boot.starter.jdbc)
+    implementation(libs.spring.boot.starter.validation)
     implementation("org.springframework.boot:spring-boot-starter-web")
-    runtimeOnly("org.postgresql:postgresql")
+    implementation(libs.jackson.databind)
+    implementation(libs.slf4j.api)
+
+    implementation(project(":modules:contracts"))
+    implementation(project(":modules:domain"))
+    implementation(project(":modules:market-data"))
+    implementation(project(":modules:strategy-core"))
+    implementation(project(":modules:combination"))
+    implementation(project(":modules:strategies"))
+    implementation(project(":modules:experiment"))
+    implementation(project(":modules:backtesting"))
+    implementation(project(":modules:evaluation"))
+    implementation(project(":modules:experiment-execution"))
+    implementation(project(":modules:leaderboard"))
+    implementation(project(":modules:persistence"))
+
+    runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.spring.boot.dependencies))
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation("org.assertj:assertj-core")
     testRuntimeOnly("com.h2database:h2")
 }
 

@@ -18,6 +18,8 @@ dependencies {
     runtimeOnly(libs.postgresql)
     testImplementation(platform(libs.spring.boot.dependencies))
     testImplementation("org.assertj:assertj-core")
+    testImplementation("org.mockito:mockito-core")
+    testImplementation("org.mockito:mockito-junit-jupiter")
 }
 
 val marketDataIntegrationTest by sourceSets.creating {

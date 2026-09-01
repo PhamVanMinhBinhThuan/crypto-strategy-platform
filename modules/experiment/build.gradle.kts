@@ -13,4 +13,6 @@ dependencies {
     implementation(libs.slf4j.api)
     testImplementation(platform(libs.spring.boot.dependencies))
     testImplementation("org.assertj:assertj-core")
+    testImplementation("org.mockito:mockito-core")
+    testImplementation("org.mockito:mockito-junit-jupiter")
 }

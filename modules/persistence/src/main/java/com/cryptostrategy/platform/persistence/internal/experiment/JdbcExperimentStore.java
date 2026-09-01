@@ -258,6 +258,41 @@ public class JdbcExperimentStore implements ExperimentStore {
         }
     }
 
+    @Override
+    public Optional<UUID> findOwnerUserIdByExperimentId(ExperimentId experimentId) {
+        try {
+            UUID ownerUserId = jdbcTemplate.queryForObject(
+                    ExperimentSql.SELECT_OWNER_BY_EXPERIMENT_ID,
+                    UUID.class,
+                    experimentId.value()
+            );
+            return Optional.ofNullable(ownerUserId);
+        } catch (EmptyResultDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public List<com.cryptostrategy.platform.experiment.api.job.StopCandidateExperiment> findStopCompletionCandidates(int limit) {
+        return jdbcTemplate.query(
+                ExperimentSql.SELECT_STOP_COMPLETION_CANDIDATES,
+                (rs, rowNum) -> new com.cryptostrategy.platform.experiment.api.job.StopCandidateExperiment(
+                        new ExperimentId(rs.getString("experiment_id")),
+                        rs.getTimestamp("completed_at") != null ? rs.getTimestamp("completed_at").toInstant() : null
+                ),
+                limit
+        );
+    }
+
+    @Override
+    public List<com.cryptostrategy.platform.experiment.api.job.Job> listAllJobsByExperimentId(ExperimentId experimentId) {
+        return jdbcTemplate.query(
+                ExperimentSql.SELECT_ALL_JOBS_BY_EXPERIMENT_ID,
+                rows::mapJob,
+                experimentId.value()
+        );
+    }
+
     private static Timestamp toTimestamp(Instant instant) {
         return instant != null ? Timestamp.from(instant) : null;
     }
