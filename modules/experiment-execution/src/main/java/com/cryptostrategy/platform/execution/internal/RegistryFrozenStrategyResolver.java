@@ -26,36 +26,61 @@ public final class RegistryFrozenStrategyResolver implements FrozenStrategyResol
         this.composites = Objects.requireNonNull(composites);
     }
 
-    @Override public ResolvedStrategy resolve(StrategyProvenanceSnapshot provenance) {
+    @Override public ResolvedStrategy resolve(StrategyProvenanceSnapshot provenance, com.cryptostrategy.platform.experiment.api.CandidateDefinition candidate) {
+        java.util.Map<String, com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue> overrides = parseCandidateParams(candidate.definition());
         if (provenance.singleStrategy().isPresent()) {
             StrategyReference reference = provenance.singleStrategy().orElseThrow();
-            String actual = fingerprints.single(reference, provenance.parameters());
-            requireFingerprint(provenance.strategyFingerprint(), actual);
-            Strategy strategy = registry.create(reference.pluginId(), reference.implementationVersion(),
-                    provenance.parameters().values());
-            int lookback = registry.requiredLookback(reference.pluginId(), reference.implementationVersion(),
-                    provenance.parameters().values());
+            var merged = new java.util.HashMap<>(provenance.parameters().values());
+            merged.putAll(overrides);
+            var mergedSet = com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.of(merged);
+            String actual = fingerprints.single(reference, mergedSet);
+            requireFingerprint(candidate.fingerprint(), actual);
+            Strategy strategy = registry.create(reference.pluginId(), reference.implementationVersion(), merged);
+            int lookback = registry.requiredLookback(reference.pluginId(), reference.implementationVersion(), merged);
             return new ResolvedStrategy(strategy, lookback, actual);
         }
         var policyId = provenance.compositePolicyId().orElseThrow();
         var policyVersion = provenance.compositePolicyVersion().orElseThrow();
-        var fpComponents = provenance.components().stream()
-                .map(value -> new StrategyFingerprintCalculator.Component(value.strategyReference(), value.parameters()))
-                .toList();
-        String actual = fingerprints.composite(policyId, policyVersion, provenance.parameters(), fpComponents);
-        requireFingerprint(provenance.strategyFingerprint(), actual);
-        var resolved = provenance.components().stream().map(value -> registry.create(
-                value.strategyReference().pluginId(), value.strategyReference().implementationVersion(),
-                value.parameters().values())).toList();
-        int lookback = provenance.components().stream().mapToInt(value -> registry.requiredLookback(
-                value.strategyReference().pluginId(), value.strategyReference().implementationVersion(),
-                value.parameters().values())).max().orElseThrow();
+        
+        var policyMerged = new java.util.HashMap<>(provenance.parameters().values());
+        policyMerged.putAll(overrides);
+        var policySet = com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.of(policyMerged);
+
+        var fpComponents = new java.util.ArrayList<StrategyFingerprintCalculator.Component>();
+        var resolved = new java.util.ArrayList<Strategy>();
+        int lookback = 0;
+
+        for (var component : provenance.components()) {
+             var compMerged = new java.util.HashMap<>(component.parameters().values());
+             compMerged.putAll(overrides);
+             fpComponents.add(new StrategyFingerprintCalculator.Component(component.strategyReference(), com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.of(compMerged)));
+             resolved.add(registry.create(component.strategyReference().pluginId(), component.strategyReference().implementationVersion(), compMerged));
+             int lb = registry.requiredLookback(component.strategyReference().pluginId(), component.strategyReference().implementationVersion(), compMerged);
+             if (lb > lookback) lookback = lb;
+        }
+
+        String actual = fingerprints.composite(policyId, policyVersion, policySet, fpComponents);
+        requireFingerprint(candidate.fingerprint(), actual);
+        
         StrategyReference compositeReference = new StrategyReference(
                 provenance.components().getFirst().strategyReference().strategyVersionId(),
                 new StrategyPluginId("composite"), policyVersion);
         Strategy strategy = composites.materialize(compositeReference,
                 new CombinationPolicyReference(policyId, policyVersion), resolved);
         return new ResolvedStrategy(strategy, lookback, actual);
+    }
+
+    private java.util.Map<String, com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue> parseCandidateParams(java.util.Map<String, Object> definition) {
+        var result = new java.util.HashMap<String, com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue>();
+        for (var entry : definition.entrySet()) {
+            Object v = entry.getValue();
+            if (v instanceof Integer i) result.put(entry.getKey(), new com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue.IntegerValue(i));
+            else if (v instanceof Long l) result.put(entry.getKey(), new com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue.IntegerValue(l));
+            else if (v instanceof Double d) result.put(entry.getKey(), new com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue.DecimalValue(java.math.BigDecimal.valueOf(d)));
+            else if (v instanceof String s) result.put(entry.getKey(), new com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue.TextValue(s));
+            else if (v instanceof Boolean b) result.put(entry.getKey(), new com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue.BooleanValue(b));
+        }
+        return result;
     }
 
     private static void requireFingerprint(String expected, String actual) {

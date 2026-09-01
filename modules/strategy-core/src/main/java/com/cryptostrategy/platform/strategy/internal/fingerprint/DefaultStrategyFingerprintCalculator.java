@@ -18,7 +18,7 @@ public final class DefaultStrategyFingerprintCalculator implements StrategyFinge
             java.util.List<Component> components) {
         var encoder = new CanonicalStrategyEncoder();
         var encoded = components.stream().map(value -> encoder.encodeSingle(value.reference(), value.parameters())).toList();
-        String policy = policyId + "@" + policyVersion;
+        String policy = encoder.encodePolicy(policyId, policyVersion, policyParameters);
         return delegate.composite(policy, encoded);
     }
 }

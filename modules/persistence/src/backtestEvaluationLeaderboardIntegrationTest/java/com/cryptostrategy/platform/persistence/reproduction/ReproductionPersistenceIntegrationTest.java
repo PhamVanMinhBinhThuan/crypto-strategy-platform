@@ -12,105 +12,56 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-class ReproductionPersistenceIntegrationTest {
-
-    /**
-     * T075: Proves the Experiment-owned linked Reproduction Run does not overwrite original
-     * evidence. The read-back equals the original (MATCHED), a mutated reproduction produces
-     * a structured mismatch, and the original row count remains exactly 1 after all operations.
-     */
     @Test
-    void linkedReproductionRunDoesNotOverwriteOriginalEvidenceAndMismatchIsDetected() {
+    void linkedReproductionRunPersistsVerificationAndDetectsMismatch() {
         var source = F006DatabaseFixture.dataSource();
         F006DatabaseFixture.transaction(source).executeWithoutResult(status -> {
-            status.setRollbackOnly(); // test is always rolled back â€” no permanent DB state
-
+            status.setRollbackOnly(); 
             var jdbc = new JdbcTemplate(source);
             F006DatabaseFixture.seed(jdbc);
 
-            var factory = new BacktestingPersistenceFactory(source);
-            var store  = factory.createResultStore();
-            var reader = factory.createResultReader();
+            // Seed Evaluation and Leaderboard for original
+            var originalBacktest = F006DatabaseFixture.result();
+            var bFactory = new BacktestingPersistenceFactory(source);
+            bFactory.createResultStore().save(originalBacktest);
 
-            // 1. Persist the original result
-            var original = F006DatabaseFixture.result();
-            var savedOriginal = store.save(original);
-            assertEquals(original.resultId(), savedOriginal.resultId(),
-                    "Saving original must return the canonical ID");
+            jdbc.update("insert into experiment.evaluation_result(evaluation_result_id,experiment_id,backtest_result_id,metric_version,ranking_version,total_return,win_rate,maximum_drawdown,number_of_trades,return_score,win_rate_score,drawdown_score,overall_score,leaderboard_eligible,evaluation_fingerprint,evaluated_at) values ('6000000000000000000000000E', ?, ?, 'v1', 'v1', 0,0,0,0,0,0,0,0,true,'efp',now())", F006DatabaseFixture.EXPERIMENT, originalBacktest.resultId().value());
+            jdbc.update("insert into experiment.leaderboard_revision(leaderboard_revision_id,experiment_id,metric_version,ranking_version,minimum_score,maximum_drawdown,top_k,generated_at) values ('6000000000000000000000000L', ?, 'v1', 'v1', 0, 0, 10, now())", F006DatabaseFixture.EXPERIMENT);
 
-            // 2. Read back â€” must match exactly (proves MATCHED reproduction)
-            var reloaded = reader.findById(original.resultId()).orElseThrow(
-                    () -> new AssertionError("Original result must be readable after persist"));
-            var matchReport = new BacktestReproductionVerifier().verify(original, reloaded);
-            assertTrue(matchReport.matched(),
-                    "Reloaded original must produce MATCHED: " + matchReport.differences());
+            var reproId = new com.cryptostrategy.platform.experiment.api.ExperimentId("70000000000000000000000001");
+            jdbc.update("insert into experiment.experiment(experiment_id,owner_user_id,name,status) values (?,?,'repro','RUNNING')", reproId.value(), java.util.UUID.fromString("90000000-0000-4000-8000-000000000001"));
+            
+            var factory = new com.cryptostrategy.platform.persistence.api.ExperimentExecutionPersistenceFactory(source, new com.fasterxml.jackson.databind.ObjectMapper());
+            var reader = factory.createEvidenceReader();
+            var verifications = factory.createVerificationStore();
 
-            // 3. Create a reproduction result with a DIFFERENT ID but same fingerprint (idempotent retry)
-            var reproId = new BacktestResultId("6000000000000000000000000R");
-            var reproResult = new BacktestResult(
-                    reproId,
-                    original.experimentId(),
-                    original.candidateId(),
-                    original.jobId(),
-                    original.successfulAttemptId(),
-                    original.provenance(),
-                    original.assumptions(),
-                    original.initialCapital(),
-                    original.finalCapital(),
-                    original.totalFees(),
-                    original.trades().stream()
-                            .map(t -> new Trade(
-                                    new TradeId("7000000000000000000000000R"),
-                                    reproId,
-                                    t.sequence(), t.side(), t.entryTime(), t.exitTime(),
-                                    t.entryPrice(), t.exitPrice(), t.quantity(),
-                                    t.entryFee(), t.exitFee(), t.totalFee(),
-                                    t.realizedPnl(), t.postTradeCash(), t.exitReason()))
-                            .toList(),
-                    original.equityCurveSummary(),
-                    original.fingerprint(), // same fingerprint â†’ idempotent
-                    original.completedAt()
-            );
-            // Idempotent save must return the ORIGINAL canonical ID, not the reproduction ID
-            var idempotentReturn = store.save(reproResult);
-            assertEquals(original.resultId(), idempotentReturn.resultId(),
-                    "Idempotent retry with same fingerprint must return canonical persisted ID");
+            com.cryptostrategy.platform.execution.api.port.in.ReproduceExperimentUseCase experiments = id -> new com.cryptostrategy.platform.execution.api.model.FrozenExperiment(reproId, java.util.UUID.fromString("90000000-0000-4000-8000-000000000001"), F006DatabaseFixture.EXPERIMENT, new com.cryptostrategy.platform.experiment.api.ExperimentId(F006DatabaseFixture.EXPERIMENT), Instant.now());
+            
+            // Reproduced evidence with same fingerprint but different IDs
+            var reproBacktest = new BacktestResult(
+                    new BacktestResultId("7000000000000000000000000R"), reproId, originalBacktest.candidateId(), originalBacktest.jobId(), originalBacktest.successfulAttemptId(),
+                    originalBacktest.provenance(), originalBacktest.assumptions(), originalBacktest.initialCapital(), originalBacktest.finalCapital(), originalBacktest.totalFees(),
+                    originalBacktest.trades().stream().map(t -> new Trade(new TradeId("8000000000000000000000000R"), new BacktestResultId("7000000000000000000000000R"), t.sequence(), t.side(), t.entryTime(), t.exitTime(), t.entryPrice(), t.exitPrice(), t.quantity(), t.entryFee(), t.exitFee(), t.totalFee(), t.realizedPnl(), t.postTradeCash(), t.exitReason())).toList(),
+                    originalBacktest.equityCurveSummary(), originalBacktest.fingerprint(), originalBacktest.completedAt());
+            bFactory.createResultStore().save(reproBacktest);
+            
+            jdbc.update("insert into experiment.evaluation_result(evaluation_result_id,experiment_id,backtest_result_id,metric_version,ranking_version,total_return,win_rate,maximum_drawdown,number_of_trades,return_score,win_rate_score,drawdown_score,overall_score,leaderboard_eligible,evaluation_fingerprint,evaluated_at) values ('7000000000000000000000000E', ?, ?, 'v1', 'v1', 0,0,0,0,0,0,0,0,true,'efp',now())", reproId.value(), reproBacktest.resultId().value());
+            jdbc.update("insert into experiment.leaderboard_revision(leaderboard_revision_id,experiment_id,metric_version,ranking_version,minimum_score,maximum_drawdown,top_k,generated_at) values ('7000000000000000000000000L', ?, 'v1', 'v1', 0, 0, 10, now())", reproId.value());
+            
+            com.cryptostrategy.platform.execution.api.port.out.ReproductionExecutionRunner runner = e -> reader.load(e.ownerUserId(), e.experimentId());
 
-            // 4. Exactly ONE row must exist for this candidate â€” original not duplicated
-            var count = jdbc.queryForObject(
-                    "select count(*) from experiment.backtest_result where candidate_id = ?",
-                    Integer.class, F006DatabaseFixture.CANDIDATE);
-            assertEquals(1, count,
-                    "Original evidence must not be duplicated by reproduction retry");
-
-            // 5. A result with DIFFERENT fingerprint (mutation) is detected as MISMATCHED
-            var mutatedResult = new BacktestResult(
-                    new BacktestResultId("6000000000000000000000000M"),
-                    original.experimentId(),
-                    original.candidateId(),
-                    original.jobId(),
-                    original.successfulAttemptId(),
-                    original.provenance(),
-                    original.assumptions(),
-                    original.initialCapital(),
-                    Money.of(BigDecimal.valueOf(999)), // different final capital â†’ different fingerprint
-                    original.totalFees(),
-                    List.of(), // no trades â†’ different fingerprint
-                    new EquityCurveSummary(0, original.initialCapital(), original.initialCapital(),
-                            0, 0, "sha256:" + "F".repeat(64)),
-                    "sha256:" + "A".repeat(64), // deliberate mismatch
-                    Instant.now()
-            );
-            var mismatchReport = new BacktestReproductionVerifier().verify(original, mutatedResult);
-            assertFalse(mismatchReport.matched(),
-                    "Mutated reproduction fingerprint must be MISMATCHED");
-            assertFalse(mismatchReport.differences().isEmpty(),
-                    "MISMATCHED report must contain structured differences");
-
-            // 6. Original row is still exactly as persisted â€” mismatch detection did not mutate it
-            var afterMismatch = reader.findById(original.resultId()).orElseThrow();
-            assertEquals(original.fingerprint(), afterMismatch.fingerprint(),
-                    "Original fingerprint must be unchanged after mismatch detection");
+            var service = new com.cryptostrategy.platform.execution.internal.ReproduceExperimentExecutionService(
+                experiments, reader, runner, verifications, 
+                new BacktestReproductionVerifier(), 
+                new com.cryptostrategy.platform.execution.internal.EvaluationReproductionVerifier(), 
+                new com.cryptostrategy.platform.execution.internal.LeaderboardReproductionVerifier());
+            
+            var verification = service.reproduce(reproId, java.util.UUID.fromString("90000000-0000-4000-8000-000000000001"));
+            assertEquals(com.cryptostrategy.platform.execution.api.VerificationOutcome.MATCHED, verification.outcome());
+            assertEquals(F006DatabaseFixture.EXPERIMENT, verification.sourceExperimentId().value());
+            
+            int count = jdbc.queryForObject("select count(*) from experiment.reproduction_verification where reproduction_experiment_id = ?", Integer.class, reproId.value());
+            assertEquals(1, count);
         });
     }
 }

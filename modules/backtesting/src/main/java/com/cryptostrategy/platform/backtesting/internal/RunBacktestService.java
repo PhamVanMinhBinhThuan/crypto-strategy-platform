@@ -9,6 +9,7 @@ import com.cryptostrategy.platform.backtesting.api.model.BacktestRunCommand;
 import com.cryptostrategy.platform.backtesting.api.port.in.RunBacktestUseCase;
 import com.cryptostrategy.platform.backtesting.api.port.out.BacktestResultStore;
 import com.cryptostrategy.platform.backtesting.api.port.out.FrozenStrategyResolver;
+import com.cryptostrategy.platform.backtesting.api.port.out.ResolvedStrategy;
 import com.cryptostrategy.platform.experiment.api.port.in.GetFrozenBacktestExecutionUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.VerifyDatasetUseCase;
@@ -51,15 +52,14 @@ public final class RunBacktestService implements RunBacktestUseCase {
         var integrity = datasetVerifier.verifyDataset(dataset.datasetVersionId());
         if (!integrity.valid()) throw new BacktestException(BacktestErrorCode.CHECKSUM_MISMATCH,
                 integrity.detail().orElse("Dataset integrity failed"));
-        var resolvedStrategy = strategies.resolve(manifest.strategyProvenance());
-        if (!resolvedStrategy.verifiedFingerprint().equals(manifest.strategyProvenance().strategyFingerprint())) {
-            throw new BacktestException(BacktestErrorCode.INVALID_LINEAGE, "Strategy fingerprint mismatch");
-        }
-        var resolved = new ResolvedBacktestRun(command.experimentId(), command.candidateId(), command.jobId(),
+        var resolvedStrategy = strategies.resolve(manifest.strategyProvenance(), frozen.candidate());
+        var resolved = new ResolvedStrategy(resolvedStrategy.strategy(), resolvedStrategy.requiredLookback(), resolvedStrategy.verifiedFingerprint());
+        
+        var backtestResolved = new ResolvedBacktestRun(command.experimentId(), command.candidateId(), command.jobId(),
                 command.attemptId(), dataset,
-                new BacktestProvenance(manifest.fingerprint(), dataset.checksum(), resolvedStrategy.verifiedFingerprint()),
+                new BacktestProvenance(manifest.fingerprint(), dataset.checksum(), resolved.verifiedFingerprint()),
                 configurationParser.parse(manifest.backtestConfig()), command.batchSize(),
-                resolvedStrategy.requiredLookback());
-        return results.save(engine.run(resolved, candleReader, resolvedStrategy.strategy()));
+                resolved.requiredLookback());
+        return results.save(engine.run(backtestResolved, candleReader, resolved.strategy()));
     }
 }

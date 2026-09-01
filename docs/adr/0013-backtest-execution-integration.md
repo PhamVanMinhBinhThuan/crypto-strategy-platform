@@ -1,6 +1,6 @@
 # ADR-0013: Backtest Execution and Cross-Capability Integration
 
-**Status**: Proposed
+**Status**: Accepted
 **Date**: 2026-08-31
 **Owners**: Văn Minh, Tiến Luật
 **Extends**: ADR-0005

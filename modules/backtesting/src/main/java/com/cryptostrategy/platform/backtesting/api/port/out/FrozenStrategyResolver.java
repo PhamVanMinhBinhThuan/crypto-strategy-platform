@@ -4,5 +4,5 @@ import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceS
 
 @FunctionalInterface
 public interface FrozenStrategyResolver {
-    ResolvedStrategy resolve(StrategyProvenanceSnapshot provenance);
+    ResolvedStrategy resolve(StrategyProvenanceSnapshot provenance, com.cryptostrategy.platform.experiment.api.CandidateDefinition candidate);
 }

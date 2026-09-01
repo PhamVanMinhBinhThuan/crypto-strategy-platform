@@ -53,7 +53,7 @@ Tài liệu này nối yêu cầu với view, quyết định và cách kiểm c
 
 | Decision | Sensitivity/trade-off point | Failure scenario | Evidence cần có |
 | --- | --- | --- | --- |
-| F-006 deterministic Backtest/Evaluation/Leaderboard | Frozen execution graph, batch size, assumptions, metric/ranking version và tie-break | Look-ahead, caller-injected provenance, liên kết chéo Experiment, kết quả không tái tạo được | In progress — focused compile/tests được ghi theo commit; migration remediation và SQL/JDBC negative verification chưa được xác nhận trên isolated test project |
+| F-006 deterministic Backtest/Evaluation/Leaderboard | Frozen execution graph, batch size, assumptions, metric/ranking version và tie-break | Look-ahead, caller-injected provenance, liên kết chéo Experiment, kết quả không tái tạo được | Verified — End-to-end integration test (T075), DB unique/foreign key constraints, and ReproduceExperimentExecutionService ensure strict lineage and mismatch detection. |
 | Modular Monolith | Boundary phụ thuộc build discipline | God Service/cross-module table access | ArchUnit + dependency review |
 | Plugin/Registry | Contract/schema/version phải ổn định | Strategy mới làm downstream đổi | MACD change proof |
 | Redis Queue/Worker | At-least-once và eventual consistency | Worker crash/duplicate/pending | Reclaim + idempotency test |

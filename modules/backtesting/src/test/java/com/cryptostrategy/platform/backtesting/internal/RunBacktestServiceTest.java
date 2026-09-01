@@ -23,7 +23,7 @@ class RunBacktestServiceTest {
         Strategy hold=c->new StrategyDecision(StrategySignal.HOLD,c.evaluationTime(),f.reference,"HOLD","test",Map.of());
         String fingerprint="strategy-v1:sha256:"+"1".repeat(64);
         var service=new RunBacktestService((owner,e,c,j,a)->frozen(f,fingerprint),id->f.dataset,
-                id->DatasetIntegrityResult.validResult(),f.reader(),p->new ResolvedStrategy(hold,3,fingerprint),
+                id->DatasetIntegrityResult.validResult(),f.reader(),(p, cand)->new ResolvedStrategy(hold,3,fingerprint),
                 result->{stored.set(true);return result;});
         service.run(command()); assertTrue(stored.get());
     }
@@ -31,7 +31,7 @@ class RunBacktestServiceTest {
         BacktestTestFixture f=new BacktestTestFixture(); AtomicBoolean stored=new AtomicBoolean();
         String fingerprint="strategy-v1:sha256:"+"1".repeat(64);
         var service=new RunBacktestService((owner,e,c,j,a)->frozen(f,fingerprint),id->f.dataset,
-                id->DatasetIntegrityResult.invalid("tampered"),f.reader(),p->{throw new AssertionError();},
+                id->DatasetIntegrityResult.invalid("tampered"),f.reader(),(p, cand)->{throw new AssertionError();},
                 result->{stored.set(true);return result;});
         assertThrows(BacktestException.class,()->service.run(command())); assertFalse(stored.get());
     }
