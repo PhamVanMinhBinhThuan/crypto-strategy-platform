@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crypto-strategy-lab.invalid/contracts/sentiment-v1/error-response.schema.json",
+  "title": "Sentiment V1 Safe Error",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "message", "retryable"],
+  "properties": {
+    "requestId": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+    "code": { "enum": ["INVALID_REQUEST", "UNAUTHORIZED", "UNSUPPORTED_LANGUAGE", "UNSUPPORTED_RELEASE", "NOT_READY", "CAPACITY_EXCEEDED", "INFERENCE_FAILED"] },
+    "message": { "type": "string", "minLength": 1, "maxLength": 300 },
+    "retryable": { "type": "boolean" }
+  }
+}

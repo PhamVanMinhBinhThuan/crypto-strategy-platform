@@ -7,10 +7,19 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation(project(":modules:domain"))
+    implementation(project(":modules:contracts"))
+    implementation(project(":modules:market-data"))
+    implementation(project(":modules:news"))
+    implementation(project(":modules:persistence"))
+    implementation(libs.jackson.databind)
+    implementation(libs.resilience4j.circuitbreaker)
+    implementation(libs.resilience4j.timelimiter)
     runtimeOnly("org.postgresql:postgresql")
 
     testImplementation(platform(libs.spring.boot.dependencies))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation(libs.mockwebserver)
     testRuntimeOnly("com.h2database:h2")
 }
 

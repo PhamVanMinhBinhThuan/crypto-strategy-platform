@@ -1,0 +1,5 @@
+{
+  "status": "READY",
+  "contractVersion": "sentiment-v1",
+  "modelVersion": "multichannel-english-1.0.0"
+}

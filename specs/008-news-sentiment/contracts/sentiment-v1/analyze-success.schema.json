@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crypto-strategy-lab.invalid/contracts/sentiment-v1/analyze-success.schema.json",
+  "title": "Sentiment Analyze V1 Success",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "requestId", "newsId", "language", "contentHash", "contractVersion",
+    "modelName", "modelVersion", "preprocessingVersion", "label",
+    "confidence", "polarityScore", "analyzedAt"
+  ],
+  "properties": {
+    "requestId": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+    "newsId": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+    "language": { "const": "en" },
+    "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "contractVersion": { "const": "sentiment-v1" },
+    "modelName": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "modelVersion": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "preprocessingVersion": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "label": { "enum": ["POSITIVE", "NEUTRAL", "NEGATIVE"] },
+    "confidence": {
+      "type": "string",
+      "pattern": "^(0(?:\\.[0-9]{0,9}[1-9])?|1)$"
+    },
+    "polarityScore": {
+      "type": "string",
+      "pattern": "^(?:-1|-0\\.[0-9]{0,9}[1-9]|0(?:\\.[0-9]{0,9}[1-9])?|1)$"
+    },
+    "analyzedAt": { "type": "string", "format": "date-time", "pattern": "Z$" }
+  }
+}

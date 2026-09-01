@@ -9,6 +9,7 @@ dependencies {
     implementation(project(":modules:strategy-core"))
     implementation(project(":modules:strategies"))
     implementation(project(":modules:combination"))
+    implementation(project(":modules:news"))
     implementation(project(":modules:persistence"))
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")

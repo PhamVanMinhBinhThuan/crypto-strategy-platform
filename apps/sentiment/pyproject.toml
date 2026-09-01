@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "crypto-strategy-sentiment"
+version = "0.1.0"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+  "fastapi==0.115.12",
+  "pydantic-settings==2.9.1",
+  "uvicorn[standard]==0.34.2",
+]
+
+[project.optional-dependencies]
+test = [
+  "httpx==0.28.1",
+  "jsonschema==4.23.0",
+  "pytest==8.3.5",
+  "pytest-asyncio==0.26.0",
+]
+ml = [
+  "numpy==2.1.3",
+  "tensorflow-cpu==2.19.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]

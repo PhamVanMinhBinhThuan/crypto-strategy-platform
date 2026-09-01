@@ -1,0 +1,31 @@
+services:
+  sentiment:
+    build:
+      context: ../..
+      dockerfile: apps/sentiment/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      SENTIMENT_SERVICE_TOKEN: ${SENTIMENT_SERVICE_TOKEN:?required}
+      SENTIMENT_BUNDLE_PATH: /opt/sentiment/bundle
+      SENTIMENT_LOAD_TIMEOUT_SECONDS: 120
+      SENTIMENT_MAX_CONCURRENCY: 4
+    volumes:
+      - ${SENTIMENT_BUNDLE_PATH:?required}:/opt/sentiment/bundle:ro
+    networks: [sentiment-internal]
+    restart: on-failure:5
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=2)",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 2s
+
+networks:
+  sentiment-internal:

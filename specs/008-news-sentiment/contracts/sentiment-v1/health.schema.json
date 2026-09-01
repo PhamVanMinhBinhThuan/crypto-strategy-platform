@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crypto-strategy-lab.invalid/contracts/sentiment-v1/health.schema.json",
+  "title": "Sentiment V1 Health",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status"],
+  "properties": {
+    "status": { "enum": ["LIVE", "LOADING", "READY", "FAILED", "TIMED_OUT"] },
+    "contractVersion": { "const": "sentiment-v1" },
+    "modelVersion": { "type": "string", "minLength": 1, "maxLength": 200 }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "READY" } }, "required": ["status"] },
+      "then": { "required": ["contractVersion", "modelVersion"] }
+    }
+  ]
+}

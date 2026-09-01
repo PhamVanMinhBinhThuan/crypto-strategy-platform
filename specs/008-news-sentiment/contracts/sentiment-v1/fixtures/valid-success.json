@@ -1,0 +1,14 @@
+{
+  "requestId": "01K4A000000000000000000001",
+  "newsId": "01K4A000000000000000000002",
+  "language": "en",
+  "contentHash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "contractVersion": "sentiment-v1",
+  "modelName": "multichannel-english",
+  "modelVersion": "multichannel-english-1.0.0",
+  "preprocessingVersion": "multichannel-whitespace-en-1",
+  "label": "POSITIVE",
+  "confidence": "0.82",
+  "polarityScore": "0.64",
+  "analyzedAt": "2026-08-30T10:00:00Z"
+}

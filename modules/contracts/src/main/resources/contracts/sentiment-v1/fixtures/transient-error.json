@@ -1,0 +1,6 @@
+{
+  "requestId": "01K4A000000000000000000001",
+  "code": "NOT_READY",
+  "message": "Sentiment model is not ready",
+  "retryable": true
+}

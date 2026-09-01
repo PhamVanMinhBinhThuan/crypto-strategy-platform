@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://crypto-strategy-lab.invalid/contracts/sentiment-v1/analyze-request.schema.json",
+  "title": "Sentiment Analyze V1 Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "requestId", "newsId", "title", "content", "language", "contentHash",
+    "contractVersion", "modelName", "modelVersion", "preprocessingVersion"
+  ],
+  "properties": {
+    "requestId": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+    "newsId": { "type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$" },
+    "title": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "content": { "type": "string", "minLength": 1, "maxLength": 100000 },
+    "language": { "const": "en" },
+    "contentHash": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "contractVersion": { "const": "sentiment-v1" },
+    "modelName": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "modelVersion": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "preprocessingVersion": { "type": "string", "minLength": 1, "maxLength": 200 }
+  }
+}
