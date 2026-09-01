@@ -7,11 +7,11 @@ import java.math.BigDecimal;
 public final class SentimentContractMapper {
     public SentimentAnalyzeRequest toWire(SentimentAnalysisRequest request) {
         var release=request.release();
-        return new SentimentAnalyzeRequest(request.requestId(),request.newsId().value(),request.title(),request.content(),request.language().value(),request.contentHash().value(),release.contractVersion(),release.modelName(),release.modelVersion(),release.preprocessingVersion());
+        return new SentimentAnalyzeRequest(request.requestId().value(),request.newsId().value(),request.title(),request.content(),request.language().value(),request.contentHash().value(),release.contractVersion(),release.modelName(),release.modelVersion(),release.preprocessingVersion());
     }
     public SentimentAnalysisOutcome fromWire(SentimentAnalysisRequest request,SentimentAnalyzeSuccess wire) {
         var r=request.release();
-        if(!request.requestId().equals(wire.requestId())||!request.newsId().value().equals(wire.newsId())||!request.language().value().equals(wire.language())||!request.contentHash().value().equals(wire.contentHash())||
+        if(!request.requestId().value().equals(wire.requestId())||!request.newsId().value().equals(wire.newsId())||!request.language().value().equals(wire.language())||!request.contentHash().value().equals(wire.contentHash())||
            !r.contractVersion().equals(wire.contractVersion())||!r.modelName().equals(wire.modelName())||!r.modelVersion().equals(wire.modelVersion())||!r.preprocessingVersion().equals(wire.preprocessingVersion()))
             throw new SentimentClientException("Response provenance mismatch",false,true);
         try {

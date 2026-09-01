@@ -23,7 +23,7 @@ class HttpSentimentInferenceAdapterTest {
         assertEquals(SentimentLabel.POSITIVE,adapter.analyze(request).toCompletableFuture().get().label());
         var recorded=server.takeRequest();
         assertEquals("Bearer secret-service-token",recorded.getHeader("Authorization"));
-        assertEquals(request.requestId(),recorded.getHeader("X-Correlation-Id"));
+        assertEquals(request.requestId().value(),recorded.getHeader("X-Correlation-Id"));
         assertEquals("/api/v1/sentiment/analyze",recorded.getPath());
         var outbound=new ObjectMapper().readTree(recorded.getBody().readUtf8());
         assertEquals("en",outbound.path("language").asText());

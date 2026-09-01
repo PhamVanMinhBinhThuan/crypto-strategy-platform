@@ -19,8 +19,14 @@
     "modelVersion": { "type": "string", "minLength": 1, "maxLength": 200 },
     "preprocessingVersion": { "type": "string", "minLength": 1, "maxLength": 200 },
     "label": { "enum": ["POSITIVE", "NEUTRAL", "NEGATIVE"] },
-    "confidence": { "type": "string", "pattern": "^(0(?:\\.[0-9]{0,9}[1-9])?|1)$" },
-    "polarityScore": { "type": "string", "pattern": "^(?:-1|-0\\.[0-9]{0,9}[1-9]|0(?:\\.[0-9]{0,9}[1-9])?|1)$" },
+    "confidence": {
+      "type": "string",
+      "pattern": "^(0(?:\\.[0-9]{0,9}[1-9])?|1)$"
+    },
+    "polarityScore": {
+      "type": "string",
+      "pattern": "^(?:-1|-0\\.[0-9]{0,9}[1-9]|0(?:\\.[0-9]{0,9}[1-9])?|1)$"
+    },
     "analyzedAt": { "type": "string", "format": "date-time", "pattern": "Z$" }
   }
 }

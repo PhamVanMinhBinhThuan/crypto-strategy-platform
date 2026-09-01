@@ -24,7 +24,7 @@ class SentimentResponseValidatorTest {
     }
 
     @Test void rejects_every_echo_or_release_mismatch() {
-        assertInvalid(outcome(com.cryptostrategy.platform.domain.api.identity.Ulids.generate(), NEWS_ID, LanguageCode.ENGLISH, HASH, RELEASE,
+        assertInvalid(outcome(SentimentRequestId.generate(), NEWS_ID, LanguageCode.ENGLISH, HASH, RELEASE,
                 SentimentLabel.POSITIVE, new BigDecimal("0.8"), new BigDecimal("0.6"), Instant.EPOCH));
         assertInvalid(outcome(REQUEST.requestId(), NewsId.generate(), LanguageCode.ENGLISH, HASH, RELEASE,
                 SentimentLabel.POSITIVE, new BigDecimal("0.8"), new BigDecimal("0.6"), Instant.EPOCH));
@@ -58,7 +58,7 @@ class SentimentResponseValidatorTest {
         var error = assertThrows(NewsException.class, () -> validator.validate(REQUEST, outcome));
         assertEquals(NewsErrorCode.INVALID_SENTIMENT_RESPONSE, error.code());
     }
-    private static SentimentAnalysisOutcome outcome(String requestId, NewsId newsId, LanguageCode language,
+    private static SentimentAnalysisOutcome outcome(SentimentRequestId requestId, NewsId newsId, LanguageCode language,
             ContentHash hash, SentimentModelRelease release, SentimentLabel label, BigDecimal confidence,
             BigDecimal polarity, Instant analyzedAt) {
         return new SentimentAnalysisOutcome(requestId, newsId, language, hash, release, label, confidence, polarity, analyzedAt);

@@ -22,7 +22,7 @@ public class NewsController {
         var items=page.items().stream().map(i->{
             Optional<NewsResponse.Sentiment> sentiment=i.analysisStatus()==AnalysisStatus.ANALYZED&&i.label().isPresent()&&i.confidence().isPresent()&&i.polarityScore().isPresent()
                 ?Optional.of(new NewsResponse.Sentiment(i.label().orElseThrow(),i.confidence().orElseThrow().toPlainString(),i.polarityScore().orElseThrow().toPlainString())):Optional.empty();
-            return new NewsResponse.Item(i.newsId().value(),i.title(),i.source(),i.url(),i.publishedAt(),i.analysisStatus().name(),i.relatedAssetIds().stream().map(a->a.value()).toList(),sentiment);
+            return new NewsResponse.Item(new NewsResponse.NewsResponseId(i.newsId().value()),i.title(),i.source(),i.url(),i.publishedAt(),i.analysisStatus().name(),i.relatedAssetIds().stream().map(a->a.value()).toList(),sentiment);
         }).toList();
         return ResponseEntity.ok(new NewsResponse(items,page.nextCursor(),page.nextCursor().isPresent()));
     }

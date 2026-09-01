@@ -15,7 +15,7 @@ public final class HttpSentimentInferenceAdapter implements SentimentInferencePo
     @Override public CompletionStage<SentimentAnalysisOutcome> analyze(SentimentAnalysisRequest request) {
         try {
             var body=json.writeValueAsString(mapper.toWire(request));
-            var outbound=HttpRequest.newBuilder(endpoint).header("Authorization","Bearer "+token).header("Content-Type","application/json").header("X-Correlation-Id",request.requestId()).POST(HttpRequest.BodyPublishers.ofString(body)).build();
+            var outbound=HttpRequest.newBuilder(endpoint).header("Authorization","Bearer "+token).header("Content-Type","application/json").header("X-Correlation-Id",request.requestId().value()).POST(HttpRequest.BodyPublishers.ofString(body)).build();
             return http.sendAsync(outbound,HttpResponse.BodyHandlers.ofByteArray()).thenApply(response->{
                 if(response.body().length>MAX_BODY) throw new SentimentClientException("Sentiment response too large",false,true);
                 if(response.statusCode()==200) try{return mapper.fromWire(request,json.readValue(response.body(),SentimentAnalyzeSuccess.class));}catch(java.io.IOException e){throw new SentimentClientException("Malformed sentiment response",false,true,e);}
