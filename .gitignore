@@ -30,6 +30,12 @@ supabase/.branches/
 Thumbs.db
 *.tmp
 *.swp
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+dist/
+*.egg-info/
 
 # Ignore every local environment file except the committed placeholder template.
 .env*

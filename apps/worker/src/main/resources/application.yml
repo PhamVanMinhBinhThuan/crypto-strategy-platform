@@ -39,3 +39,38 @@ logging:
 
 server:
   port: 8081
+
+news:
+  enabled: ${NEWS_ENABLED:false}
+  sentiment:
+    endpoint: ${SENTIMENT_SERVICE_URL:http://sentiment:8000}
+    service-token: ${SENTIMENT_SERVICE_TOKEN:}
+    connect-timeout: 2s
+    response-timeout: 30s
+    max-concurrency: 4
+    failure-rate-threshold: 50
+    sliding-window-size: 10
+    open-state-duration: 30s
+  analysis:
+    lease-duration: 120s
+    claim-batch: 25
+    max-attempts: 3
+    retry-delays: [5s, 30s]
+    poll-delay: 1s
+  release:
+    model-name: ${SENTIMENT_MODEL_NAME:multichannel-english}
+    model-version: ${SENTIMENT_MODEL_VERSION:multichannel-english-1.0.0}
+    preprocessing-version: ${SENTIMENT_PREPROCESSING_VERSION:multichannel-whitespace-en-1}
+    contract-version: sentiment-v1
+  collection:
+    lookback: 24h
+    poll-delay: 60s
+    providers:
+      - source: "CoinTelegraph"
+        url: "https://cointelegraph.com/rss"
+        language: "en"
+        asset-symbols: ["BTC", "ETH"]
+      - source: "CoinDesk"
+        url: "https://www.coindesk.com/arc/outboundfeeds/rss/"
+        language: "en"
+        asset-symbols: ["BTC"]

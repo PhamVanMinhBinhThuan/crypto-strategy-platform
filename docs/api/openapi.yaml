@@ -22,6 +22,7 @@ tags:
   - name: Experiments
   - name: Leaderboard
   - name: News
+  - name: Internal News Audit
 
 paths:
   /candles:
@@ -278,7 +279,13 @@ paths:
       description: Returns newest items first with deterministic ID tie-breaking.
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
-        - $ref: '#/components/parameters/OptionalPair'
+        - $ref: '#/components/parameters/TradingPairId'
+        - name: analysisStatus
+          in: query
+          required: false
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/NewsAnalysisStatus' }
         - $ref: '#/components/parameters/Limit'
         - $ref: '#/components/parameters/Cursor'
       responses:
@@ -292,6 +299,28 @@ paths:
         '400': { $ref: '#/components/responses/BadRequest' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /internal/news-items/{newsId}/sentiment:
+    get:
+      tags: [Internal News Audit]
+      operationId: getNewsSentimentAudit
+      summary: Get protected sentiment provenance for one News Item
+      description: Internal network/service-token endpoint; it is not a browser API.
+      security:
+        - internalServiceToken: []
+      parameters:
+        - name: newsId
+          in: path
+          required: true
+          schema: { $ref: '#/components/schemas/OpaqueId' }
+      responses:
+        '200':
+          description: Latest immutable sentiment result and release provenance.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SentimentAudit' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
 components:
   headers:
@@ -325,6 +354,12 @@ components:
       in: query
       required: false
       schema: { $ref: '#/components/schemas/Pair' }
+    TradingPairId:
+      name: tradingPairId
+      in: query
+      required: false
+      description: Match News linked to either the Trading Pair base or quote Asset.
+      schema: { $ref: '#/components/schemas/OpaqueId' }
     Timeframe:
       name: timeframe
       in: query
@@ -740,22 +775,29 @@ components:
     Sentiment:
       type: object
       additionalProperties: false
-      required: [label, confidence, polarityScore, modelVersion]
+      required: [label, confidence, polarityScore]
       properties:
         label: { type: string, enum: [POSITIVE, NEUTRAL, NEGATIVE] }
         confidence: { $ref: '#/components/schemas/ConfidenceString' }
         polarityScore: { $ref: '#/components/schemas/PolarityScoreString' }
-        modelVersion: { type: string, minLength: 1 }
+    NewsAnalysisStatus:
+      type: string
+      enum: [PENDING, ANALYZING, ANALYZED, FAILED_RETRYABLE, FAILED]
     NewsItem:
       type: object
       additionalProperties: false
-      required: [newsItemId, title, source, url, publishedAt, sentiment]
+      required: [newsId, title, source, url, publishedAt, analysisStatus, relatedAssetIds, sentiment]
       properties:
-        newsItemId: { $ref: '#/components/schemas/OpaqueId' }
+        newsId: { $ref: '#/components/schemas/OpaqueId' }
         title: { type: string, minLength: 1 }
         source: { type: string, minLength: 1 }
         url: { type: string, format: uri }
         publishedAt: { type: string, format: date-time }
+        analysisStatus: { $ref: '#/components/schemas/NewsAnalysisStatus' }
+        relatedAssetIds:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/OpaqueId' }
         sentiment:
           oneOf:
             - $ref: '#/components/schemas/Sentiment'
@@ -770,6 +812,24 @@ components:
             items:
               type: array
               items: { $ref: '#/components/schemas/NewsItem' }
+
+    SentimentAudit:
+      type: object
+      additionalProperties: false
+      required: [sentimentResultId, newsId, language, contentHash, modelName, modelVersion, preprocessingVersion, contractVersion, label, confidence, polarityScore, analyzedAt]
+      properties:
+        sentimentResultId: { $ref: '#/components/schemas/OpaqueId' }
+        newsId: { $ref: '#/components/schemas/OpaqueId' }
+        language: { type: string, const: en }
+        contentHash: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        modelName: { type: string, minLength: 1 }
+        modelVersion: { type: string, minLength: 1 }
+        preprocessingVersion: { type: string, minLength: 1 }
+        contractVersion: { type: string, const: sentiment-v1 }
+        label: { type: string, enum: [POSITIVE, NEUTRAL, NEGATIVE] }
+        confidence: { $ref: '#/components/schemas/ConfidenceString' }
+        polarityScore: { $ref: '#/components/schemas/PolarityScoreString' }
+        analyzedAt: { type: string, format: date-time }
 
     FieldError:
       type: object
@@ -819,4 +879,8 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    internalServiceToken:
+      type: http
+      scheme: bearer
+      description: Rotated internal service token; never exposed to browser clients.
       description: Supabase Auth access token verified by the Java API.

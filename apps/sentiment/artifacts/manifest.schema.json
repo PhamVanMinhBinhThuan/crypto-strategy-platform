@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["modelName", "modelVersion", "preprocessingVersion", "contractVersion", "modelFile", "vocabularyFile", "labels", "sourceCommit", "trainingProvenance", "dependencies", "checksums"],
+  "properties": {
+    "modelName": {"type": "string", "minLength": 1},
+    "modelVersion": {"type": "string", "minLength": 1},
+    "preprocessingVersion": {"const": "multichannel-whitespace-en-1"},
+    "contractVersion": {"const": "sentiment-v1"},
+    "modelFile": {"type": "string", "pattern": "^[^/\\\\]+$"},
+    "vocabularyFile": {"type": "string", "pattern": "^[^/\\\\]+$"},
+    "labels": {"const": ["POSITIVE", "NEGATIVE", "NEUTRAL"]},
+    "sourceCommit": {"const": "fd1163a88d04e61e2b19a34e07da99e10acb6288"},
+    "trainingProvenance": {"type": "string", "minLength": 1},
+    "dependencies": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string"}},
+    "checksums": {"type": "object", "minProperties": 2, "additionalProperties": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}
+  }
+}

@@ -1,4 +1,4 @@
-plugins {
+﻿plugins {
     id("crypto.spring-application-conventions")
 }
 
@@ -15,6 +15,7 @@ dependencies {
     implementation(project(":modules:contracts"))
     implementation(project(":modules:domain"))
     implementation(project(":modules:market-data"))
+    implementation(project(":modules:news"))
     implementation(project(":modules:strategy-core"))
     implementation(project(":modules:combination"))
     implementation(project(":modules:strategies"))
@@ -25,11 +26,15 @@ dependencies {
     implementation(project(":modules:leaderboard"))
     implementation(project(":modules:persistence"))
 
+    implementation(libs.resilience4j.circuitbreaker)
+    implementation(libs.resilience4j.timelimiter)
+
     runtimeOnly(libs.postgresql)
 
     testImplementation(platform(libs.spring.boot.dependencies))
     testImplementation(libs.spring.boot.starter.test)
     testImplementation("org.assertj:assertj-core")
+    testImplementation(libs.mockwebserver)
     testRuntimeOnly("com.h2database:h2")
 }
 
@@ -52,6 +57,6 @@ tasks.register<Test>("supabaseIntegrationTest") {
     doFirst {
         val required = listOf("DATABASE_URL", "DATABASE_USERNAME", "DATABASE_PASSWORD")
         val missing = required.filter { System.getenv(it).isNullOrBlank() }
-        check(missing.isEmpty()) { "Missing required environment configuration: ${missing.joinToString()}" }
+        check(missing.isEmpty()) { "Missing required environment configuration: " }
     }
 }
