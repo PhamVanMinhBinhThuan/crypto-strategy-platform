@@ -22,7 +22,7 @@
 
 - [X] T006 [P] Viết contract test kiểm tra public error envelope, UTC timestamp, correlation header và không có sensitive fields tại `apps/api/src/test/java/com/cryptostrategy/platform/api/error/PublicErrorContractTest.java`.
 - [ ] T007 [P] Viết architecture test cấm API import persistence/internal/provider implementation tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/PublicApiBoundaryTest.java`.
-- [ ] T008 [P] Implement typed `AuthenticatedUserContext` và mapping UUID từ JWT subject tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticatedUserContext.java`.
+- [X] T008 [P] Implement typed `AuthenticatedUserContext` và mapping UUID từ JWT subject tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticatedUserContext.java`.
 - [X] T009 Implement one-time WebSocket ticket model/store/issuer với expiry, origin binding và single-use enforcement tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketService.java`.
 - [ ] T010 Implement correlation context/filter/response propagation cho REST và realtime tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java` và package `observability/`.
 - [X] T011 Implement public `ErrorEnvelope`, safe details và exception-to-status mapper theo error contract tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/`.
@@ -41,14 +41,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T016 [P] [US1] Viết authentication integration tests cho missing/expired/malformed/wrong issuer-audience JWT tại `apps/api/src/test/java/com/cryptostrategy/platform/api/auth/AuthenticationIntegrationTest.java`.
+- [X] T016 [P] [US1] Viết authentication integration tests cho missing/expired/malformed/wrong issuer-audience JWT tại `apps/api/src/test/java/com/cryptostrategy/platform/api/auth/AuthenticationIntegrationTest.java`.
 - [X] T017 [P] [US1] Viết two-user ownership tests cho resource ID trực tiếp và parent-chain ID tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/OwnershipIsolationIntegrationTest.java`.
 - [ ] T018 [P] [US1] Viết error redaction tests chứng minh token, secret, SQL, path, stack trace và provider payload không xuất hiện tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/PublicRedactionIntegrationTest.java`.
 - [ ] T019 [P] [US1] Viết WebSocket ticket handshake tests cho single-use, expiry, origin và authentication expiry tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/WebSocketTicketIntegrationTest.java`.
 
 ### Implementation for User Story 1
 
-- [ ] T020 [US1] Tích hợp `SecurityFilterChain` với authenticated user context và public endpoint policy tại `apps/api/src/main/java/com/cryptostrategy/platform/api/config/SecurityConfiguration.java`.
+- [X] T020 [US1] Tích hợp `SecurityFilterChain` với authenticated user context và public endpoint policy tại `apps/api/src/main/java/com/cryptostrategy/platform/api/config/SecurityConfiguration.java`.
 - [X] T021 [US1] Tạo endpoint cấp one-time WebSocket ticket, không trả access token hoặc đặt token dài hạn trong URL tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketController.java`.
 - [ ] T022 [US1] Tích hợp `ApiExceptionHandler` với error catalog, ownership-safe 404 và retry headers tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/ApiExceptionHandler.java`.
 - [ ] T023 [US1] Tích hợp correlation ID vào mọi REST response và log context tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java`.

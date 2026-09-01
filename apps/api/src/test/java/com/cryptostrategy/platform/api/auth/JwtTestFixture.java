@@ -110,6 +110,11 @@ final class JwtTestFixture implements AutoCloseable {
                 Instant.now().plusSeconds(300), Instant.now().minusSeconds(5));
     }
 
+    String nonCanonicalUuidSubjectToken() {
+        return token(signingKey, KEY_ID, "1-1-1-1-1", ISSUER, List.of(AUDIENCE),
+                Instant.now().plusSeconds(300), Instant.now().minusSeconds(5));
+    }
+
     String missingSubjectToken() {
         return token(signingKey, KEY_ID, null, ISSUER, List.of(AUDIENCE),
                 Instant.now().plusSeconds(300), Instant.now().minusSeconds(5));

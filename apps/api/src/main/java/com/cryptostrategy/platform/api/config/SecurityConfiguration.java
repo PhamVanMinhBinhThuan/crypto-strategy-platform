@@ -4,10 +4,10 @@ import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
 import com.cryptostrategy.platform.api.auth.AuthenticationFailureHandler;
 import java.util.Collection;
 import java.util.List;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -55,10 +55,23 @@ public class SecurityConfiguration {
         return jwt -> new UserContextAuthenticationToken(
                 jwt,
                 authoritiesConverter.convert(jwt),
-                new AuthenticatedUserContext(UUID.fromString(jwt.getSubject())));
+                AuthenticatedUserContext.fromSubject(jwt.getSubject()));
     }
 
     @Bean
+    @Order(0)
+    SecurityFilterChain internalServiceSecurity(HttpSecurity http) throws Exception {
+        return http.securityMatcher("/internal/news-items/**")
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .httpBasic(httpBasic -> httpBasic.disable())
+                .formLogin(formLogin -> formLogin.disable())
+                .build();
+    }
+
+    @Bean
+    @Order(1)
     SecurityFilterChain apiSecurity(
             HttpSecurity http,
             AuthenticationFailureHandler authenticationFailureHandler,
@@ -67,7 +80,6 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                        .requestMatchers("/internal/news-items/**").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(formLogin -> formLogin.disable())
@@ -80,7 +92,7 @@ public class SecurityConfiguration {
 
     private static OAuth2TokenValidatorResult validUuidSubject(String subject) {
         try {
-            UUID.fromString(subject);
+            AuthenticatedUserContext.fromSubject(subject);
             return OAuth2TokenValidatorResult.success();
         } catch (RuntimeException exception) {
             OAuth2Error error = new OAuth2Error("invalid_token", "JWT subject must be a UUID", null);

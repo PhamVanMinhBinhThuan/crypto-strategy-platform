@@ -1,14 +1,21 @@
 package com.cryptostrategy.platform.api.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.cryptostrategy.platform.api.ApiApplication;
+import com.cryptostrategy.platform.news.api.model.NewsId;
+import com.cryptostrategy.platform.news.api.port.in.GetSentimentAuditUseCase;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -29,6 +36,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,7 +45,8 @@ import org.springframework.web.bind.annotation.RestController;
         properties = {
             "spring.datasource.url=jdbc:h2:mem:authentication;DB_CLOSE_DELAY=-1",
             "spring.datasource.username=sa",
-            "spring.datasource.password=fixture-password"
+            "spring.datasource.password=fixture-password",
+            "news.audit.service-token=internal-fixture-token"
         })
 @AutoConfigureMockMvc
 @Import(AuthenticationIntegrationTest.FixtureConfiguration.class)
@@ -50,6 +59,9 @@ class AuthenticationIntegrationTest {
 
     @Autowired
     private ProtectedFixtureController controller;
+
+    @MockitoBean
+    private GetSentimentAuditUseCase sentimentAudit;
 
     @DynamicPropertySource
     static void jwtProperties(DynamicPropertyRegistry registry) {
@@ -115,6 +127,28 @@ class AuthenticationIntegrationTest {
     }
 
     @Test
+    void internalServiceTokenUsesItsDedicatedBoundaryInsteadOfJwtAuthentication() throws Exception {
+        when(sentimentAudit.findLatest(any(NewsId.class))).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/internal/news-items/{newsId}/sentiment",
+                        "10000000000000000000000001")
+                        .header("Authorization", "Bearer internal-fixture-token"))
+                .andExpect(status().isNotFound());
+
+        verify(sentimentAudit).findLatest(new NewsId("10000000000000000000000001"));
+    }
+
+    @Test
+    void browserJwtDoesNotGrantInternalServiceAuthority() throws Exception {
+        mockMvc.perform(get("/internal/news-items/{newsId}/sentiment",
+                        "10000000000000000000000001")
+                        .header("Authorization", "Bearer " + JWT.validToken(USER_ID)))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(sentimentAudit);
+    }
+
+    @Test
     void missingJwtAudienceFailsFastWithConfigurationKeyOnly() {
         Exception failure = org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () ->
                 new SpringApplicationBuilder(ApiApplication.class)
@@ -153,6 +187,7 @@ class AuthenticationIntegrationTest {
                 Arguments.of("wrong audience", JWT.wrongAudienceToken(USER_ID)),
                 Arguments.of("missing audience", JWT.missingAudienceToken(USER_ID)),
                 Arguments.of("non-UUID subject", JWT.nonUuidSubjectToken()),
+                Arguments.of("non-canonical UUID subject", JWT.nonCanonicalUuidSubjectToken()),
                 Arguments.of("missing subject", JWT.missingSubjectToken()));
     }
 
