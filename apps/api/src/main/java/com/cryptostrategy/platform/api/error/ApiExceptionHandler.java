@@ -3,77 +3,39 @@ package com.cryptostrategy.platform.api.error;
 import com.cryptostrategy.platform.api.observability.CorrelationId;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ApiExceptionHandler.class);
+    private final PublicErrorMapper errorMapper;
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    ResponseEntity<ErrorEnvelope> validationFailure(IllegalArgumentException exception, HttpServletRequest request) {
-        return response(
-                HttpStatus.BAD_REQUEST,
-                "REQUEST_VALIDATION_FAILED",
-                "Request validation failed.",
-                request);
-    }
-
-    @ExceptionHandler(AuthenticationException.class)
-    ResponseEntity<ErrorEnvelope> authenticationFailure(AuthenticationException exception, HttpServletRequest request) {
-        return response(
-                HttpStatus.UNAUTHORIZED,
-                "AUTHENTICATION_REQUIRED",
-                "Authentication is required.",
-                request);
-    }
-
-    @ExceptionHandler(NoResourceFoundException.class)
-    ResponseEntity<ErrorEnvelope> resourceNotFound(NoResourceFoundException exception, HttpServletRequest request) {
-        return response(
-                HttpStatus.NOT_FOUND,
-                "RESOURCE_NOT_FOUND",
-                "The requested resource was not found.",
-                request);
-    }
-
-    @ExceptionHandler(ResourceInaccessibleException.class)
-    ResponseEntity<ErrorEnvelope> resourceInaccessible(
-            ResourceInaccessibleException exception,
-            HttpServletRequest request) {
-        return response(
-                HttpStatus.NOT_FOUND,
-                "RESOURCE_NOT_FOUND",
-                "The requested resource was not found.",
-                request);
+    public ApiExceptionHandler(PublicErrorMapper errorMapper) {
+        this.errorMapper = errorMapper;
     }
 
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ErrorEnvelope> unexpectedFailure(Exception exception, HttpServletRequest request) {
-        LOGGER.error("request_failed exceptionType={}", exception.getClass().getSimpleName());
-        return response(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "INTERNAL_ERROR",
-                "An unexpected error occurred.",
-                request);
+    ResponseEntity<ErrorEnvelope> handle(Exception exception, HttpServletRequest request) {
+        PublicErrorMapper.MappedError error = errorMapper.map(exception);
+        if (error.status().is5xxServerError()) {
+            LOGGER.error("request_failed code={} status={} exceptionType={}",
+                    error.code(), error.status().value(), exception.getClass().getSimpleName());
+        }
+        return response(error, request);
     }
 
     private static ResponseEntity<ErrorEnvelope> response(
-            HttpStatus status,
-            String code,
-            String message,
+            PublicErrorMapper.MappedError error,
             HttpServletRequest request) {
         String correlationId = correlationId(request);
-        ErrorEnvelope envelope = new ErrorEnvelope(code, message, Map.of(), correlationId, Instant.now());
-        return ResponseEntity.status(status)
+        ErrorEnvelope envelope = new ErrorEnvelope(
+                error.code(), error.message(), error.details(), correlationId, Instant.now());
+        return ResponseEntity.status(error.status())
                 .header(CorrelationId.HEADER, correlationId)
                 .body(envelope);
     }
