@@ -1,0 +1,1 @@
+package com.cryptostrategy.platform.evaluation.api.port.out;import com.cryptostrategy.platform.evaluation.api.model.EvaluationResult;public interface EvaluationResultStore{EvaluationResult save(EvaluationResult result);}

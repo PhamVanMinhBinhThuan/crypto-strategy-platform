@@ -1,0 +1,1 @@
+package com.cryptostrategy.platform.backtesting.api.model;import java.util.*;public record BacktestVerificationReport(boolean matched,List<String> differences){public BacktestVerificationReport{differences=List.copyOf(differences);if(matched&&!differences.isEmpty())throw new IllegalArgumentException("Matched report cannot have differences");}}

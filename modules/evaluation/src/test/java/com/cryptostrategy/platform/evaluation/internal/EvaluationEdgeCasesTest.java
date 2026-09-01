@@ -1,0 +1,3 @@
+package com.cryptostrategy.platform.evaluation.internal;
+import static org.junit.jupiter.api.Assertions.*;import java.math.BigDecimal;import org.junit.jupiter.api.Test;
+class EvaluationEdgeCasesTest{@Test void zeroTradesAndZeroWinsAreFinite(){var metrics=new MetricCalculator().calculate(EvaluationTestFixtures.result(0,new BigDecimal("1000"),new BigDecimal("1000")));assertEquals(BigDecimal.ZERO.setScale(10),metrics.winRate());assertEquals(0,metrics.numberOfTrades());}@Test void zeroInitialCapitalIsRejectedByDomainOrCalculator(){assertThrows(IllegalArgumentException.class,()->EvaluationTestFixtures.result(0,BigDecimal.ZERO,BigDecimal.ZERO));}}

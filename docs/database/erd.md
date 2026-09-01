@@ -67,6 +67,10 @@ erDiagram
 | `experiment` | `execution_attempt`, `backtest_result`, `trade` | `backtesting` |
 | `experiment` | `evaluation_result` | `evaluation` |
 | `experiment` | `leaderboard_revision`, `leaderboard_entry` | `leaderboard` |
+
+F-006 bảo vệ chuỗi lineage bằng khóa ngoại tổng hợp:
+`Experiment → Candidate → BACKTEST Job → successful Execution Attempt → Backtest Result → Evaluation Result → Leaderboard Entry`.
+Các Result, Trade, Evaluation và Leaderboard Revision đã hoàn tất là immutable. Backtest Result lưu assumptions có version và equity digest; Evaluation/Leaderboard lưu fingerprint phân tầng để reproduction không phụ thuộc thời gian chạy hoặc thứ tự Worker hoàn tất.
 | `news` | `news_item`, `news_item_asset`, `sentiment_result` | `news` |
 | `platform` | `user_profile`, `outbox_event`, `processed_message`, `idempotency_record` | platform persistence |
 
@@ -90,6 +94,9 @@ erDiagram
 4. Candidate không trùng generation index hoặc fingerprint trong Experiment.
 5. Mỗi Candidate có tối đa một Backtest Result thành công.
 6. Evaluation duy nhất theo Result và metric version.
+7. Backtest Result, successful Execution Attempt và Candidate phải thuộc cùng Candidate/Experiment.
+8. Leaderboard Entry chỉ được tham chiếu Evaluation Result thuộc cùng Experiment với Revision.
+9. Experiment Manifest lưu đầy đủ Dataset/Strategy provenance; adapter không được dựng metadata mặc định khi đọc.
 7. Rank và Evaluation không trùng trong một Leaderboard revision.
 8. Sentiment duy nhất theo News, content hash và model version.
 9. Một consumer chỉ xử lý một message ID một lần.

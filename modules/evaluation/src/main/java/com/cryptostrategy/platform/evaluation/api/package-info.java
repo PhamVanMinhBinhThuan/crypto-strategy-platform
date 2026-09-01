@@ -1,2 +1,2 @@
-/** Public Evaluation contracts and metrics boundary. */
+/** Public versioned evaluation contracts. */
 package com.cryptostrategy.platform.evaluation.api;

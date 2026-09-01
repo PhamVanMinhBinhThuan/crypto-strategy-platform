@@ -42,4 +42,8 @@ public final class MovingAverageCrossoverPlugin implements StrategyPlugin {
         long slow = ((StrategyParameterValue.IntegerValue) parameters.require("slowPeriod")).value();
         return new MovingAverageCrossoverStrategy(REFERENCE, Math.toIntExact(fast), Math.toIntExact(slow));
     }
+    @Override public int requiredLookback(StrategyParameterSet parameters) {
+        long slow = ((StrategyParameterValue.IntegerValue) parameters.require("slowPeriod")).value();
+        return Math.toIntExact(slow);
+    }
 }

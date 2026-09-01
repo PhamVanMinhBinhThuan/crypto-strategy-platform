@@ -20,19 +20,19 @@ select pg_temp.assert_true(
 );
 
 select pg_temp.assert_true(
-    (select count(*) = 24 from information_schema.tables
+    (select count(*) >= 24 from information_schema.tables
      where table_schema in ('market', 'strategy', 'experiment', 'news', 'platform')
        and table_type = 'BASE TABLE'),
-    'twenty-four baseline tables must exist'
+    'all twenty-four baseline tables must exist; forward migrations may add more'
 );
 
 select pg_temp.assert_true(
-    (select count(*) = 27
+    (select count(*) >= 27
      from pg_constraint c
      join pg_namespace n on n.oid = c.connamespace
      where c.contype = 'f'
        and n.nspname in ('market', 'strategy', 'experiment', 'news', 'platform')),
-    'all twenty-seven baseline foreign keys must exist'
+    'all baseline foreign keys and forward integrity constraints must exist'
 );
 
 select pg_temp.assert_true(
@@ -194,18 +194,35 @@ values
 insert into experiment.experiment_manifest
     (experiment_id, manifest_version, dataset_version_id, strategy_kind,
      strategy_ref_id, strategy_version, strategy_parameters, backtest_config,
-     search_config, evaluation_config, software_version, git_commit, fingerprint)
+     search_config, evaluation_config, software_version, git_commit, fingerprint,
+     dataset_provenance, strategy_provenance)
 values
     ('00000000000000000000000007', 'v1', '00000000000000000000000005',
-     'SINGLE', 'sma-cross', '1.0.0', '{}', '{}', '{}', '{}', '1.0.0', 'abc123', 'same-manifest'),
+     'SINGLE', 'sma-cross', '1.0.0', '{}', '{}', '{}', '{}', '1.0.0', 'abc123', 'same-manifest',
+     '{"datasetVersionId":"00000000000000000000000005","version":"candle-v1","checksum":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","provider":"binance","tradingPair":"BTC/USDT","timeframe":"1h","normalizationVersion":"v1","rangeStart":"2026-01-01T00:00:00Z","rangeEnd":"2026-01-01T01:00:00Z","candleCount":1}',
+     '{"kind":"SINGLE","parameters":{},"strategyFingerprint":"strategy-v1:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","singleStrategy":{"strategyVersionId":"00000000000000000000000006","pluginId":"sma-cross","implementationVersion":"1.0.0"},"components":[]}'),
     ('00000000000000000000000008', 'v1', '00000000000000000000000005',
-     'SINGLE', 'sma-cross', '1.0.0', '{}', '{}', '{}', '{}', '1.0.0', 'abc123', 'same-manifest');
+     'SINGLE', 'sma-cross', '1.0.0', '{}', '{}', '{}', '{}', '1.0.0', 'abc123', 'same-manifest',
+     '{"datasetVersionId":"00000000000000000000000005","version":"candle-v1","checksum":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","provider":"binance","tradingPair":"BTC/USDT","timeframe":"1h","normalizationVersion":"v1","rangeStart":"2026-01-01T00:00:00Z","rangeEnd":"2026-01-01T01:00:00Z","candleCount":1}',
+     '{"kind":"SINGLE","parameters":{},"strategyFingerprint":"strategy-v1:sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","singleStrategy":{"strategyVersionId":"00000000000000000000000006","pluginId":"sma-cross","implementationVersion":"1.0.0"},"components":[]}');
 
 insert into experiment.candidate_definition
     (candidate_id, experiment_id, generation_index, definition, fingerprint)
 values
     ('00000000000000000000000009', '00000000000000000000000007', 0, '{}', 'candidate-fp-1'),
-    ('0000000000000000000000000A', '00000000000000000000000008', 0, '{}', 'candidate-fp-2');
+    ('0000000000000000000000000A', '00000000000000000000000008', 0, '{}', 'candidate-fp-2'),
+    ('0000000000000000000000000Z', '00000000000000000000000007', 1, '{}', 'candidate-fp-3');
+
+insert into experiment.job
+    (job_id, experiment_id, candidate_id, job_type, status, correlation_id,
+     total_work, completed_work, failed_work)
+values
+    ('0000000000000000000000000C', '00000000000000000000000007',
+     '00000000000000000000000009', 'BACKTEST', 'SUCCEEDED',
+     '0000000000000000000000000T', 1, 1, 0),
+    ('0000000000000000000000000E', '00000000000000000000000008',
+     '0000000000000000000000000A', 'BACKTEST', 'SUCCEEDED',
+     '0000000000000000000000000V', 1, 1, 0);
 
 insert into experiment.execution_attempt
     (attempt_id, job_id, candidate_id, attempt_no, status)
@@ -216,12 +233,12 @@ values
      '0000000000000000000000000A', 1, 'SUCCEEDED');
 
 insert into experiment.backtest_result
-    (backtest_result_id, candidate_id, successful_attempt_id, initial_capital,
+    (backtest_result_id, experiment_id, candidate_id, successful_attempt_id, initial_capital,
      final_capital, result_fingerprint, completed_at, reproduces_result_id)
 values
-    ('0000000000000000000000000F', '00000000000000000000000009',
+    ('0000000000000000000000000F', '00000000000000000000000007', '00000000000000000000000009',
      '0000000000000000000000000B', 1000, 1100, 'result-fp-1', '2026-01-02T00:00:00Z', null),
-    ('0000000000000000000000000G', '0000000000000000000000000A',
+    ('0000000000000000000000000G', '00000000000000000000000008', '0000000000000000000000000A',
      '0000000000000000000000000D', 1000, 1100, 'result-fp-2', '2026-01-02T00:00:00Z',
      '0000000000000000000000000F');
 
@@ -233,10 +250,10 @@ values
      '2026-01-01T00:00:00Z', '2026-01-01T01:00:00Z', 100, 110, 1, 0.1, 9.9);
 
 insert into experiment.evaluation_result
-    (evaluation_result_id, backtest_result_id, metric_version, ranking_version,
+    (evaluation_result_id, experiment_id, backtest_result_id, metric_version, ranking_version,
      total_return, win_rate, maximum_drawdown, number_of_trades, overall_score, evaluated_at)
 values
-    ('0000000000000000000000000J', '0000000000000000000000000F',
+    ('0000000000000000000000000J', '00000000000000000000000007', '0000000000000000000000000F',
      'metrics-v1', 'ranking-v1', 0.1, 1, 0, 1, 0.9, '2026-01-02T00:00:00Z');
 
 insert into experiment.leaderboard_revision
@@ -244,8 +261,53 @@ insert into experiment.leaderboard_revision
 values ('0000000000000000000000000K', '00000000000000000000000007', 1, 10);
 
 insert into experiment.leaderboard_entry
-    (leaderboard_revision_id, rank, evaluation_result_id, score)
-values ('0000000000000000000000000K', 1, '0000000000000000000000000J', 0.9);
+    (leaderboard_revision_id, experiment_id, rank, evaluation_result_id, score)
+values ('0000000000000000000000000K', '00000000000000000000000007', 1, '0000000000000000000000000J', 0.9);
+
+-- V-09: F-006 prerequisite lineage constraints reject cross-Candidate/Experiment links.
+do $$
+begin
+    begin
+        insert into experiment.backtest_result
+            (backtest_result_id, experiment_id, candidate_id, successful_attempt_id,
+             initial_capital, final_capital, result_fingerprint, completed_at)
+        values
+            ('0000000000000000000000000W', '00000000000000000000000007',
+             '0000000000000000000000000Z', '0000000000000000000000000D',
+             1000, 1000, 'wrong-attempt', '2026-01-02T00:00:00Z');
+        raise exception 'Backtest Result accepted an Attempt from another Candidate';
+    exception when foreign_key_violation then null; end;
+
+    begin
+        insert into experiment.evaluation_result
+            (evaluation_result_id, experiment_id, backtest_result_id, metric_version,
+             ranking_version, total_return, win_rate, maximum_drawdown,
+             number_of_trades, overall_score, evaluated_at)
+        values
+            ('0000000000000000000000000X', '00000000000000000000000008',
+             '0000000000000000000000000F', 'metrics-v2', 'ranking-v1',
+             0, 0, 0, 0, 0, '2026-01-02T00:00:00Z');
+        raise exception 'Evaluation accepted a Backtest Result from another Experiment';
+    exception when foreign_key_violation then null; end;
+end;
+$$;
+
+insert into experiment.leaderboard_revision
+    (leaderboard_revision_id, experiment_id, revision_no, top_k)
+values ('0000000000000000000000000Y', '00000000000000000000000008', 1, 10);
+
+do $$
+begin
+    begin
+        insert into experiment.leaderboard_entry
+            (leaderboard_revision_id, experiment_id, rank, evaluation_result_id, score)
+        values
+            ('0000000000000000000000000Y', '00000000000000000000000008',
+             1, '0000000000000000000000000J', 0.9);
+        raise exception 'Leaderboard accepted an Evaluation from another Experiment';
+    exception when foreign_key_violation then null; end;
+end;
+$$;
 
 insert into news.news_item
     (news_item_id, source, source_item_id, url, title, content_hash,
@@ -351,26 +413,29 @@ begin
 
     begin
         insert into experiment.backtest_result
-            (backtest_result_id, candidate_id, successful_attempt_id, initial_capital,
+            (backtest_result_id, experiment_id, candidate_id, successful_attempt_id, initial_capital,
              final_capital, result_fingerprint, completed_at)
-        values ('0000000000000000000000000W', '00000000000000000000000009',
+        values ('0000000000000000000000000W', '00000000000000000000000007',
+                '00000000000000000000000009',
                 '0000000000000000000000000B', 1, 1, 'duplicate-result', now());
         raise exception 'second Result for Candidate was accepted';
     exception when unique_violation then null; end;
 
     begin
         insert into experiment.evaluation_result
-            (evaluation_result_id, backtest_result_id, metric_version, ranking_version,
+            (evaluation_result_id, experiment_id, backtest_result_id, metric_version, ranking_version,
              total_return, win_rate, maximum_drawdown, number_of_trades, overall_score, evaluated_at)
-        values ('0000000000000000000000000X', '0000000000000000000000000F',
+        values ('0000000000000000000000000X', '00000000000000000000000007',
+                '0000000000000000000000000F',
                 'metrics-v1', 'ranking-v1', 0, 0, 0, 0, 0, now());
         raise exception 'duplicate Evaluation metric version was accepted';
     exception when unique_violation then null; end;
 
     begin
         insert into experiment.leaderboard_entry
-            (leaderboard_revision_id, rank, evaluation_result_id, score)
-        values ('0000000000000000000000000K', 1, '0000000000000000000000000J', 0.9);
+            (leaderboard_revision_id, experiment_id, rank, evaluation_result_id, score)
+        values ('0000000000000000000000000K', '00000000000000000000000007',
+                1, '0000000000000000000000000J', 0.9);
         raise exception 'duplicate Leaderboard rank was accepted';
     exception when unique_violation then null; end;
 
@@ -438,7 +503,7 @@ select pg_temp.assert_true(
      from experiment.trade t
      join experiment.backtest_result br using (backtest_result_id)
      join experiment.candidate_definition c using (candidate_id)
-     join experiment.experiment e using (experiment_id)
+     join experiment.experiment e on e.experiment_id = br.experiment_id
      where t.trade_id = '0000000000000000000000000H'),
     'Trade must resolve to exactly one Experiment owner'
 );
@@ -447,7 +512,7 @@ select pg_temp.assert_true(
     (select count(*) = 1
      from experiment.backtest_result br
      join experiment.candidate_definition c using (candidate_id)
-     join experiment.experiment_manifest em using (experiment_id)
+     join experiment.experiment_manifest em on em.experiment_id = br.experiment_id
      join market.dataset_version dv using (dataset_version_id)
      join market.dataset_candle dc using (dataset_version_id)
      join strategy.strategy_version sv

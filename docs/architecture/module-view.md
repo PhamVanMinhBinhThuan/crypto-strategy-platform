@@ -80,9 +80,11 @@ Mũi tên `A --> B` nghĩa là code của A được phép phụ thuộc public 
 | --- | --- |
 | `domain` | Không module nội bộ nào |
 | `contracts` | `domain` khi DTO cần stable domain type |
-| `market-data`, `strategy-core`, `evaluation`, `experiment`, `news` | `domain` |
-| `strategies`, `combination`, `backtesting`, `search` | `domain`, `strategy-core` |
-| `leaderboard` | `domain`, public API của `evaluation` khi cần |
+| `market-data`, `strategy-core`, `experiment`, `news` | `domain` |
+| `strategies`, `combination`, `search` | `domain`, `strategy-core` |
+| `backtesting` | `domain`, public API của `market-data`, `strategy-core`, `combination`, `experiment` |
+| `evaluation` | `domain`, public API của `backtesting`, `experiment` |
+| `leaderboard` | `domain`, public API của `evaluation`, `experiment` |
 | `persistence` | `domain`, output port công khai của data owner |
 | `apps/api` | Capability public APIs, `contracts`, `persistence` |
 | `apps/worker` | Public APIs cần cho background flow, `contracts`, `persistence` |

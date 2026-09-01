@@ -1,2 +1,2 @@
-/** Public ranking, Top-K and Leaderboard query boundary. */
+/** Public immutable leaderboard projection contracts. */
 package com.cryptostrategy.platform.leaderboard.api;

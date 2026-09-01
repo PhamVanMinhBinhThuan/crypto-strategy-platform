@@ -1,0 +1,7 @@
+package com.cryptostrategy.platform.backtesting.internal;
+import com.cryptostrategy.platform.backtesting.api.model.*;import java.math.*;import java.nio.charset.StandardCharsets;import java.security.*;
+final class EquityAccumulator { private final MessageDigest digest;private long count;private BigDecimal peak;private long peakAt;private BigDecimal worstPeak;private BigDecimal worstTrough;private long worstPeakAt;private long worstTroughAt;
+    EquityAccumulator(){try{digest=MessageDigest.getInstance("SHA-256");}catch(NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
+    void add(BigDecimal raw){BigDecimal v=raw.setScale(12,RoundingMode.HALF_EVEN);digest.update((count+"|"+v.toPlainString()+"\n").getBytes(StandardCharsets.UTF_8));if(peak==null||v.compareTo(peak)>0){peak=v;peakAt=count;}if(worstPeak==null){worstPeak=v;worstTrough=v;worstPeakAt=count;worstTroughAt=count;}else if(v.compareTo(peak)<0){BigDecimal current=peak.subtract(v).divide(peak,20,RoundingMode.HALF_EVEN);BigDecimal worst=worstPeak.subtract(worstTrough).divide(worstPeak,20,RoundingMode.HALF_EVEN);if(current.compareTo(worst)>0){worstPeak=peak;worstTrough=v;worstPeakAt=peakAt;worstTroughAt=count;}}count++;}
+    EquityCurveSummary finish(){if(count==0)throw new IllegalStateException("No equity points");return new EquityCurveSummary(count,Money.of(worstPeak),Money.of(worstTrough),worstPeakAt,worstTroughAt,"sha256:"+java.util.HexFormat.of().formatHex(digest.digest()));}
+}

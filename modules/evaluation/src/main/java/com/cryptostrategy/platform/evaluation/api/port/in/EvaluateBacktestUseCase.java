@@ -1,0 +1,1 @@
+package com.cryptostrategy.platform.evaluation.api.port.in;import com.cryptostrategy.platform.backtesting.api.model.BacktestResult;import com.cryptostrategy.platform.evaluation.api.model.*;public interface EvaluateBacktestUseCase{EvaluationResult evaluate(BacktestResult result,MetricVersion metricVersion,RankingVersion rankingVersion);}

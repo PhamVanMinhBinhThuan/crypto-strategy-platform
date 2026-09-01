@@ -1,0 +1,3 @@
+package com.cryptostrategy.platform.evaluation.internal;
+import static org.junit.jupiter.api.Assertions.*;import java.math.BigDecimal;import org.junit.jupiter.api.Test;
+class MetricCalculatorTest{@Test void calculatesReturnNetPnlWinsDrawdownAndTradeCount(){var metrics=new MetricCalculator().calculate(EvaluationTestFixtures.result(5,new BigDecimal("1000"),new BigDecimal("1100")));assertEquals(new BigDecimal("0.1000000000"),metrics.totalReturn());assertEquals(new BigDecimal("0.8000000000"),metrics.winRate());assertEquals(new BigDecimal("0.2000000000"),metrics.maximumDrawdown());assertEquals(5,metrics.numberOfTrades());}}

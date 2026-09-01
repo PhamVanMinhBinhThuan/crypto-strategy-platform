@@ -1,0 +1,1 @@
+package com.cryptostrategy.platform.evaluation.api.model;import java.util.*;public record EvaluationVerificationReport(boolean matched,List<String> differences){public EvaluationVerificationReport{differences=List.copyOf(differences);}}

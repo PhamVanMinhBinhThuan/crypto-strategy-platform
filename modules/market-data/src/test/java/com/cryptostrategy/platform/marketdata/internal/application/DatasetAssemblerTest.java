@@ -1,0 +1,9 @@
+package com.cryptostrategy.platform.marketdata.internal.application;
+import static com.cryptostrategy.platform.marketdata.support.MarketFixtures.*;import static org.junit.jupiter.api.Assertions.*;
+import com.cryptostrategy.platform.marketdata.api.error.*;import com.cryptostrategy.platform.marketdata.api.model.*;import com.cryptostrategy.platform.marketdata.internal.checksum.CandleV1Checksum;import java.time.*;import java.util.*;import org.junit.jupiter.api.Test;
+class DatasetAssemblerTest {
+ private final DatasetAssembler assembler=new DatasetAssembler(Clock.fixed(Instant.parse("2026-01-02T00:00:00Z"),ZoneOffset.UTC),new CandleV1Checksum());
+ @Test void sortsAndCollapsesExactDuplicatesIntoContiguousMembership(){var result=assembler.assemble(command(2),List.of(candle(1,"2"),candle(0,"1"),candle(0,"1")));assertEquals(2,result.candles().size());assertEquals(START,result.candles().getFirst().key().openTime());}
+ @Test void rejectsConflictsGapsAndMixedScope(){assertThrows(MarketDataException.class,()->assembler.assemble(command(1),List.of(candle(0,"1"),candle(0,"2"))));assertEquals(MarketDataErrorCode.MARKET_DATA_GAP,assertThrows(MarketDataException.class,()->assembler.assemble(command(2),List.of(candle(1,"2")))).code());assertThrows(MarketDataException.class,()->assembler.assemble(command(1),List.of(new com.cryptostrategy.platform.domain.api.market.Candle(new com.cryptostrategy.platform.domain.api.market.CandleKey(new com.cryptostrategy.platform.domain.api.market.MarketProvider("FIXTURE"),PAIR,com.cryptostrategy.platform.domain.api.market.Timeframe.ONE_MINUTE,START),START.plusSeconds(60),java.math.BigDecimal.ONE,new java.math.BigDecimal("2"),java.math.BigDecimal.ZERO,java.math.BigDecimal.ONE,java.math.BigDecimal.ONE,true))));}
+ private static CreateDatasetCommand command(int count){return new CreateDatasetCommand(query(count),"binance-v1",CandleV1Checksum.VERSION);}
+}

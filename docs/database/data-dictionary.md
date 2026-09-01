@@ -52,21 +52,21 @@ cấu hình riêng của user; chúng không chứa Java class, password hoặc 
 | Table | Columns chính | Constraints và indexes |
 | --- | --- | --- |
 | `experiment` | `experiment_id` PK, `owner_user_id uuid` FK → `auth.users`, optional `derived_from_experiment_id` self-FK, `name`, `status`, started/completed time, failure code/message | CK lifecycle status; indexes owner+created_at và status+created_at |
-| `experiment_manifest` | `experiment_id` PK/FK, `manifest_version`, `dataset_version_id` FK, optional source User Strategy version FK, strategy snapshot, backtest/search/evaluation config, optional sentiment config, software version, git commit, fingerprint | Index fingerprint/source version; CK kind SINGLE/COMPOSITE; source phải published và cùng owner; fingerprint được phép lặp khi reproduce |
+| `experiment_manifest` | `experiment_id` PK/FK, `manifest_version`, `dataset_version_id` FK, `dataset_provenance jsonb`, typed `strategy_provenance jsonb`, optional source User Strategy version FK, backtest/search/evaluation config, optional sentiment config, software version, git commit, fingerprint | Hai provenance snapshot là bắt buộc và bất biến khi queue; Strategy snapshot chứa typed ID/version, policy version và `strategy-v1` fingerprint |
 | `candidate_definition` | `candidate_id` PK, `experiment_id` FK, `generation_index`, `definition jsonb`, `generator_state jsonb?`, fingerprint | UQ experiment+index và experiment+fingerprint |
 | `job` | Job ID PK, Experiment FK, optional Candidate, type/status, correlation ID, progress, best score, lifecycle/failure timestamps | FK Candidate+Experiment; CK Search/Backtest shape và progress; UQ Search per Experiment/Backtest per Candidate; recovery/listing indexes |
 | `execution_attempt` | `attempt_id` PK, `job_id` + `candidate_id` composite FK, `attempt_no`, status, worker/times, failure fields, retryable | UQ job+attempt; CK attempt > 0/status; indexes candidate và status+next_retry_at |
-| `backtest_result` | `backtest_result_id` PK, `candidate_id` FK, `successful_attempt_id` FK, initial/final capital, result fingerprint, completed time, `reproduces_result_id?` self-FK | UQ candidate; CK capital >= 0 |
-| `trade` | `trade_id` PK, result FK, sequence, side, entry/exit time, price, quantity, fee, profit_loss | UQ result+sequence; CK side/time/nonnegative execution values; index result+entry_time |
-| `evaluation_result` | `evaluation_result_id` PK, result FK, metric/ranking version, total return, win rate, maximum drawdown, number of trades, overall score, evaluated time | UQ result+metric_version; CK win rate 0..1, drawdown/trade count >= 0; index score |
-| `leaderboard_revision` | revision ID PK, experiment FK, `revision_no bigint`, `top_k` | UQ experiment+revision; CK values > 0; descending latest-revision index |
-| `leaderboard_entry` | revision FK, `rank`, evaluation FK, score snapshot | PK revision+rank; UQ revision+evaluation; CK rank > 0 |
+| `backtest_result` | PK, Experiment/Candidate/Job/successful Attempt lineage, capital/fees, Manifest/Dataset/Strategy fingerprints, assumptions version+JSON, equity summary/digest, `backtest-v1`, completed time | One immutable Result per Candidate; composite FKs require the same Experiment and a matching BACKTEST Job/Attempt |
+| `trade` | PK, Result FK, zero-based sequence, side, entry/exit time and price, quantity, entry/exit/total fee, net P&L, post-trade cash, exit reason | Immutable; UQ Result+sequence; total fee equals entry fee plus exit fee |
+| `evaluation_result` | PK, Experiment+Result, metric/ranking versions, four metrics, normalized component scores, overall score, eligibility, `evaluation-v1` | Immutable; same-Experiment FK; UQ Result+metric+ranking version; scores constrained to `[0,1]` |
+| `leaderboard_revision` | PK, Experiment FK, increasing revision number, Top-K, ranking version, `leaderboard-v1`, created time | Immutable; UQ Experiment+revision and Experiment+ranking+fingerprint |
+| `leaderboard_entry` | Experiment+Revision, contiguous rank, Evaluation FK, score/drawdown/evaluation-fingerprint snapshots | Immutable; same-Experiment FK; PK Revision+rank; UQ Revision+Evaluation |
 
 Lifecycle values:
 
 - Experiment: `CREATED, QUEUED, RUNNING, COMPLETED, FAILED, STOP_REQUESTED, STOPPED`.
 - Job: `QUEUED, RUNNING, RETRY_SCHEDULED, SUCCEEDED, FAILED, CANCEL_REQUESTED, CANCELLED`.
-- Attempt: `QUEUED, RUNNING, RETRY_SCHEDULED, SUCCEEDED, FAILED, CANCELLED`.
+- Attempt: `QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED`; `RETRY_SCHEDULED` chỉ thuộc Job.
 
 ## Schema `news`
 
