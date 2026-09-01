@@ -10,6 +10,8 @@ spring:
       connection-timeout: 3000
 
 platform:
+  idempotency:
+    receipt-lifetime: ${PLATFORM_IDEMPOTENCY_RECEIPT_LIFETIME:PT24H}
   market-data:
     provider: ${PLATFORM_MARKET_DATA_PROVIDER:fixture}
     normalization-version: ${PLATFORM_MARKET_DATA_NORMALIZATION_VERSION:binance-v1}

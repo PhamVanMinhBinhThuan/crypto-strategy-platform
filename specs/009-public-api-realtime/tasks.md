@@ -27,7 +27,7 @@
 - [ ] T010 Implement correlation context/filter/response propagation cho REST và realtime tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java` và package `observability/`.
 - [ ] T011 Implement public `ErrorEnvelope`, safe details và exception-to-status mapper theo error contract tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/`.
 - [X] T012 Implement owner authorization facade nhận authenticated UUID và parent-chain lookup qua published ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/OwnerAuthorizationService.java`.
-- [ ] T013 Implement canonical request hashing và idempotency adapter qua F-005 port tại `apps/api/src/main/java/com/cryptostrategy/platform/api/idempotency/IdempotencyService.java`.
+- [X] T013 Implement canonical request hashing và idempotency adapter qua F-005 port tại `apps/api/src/main/java/com/cryptostrategy/platform/api/idempotency/IdempotencyService.java`.
 - [ ] T014 Implement cursor/limit validation và common page mapping tại `apps/api/src/main/java/com/cryptostrategy/platform/api/transport/PageRequestMapper.java` và `PageResponseMapper.java`.
 - [ ] T015 [P] Viết foundational tests cho ticket single-use/expiry/origin, owner isolation, canonical hash và cursor validation tại `apps/api/src/test/java/com/cryptostrategy/platform/api/foundation/FoundationalBoundaryTest.java`.
 

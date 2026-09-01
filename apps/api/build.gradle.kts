@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
     implementation(project(":modules:domain"))
+    implementation(project(":modules:experiment"))
     implementation(project(":modules:market-data"))
     implementation(project(":modules:strategy-core"))
     implementation(project(":modules:strategies"))
