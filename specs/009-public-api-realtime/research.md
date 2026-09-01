@@ -1,0 +1,74 @@
+# Nghiên cứu và quyết định F-009
+
+## 1. Public transport boundary
+
+**Quyết định**: giữ REST dưới `/api/v1` và native WebSocket tại `/ws`, dùng JSON
+versioned envelope.
+
+**Lý do**: khớp `docs/api/openapi.yaml`, `docs/api/websocket-events.md` và ADR-0004;
+browser có một boundary thống nhất, không phụ thuộc provider hoặc database.
+
+**Phương án khác**: thêm GraphQL, STOMP hoặc broker mới. Không chọn vì mở rộng protocol
+và deployment surface ngoài MVP, không giải quyết thêm yêu cầu user.
+
+## 2. Authentication cho WebSocket
+
+**Quyết định**: authenticated REST request cấp one-time WebSocket ticket ngắn hạn; ticket
+gắn user, origin và expiry, bị vô hiệu ngay sau handshake. Access token dài hạn không
+được đưa vào URL.
+
+**Lý do**: browser WebSocket không cho đặt tùy ý `Authorization` header; ticket tránh
+query-string leakage và phù hợp ADR-0011/ADR-0004. Handshake phải kiểm tra origin và
+ticket trước khi tạo subscription.
+
+**Phương án khác**: cookie phiên dài hạn hoặc access token trong query string. Cookie
+phụ thuộc thêm session bridge; query string dễ lọt vào log/referrer nên bị loại.
+
+## 3. Snapshot và event sequencing
+
+**Quyết định**: subscription registration tạo synchronization marker; server đăng ký,
+đọc snapshot boundary và chỉ phát notification sau marker. Mỗi event giữ `eventId` và
+resource revision/timestamp phù hợp; client đọc REST snapshot và bỏ qua event cũ/duplicate.
+
+**Lý do**: REST snapshot là source of truth, còn F-007 notifications transient. Cách này
+đóng race giữa lúc đọc snapshot và lúc subscribe mà không yêu cầu exactly-once delivery.
+
+**Phương án khác**: client gọi REST trước rồi subscribe. Cách này có khoảng mất event nếu
+state thay đổi giữa hai thao tác; chỉ dùng được khi có backfill marker, nên không đủ làm
+contract mặc định.
+
+## 4. Giới hạn và backpressure
+
+**Quyết định**: mặc định bốn Candle subscriptions, bốn workload subscriptions, message
+64 KiB, 30 commands/10 giây/connection, heartbeat 30 giây và timeout 90 giây; tất cả
+được cấu hình và kiểm thử, không hard-code trong browser.
+
+**Lý do**: bốn chart là yêu cầu MVP; giới hạn workload và payload bảo vệ connection; coalesce
+được update trung gian nhưng phải giữ close/terminal/revision mới nhất.
+
+**Phương án khác**: không giới hạn hoặc để UI tự điều tiết. Không chọn vì dễ tạo connection
+chậm, memory tăng và làm mất khả năng dự đoán của acceptance test.
+
+## 5. Ownership và idempotency
+
+**Quyết định**: API nhận authenticated UUID, truy owner qua parent chain; missing/cross-owner
+map cùng inaccessible outcome. Canonical request hash scope theo owner và operation; replay
+cùng hash trả outcome gốc, khác hash trả conflict.
+
+**Lý do**: đúng ADR-0011/0012, F-005 contract và error catalog; tránh enumeration và duplicate
+business effect.
+
+**Phương án khác**: tin resource ID do client gửi hoặc scope idempotency toàn hệ thống. Cả hai
+đều sai isolation khi có nhiều user.
+
+## 6. Dependency readiness
+
+**Quyết định**: chỉ đánh dấu operation functional khi application boundary của capability
+phụ thuộc đã sẵn sàng; endpoint không được trả success giả cho Search/Candle/Sentiment
+operation chưa có owner implementation.
+
+**Lý do**: F-003 còn work chưa hoàn tất, F-008 còn hardening và module Search đang trống;
+giữ spec đầy đủ nhưng không che khuất dependency gate.
+
+**Phương án khác**: trả fixture/mock như production result. Không chọn vì vi phạm evidence
+governance và reproducibility.
