@@ -128,4 +128,3 @@ For each successful verification record:
 - real pass/fail output and timestamp.
 
 Keep status `Planned` for every command not actually executed.
-

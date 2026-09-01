@@ -53,4 +53,3 @@ F-006 does not map these errors to retry policy or redefine `FailureClassificati
 ## Determinism
 
 Changing batch size must not change decisions, Trades, balances or fingerprint. Runtime timestamps, Worker identity and batch size are excluded from `backtest-v1` unless they affect business meaning.
-

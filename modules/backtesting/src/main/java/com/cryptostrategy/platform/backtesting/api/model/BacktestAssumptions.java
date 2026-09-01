@@ -8,7 +8,14 @@ public record BacktestAssumptions(String contractVersion, Money initialCapital, 
     public BacktestAssumptions {
         Objects.requireNonNull(contractVersion); Objects.requireNonNull(initialCapital); Objects.requireNonNull(feeRate);
         Objects.requireNonNull(slippageRate); Objects.requireNonNull(positionMode); Objects.requireNonNull(executionPriceRule); Objects.requireNonNull(roundingMode);
-        if (contractVersion.isBlank() || initialCapital.value().signum() <= 0) throw new IllegalArgumentException("Invalid assumptions");
+        if (!"backtest-assumptions-v1".equals(contractVersion)
+                || initialCapital.value().signum() <= 0
+                || positionMode != PositionMode.LONG_ONLY
+                || executionPriceRule != ExecutionPriceRule.NEXT_CANDLE_OPEN
+                || !forceCloseAtEnd
+                || roundingMode != RoundingMode.HALF_EVEN) {
+            throw new IllegalArgumentException("Unsupported MVP backtest assumptions");
+        }
         feeRate = rate(feeRate); slippageRate = rate(slippageRate);
     }
     public static BacktestAssumptions mvp(BigDecimal capital, BigDecimal fee, BigDecimal slippage) {

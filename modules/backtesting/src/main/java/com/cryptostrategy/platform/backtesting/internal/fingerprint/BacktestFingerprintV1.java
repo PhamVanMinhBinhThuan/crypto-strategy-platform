@@ -1,13 +1,14 @@
 package com.cryptostrategy.platform.backtesting.internal.fingerprint;
 
 import com.cryptostrategy.platform.backtesting.api.model.*;
+import com.cryptostrategy.platform.backtesting.internal.ResolvedBacktestRun;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.util.HexFormat;
 
 /** Canonical semantic fingerprint; runtime IDs and timestamps are deliberately excluded. */
 public final class BacktestFingerprintV1 {
-    public String calculate(BacktestRunCommand command, java.util.List<Trade> trades,
+    public String calculate(ResolvedBacktestRun command, java.util.List<Trade> trades,
             Money finalCapital, EquityCurveSummary equity) {
         StringBuilder value = new StringBuilder("backtest-v1\n")
                 .append(command.provenance()).append('\n').append(command.assumptions()).append('\n');

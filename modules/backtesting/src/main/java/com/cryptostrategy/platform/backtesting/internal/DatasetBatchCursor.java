@@ -1,7 +1,6 @@
 package com.cryptostrategy.platform.backtesting.internal;
 
 import com.cryptostrategy.platform.backtesting.api.error.*;
-import com.cryptostrategy.platform.backtesting.api.model.BacktestRunCommand;
 import com.cryptostrategy.platform.domain.api.market.Candle;
 import com.cryptostrategy.platform.marketdata.api.model.*;
 import com.cryptostrategy.platform.marketdata.api.port.out.DatasetCandleReader;
@@ -9,11 +8,11 @@ import java.util.Objects;
 
 /** Traverses one bounded CandleBatch at a time and enforces contiguous progress. */
 final class DatasetBatchCursor {
-    private final BacktestRunCommand command;
+    private final ResolvedBacktestRun command;
     private final DatasetCandleReader reader;
     private final BacktestInputValidator validator = new BacktestInputValidator();
 
-    DatasetBatchCursor(BacktestRunCommand command, DatasetCandleReader reader) {
+    DatasetBatchCursor(ResolvedBacktestRun command, DatasetCandleReader reader) {
         this.command=Objects.requireNonNull(command);this.reader=Objects.requireNonNull(reader);
     }
 

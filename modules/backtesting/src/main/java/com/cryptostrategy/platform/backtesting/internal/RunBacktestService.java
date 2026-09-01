@@ -1,6 +1,65 @@
 package com.cryptostrategy.platform.backtesting.internal;
-import com.cryptostrategy.platform.backtesting.api.model.*;import com.cryptostrategy.platform.backtesting.api.port.in.RunBacktestUseCase;import com.cryptostrategy.platform.backtesting.api.port.out.*;import com.cryptostrategy.platform.marketdata.api.port.in.VerifyDatasetUseCase;import com.cryptostrategy.platform.marketdata.api.port.out.DatasetCandleReader;import com.cryptostrategy.platform.strategy.api.Strategy;import java.util.Objects;
-public final class RunBacktestService implements RunBacktestUseCase {private final VerifyDatasetUseCase verifier;private final DatasetCandleReader reader;private final BacktestLineageVerifier lineage;private final BacktestResultStore store;private final DeterministicBacktestEngine engine;
- public RunBacktestService(VerifyDatasetUseCase verifier,DatasetCandleReader reader,BacktestLineageVerifier lineage,BacktestResultStore store){this(verifier,reader,lineage,store,new DeterministicBacktestEngine());}
- RunBacktestService(VerifyDatasetUseCase verifier,DatasetCandleReader reader,BacktestLineageVerifier lineage,BacktestResultStore store,DeterministicBacktestEngine engine){this.verifier=Objects.requireNonNull(verifier);this.reader=Objects.requireNonNull(reader);this.lineage=Objects.requireNonNull(lineage);this.store=Objects.requireNonNull(store);this.engine=Objects.requireNonNull(engine);}
- @Override public BacktestResult run(BacktestRunCommand command,Strategy strategy){lineage.verifySuccessful(command);var integrity=verifier.verifyDataset(command.dataset().datasetVersionId());if(!integrity.valid())throw new com.cryptostrategy.platform.backtesting.api.error.BacktestException(com.cryptostrategy.platform.backtesting.api.error.BacktestErrorCode.CHECKSUM_MISMATCH,integrity.detail().orElse("Dataset integrity failed"));return store.save(engine.run(command,reader,strategy));}}
+
+import com.cryptostrategy.platform.backtesting.api.BacktestConfigurationParser;
+import com.cryptostrategy.platform.backtesting.api.error.BacktestErrorCode;
+import com.cryptostrategy.platform.backtesting.api.error.BacktestException;
+import com.cryptostrategy.platform.backtesting.api.model.BacktestProvenance;
+import com.cryptostrategy.platform.backtesting.api.model.BacktestResult;
+import com.cryptostrategy.platform.backtesting.api.model.BacktestRunCommand;
+import com.cryptostrategy.platform.backtesting.api.port.in.RunBacktestUseCase;
+import com.cryptostrategy.platform.backtesting.api.port.out.BacktestResultStore;
+import com.cryptostrategy.platform.backtesting.api.port.out.FrozenStrategyResolver;
+import com.cryptostrategy.platform.experiment.api.port.in.GetFrozenBacktestExecutionUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.VerifyDatasetUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.out.DatasetCandleReader;
+import java.util.Objects;
+
+public final class RunBacktestService implements RunBacktestUseCase {
+    private final GetFrozenBacktestExecutionUseCase frozenExecutions;
+    private final GetDatasetUseCase datasets;
+    private final VerifyDatasetUseCase datasetVerifier;
+    private final DatasetCandleReader candleReader;
+    private final FrozenStrategyResolver strategies;
+    private final BacktestResultStore results;
+    private final BacktestConfigurationParser configurationParser = new BacktestConfigurationParser();
+    private final DeterministicBacktestEngine engine = new DeterministicBacktestEngine();
+
+    public RunBacktestService(GetFrozenBacktestExecutionUseCase frozenExecutions, GetDatasetUseCase datasets,
+            VerifyDatasetUseCase datasetVerifier, DatasetCandleReader candleReader,
+            FrozenStrategyResolver strategies, BacktestResultStore results) {
+        this.frozenExecutions = Objects.requireNonNull(frozenExecutions);
+        this.datasets = Objects.requireNonNull(datasets);
+        this.datasetVerifier = Objects.requireNonNull(datasetVerifier);
+        this.candleReader = Objects.requireNonNull(candleReader);
+        this.strategies = Objects.requireNonNull(strategies);
+        this.results = Objects.requireNonNull(results);
+    }
+
+    @Override public BacktestResult run(BacktestRunCommand command) {
+        Objects.requireNonNull(command);
+        var frozen = frozenExecutions.getFrozenExecution(command.ownerUserId(), command.experimentId(),
+                command.candidateId(), command.jobId(), command.attemptId());
+        var manifest = frozen.manifest();
+        var expected = manifest.datasetProvenance();
+        var dataset = datasets.getDataset(expected.datasetVersionId());
+        if (!dataset.version().equals(expected.version()) || !dataset.checksum().equals(expected.checksum())
+                || dataset.candleCount() != expected.candleCount()) {
+            throw new BacktestException(BacktestErrorCode.CHECKSUM_MISMATCH,
+                    "Persisted Dataset does not match frozen Manifest provenance");
+        }
+        var integrity = datasetVerifier.verifyDataset(dataset.datasetVersionId());
+        if (!integrity.valid()) throw new BacktestException(BacktestErrorCode.CHECKSUM_MISMATCH,
+                integrity.detail().orElse("Dataset integrity failed"));
+        var resolvedStrategy = strategies.resolve(manifest.strategyProvenance());
+        if (!resolvedStrategy.verifiedFingerprint().equals(manifest.strategyProvenance().strategyFingerprint())) {
+            throw new BacktestException(BacktestErrorCode.INVALID_LINEAGE, "Strategy fingerprint mismatch");
+        }
+        var resolved = new ResolvedBacktestRun(command.experimentId(), command.candidateId(), command.jobId(),
+                command.attemptId(), dataset,
+                new BacktestProvenance(manifest.fingerprint(), dataset.checksum(), resolvedStrategy.verifiedFingerprint()),
+                configurationParser.parse(manifest.backtestConfig()), command.batchSize(),
+                resolvedStrategy.requiredLookback());
+        return results.save(engine.run(resolved, candleReader, resolvedStrategy.strategy()));
+    }
+}

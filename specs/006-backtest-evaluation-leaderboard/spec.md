@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-31
 
-**Status**: Draft
+**Status**: Implemented — Pending Review
 
 **Input**: F-006 cung cấp Backtest xác định, Evaluation có phiên bản, Leaderboard Top-K và khả năng tái tạo kết quả từ dữ liệu cùng cấu hình đã đóng băng.
 

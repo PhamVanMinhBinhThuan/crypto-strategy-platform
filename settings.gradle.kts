@@ -27,6 +27,7 @@ include(
     ":modules:backtesting",
     ":modules:evaluation",
     ":modules:experiment",
+    ":modules:experiment-execution",
     ":modules:search",
     ":modules:leaderboard",
     ":modules:news",

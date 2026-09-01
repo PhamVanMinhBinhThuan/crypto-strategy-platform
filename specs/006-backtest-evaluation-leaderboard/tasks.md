@@ -169,7 +169,7 @@
 - [x] T072 [P] [US4] Add failing end-to-end metric/fingerprint reproduction and single-input/version mutation tests in `modules/evaluation/src/test/java/com/cryptostrategy/platform/evaluation/internal/EvaluationReproductionTest.java`
 - [x] T073 [P] [US4] Add failing Leaderboard ordered-content reproduction test independent of input/DB order in `modules/leaderboard/src/test/java/com/cryptostrategy/platform/leaderboard/internal/LeaderboardReproductionTest.java`
 - [x] T074 [P] [US4] Add failing canonical JSON serialize/store/read-back tests for assumptions and hierarchical fingerprints in `modules/persistence/src/test/java/com/cryptostrategy/platform/persistence/internal/backtesting/BacktestJsonMapperTest.java`
-- [x] T075 [P] [US4] Add failing persistence integration test proving the Experiment-owned linked Reproduction Run does not overwrite original evidence, capability reports have no competing owner, and mismatch rolls back only the reproduction success claim in `modules/persistence/src/backtestEvaluationLeaderboardIntegrationTest/java/com/cryptostrategy/platform/persistence/reproduction/ReproductionPersistenceIntegrationTest.java`
+- [ ] T075 [P] [US4] Add failing persistence integration test proving the Experiment-owned linked Reproduction Run does not overwrite original evidence, capability reports have no competing owner, and mismatch rolls back only the reproduction success claim in `modules/persistence/src/backtestEvaluationLeaderboardIntegrationTest/java/com/cryptostrategy/platform/persistence/reproduction/ReproductionPersistenceIntegrationTest.java`
 
 ### Implementation for User Story 4
 
@@ -286,6 +286,21 @@ T072 Evaluation reproduction
 T073 Leaderboard reproduction
 T074 Serialization/read-back
 T075 Reproduction persistence
+
+## Phase 9: Review remediation F1–F10
+
+- [x] T094 [US1] Replace caller-supplied executable Backtest inputs with an identity-only command and frozen execution query in `modules/backtesting/src/main/java/com/cryptostrategy/platform/backtesting/api/model/BacktestRunCommand.java` and `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api/execution/FrozenBacktestExecution.java`
+- [x] T095 [US1] Resolve exact Strategy version, parameters, fingerprint and lookback behind `FrozenStrategyResolver` in `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/internal/RegistryFrozenStrategyResolver.java`
+- [x] T096 [US4] Replace caller comparison with Experiment-owned reproduction orchestration in `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/internal/ReproduceExperimentExecutionService.java`
+- [x] T097 [US4] Add immutable reproduction audit migration in `supabase/migrations/20260901000200_f006_review_remediation.sql`
+- [x] T098 [US1] Return canonical persisted Backtest and Evaluation aggregates during idempotent/concurrent retries in `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/internal/`
+- [x] T099 [US1] Enforce the complete MVP assumptions contract at the domain constructor in `modules/backtesting/src/main/java/com/cryptostrategy/platform/backtesting/api/model/BacktestAssumptions.java`
+- [x] T100 [US3] Add database negative-behavior tests for lineage, Top-K snapshots and evidence immutability in `supabase/tests/database/005_f006_review_remediation_test.sql`
+- [ ] T101 [US4] Add and pass exact Backtest, Evaluation, Leaderboard and durable reproduction tests from T071–T075
+- [x] T102 Run focused module and architecture tests for review remediation
+- [ ] T103 Run Java 21 Gradle clean check in an isolated clean workspace
+- [ ] T104 Run migration, SQL and JDBC verification against Supabase test project `qdcefzikpakdmunyenem`
+- [ ] T105 Synchronize ADR/spec/evidence/roadmap and pass `git diff --check main...HEAD`
 ```
 
 ---

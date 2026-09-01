@@ -1,10 +1,9 @@
 # ADR-0013: Backtest Execution and Cross-Capability Integration
 
-**Status**: Accepted  
-**Date**: 2026-08-31  
-**Accepted**: 2026-09-01 through explicit project-owner approval in the F-006 specification workflow  
-**Owners**: Văn Minh, Tiến Luật  
-**Extends**: ADR-0005  
+**Status**: Proposed
+**Date**: 2026-08-31
+**Owners**: Văn Minh, Tiến Luật
+**Extends**: ADR-0005
 **Supersedes (scoped)**: ADR-0002 dependency rows for `backtesting`, `evaluation` and `leaderboard`; ADR-0009 MVP execution-price default
 
 ## Context
@@ -104,13 +103,13 @@ Planned — source contracts and gaps were reviewed during F-006 planning; imple
 
 ## Risks and Mitigations
 
-- **Risk**: A broad dependency edge becomes permission to access internal code.  
+- **Risk**: A broad dependency edge becomes permission to access internal code.
   **Mitigation**: Restrict imports to public packages and enforce them with ArchUnit.
-- **Risk**: Changing the execution default changes historical meaning.  
+- **Risk**: Changing the execution default changes historical meaning.
   **Mitigation**: Store the execution rule in versioned assumptions; old manifests retain the old version.
-- **Risk**: A plugin reports too little lookback.  
+- **Risk**: A plugin reports too little lookback.
   **Mitigation**: Parameter-aware contract tests and fail-fast validation before accepting a Result.
-- **Risk**: Composite order changes output.  
+- **Risk**: Composite order changes output.
   **Mitigation**: Preserve ordered component snapshots and include them in canonical fingerprints.
 
 ## References

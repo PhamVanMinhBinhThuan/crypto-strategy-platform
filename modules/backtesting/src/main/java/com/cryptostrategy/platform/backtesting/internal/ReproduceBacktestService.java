@@ -1,1 +1,6 @@
-package com.cryptostrategy.platform.backtesting.internal;import com.cryptostrategy.platform.backtesting.api.model.*;import com.cryptostrategy.platform.backtesting.api.port.in.ReproduceBacktestUseCase;import com.cryptostrategy.platform.experiment.api.*;import com.cryptostrategy.platform.experiment.api.port.in.ReproduceExperimentUseCase;import java.util.*;public final class ReproduceBacktestService implements ReproduceBacktestUseCase{private final ReproduceExperimentUseCase experiments;private final BacktestReproductionVerifier verifier=new BacktestReproductionVerifier();public ReproduceBacktestService(ReproduceExperimentUseCase experiments){this.experiments=Objects.requireNonNull(experiments);}@Override public Result reproduce(UUID owner,ExperimentId source,String name,BacktestResult original,BacktestResult reproduced){Experiment run=experiments.reproduceExperiment(owner,source,name);if(!source.equals(run.reproducesExperimentId()))throw new IllegalStateException("Experiment reproduction lineage mismatch");return new Result(run,verifier.verify(original,reproduced));}}
+package com.cryptostrategy.platform.backtesting.internal;
+
+/** Reproduction orchestration moved to modules/experiment-execution to avoid capability cycles. */
+final class ReproduceBacktestService {
+    private ReproduceBacktestService() { }
+}

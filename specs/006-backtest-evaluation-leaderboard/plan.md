@@ -10,14 +10,14 @@ Implement deterministic, bounded-memory Backtesting over the existing F-003 Data
 
 ## Technical Context
 
-**Language/Version**: Java 21  
-**Primary Dependencies**: Existing domain, market-data, strategy-core, combination and experiment public contracts; Spring JDBC only inside `modules/persistence`; no new production library required  
-**Storage**: PostgreSQL/Supabase source of truth; forward-only SQL migration after `20260831000100_f006_prerequisite_integrity.sql`; no Redis dependency in F-006  
-**Testing**: JUnit 5, existing test conventions, ArchUnit 1.5, PostgreSQL integration tests and SQL verification scripts  
-**Target Platform**: Java modular-monolith backend on JVM 21; local/test PostgreSQL-compatible environment  
-**Project Type**: Multi-module backend capability libraries with JDBC persistence adapters  
-**Performance Goals**: O(number of Candles) simulation; memory bounded by one `CandleBatch` (maximum 5,000) plus resolved Strategy lookback and constant execution state; deterministic output across batch sizes  
-**Constraints**: Long-only one-position execution; next-Candle-open fills; exact decimals (scale 12 trades, scale 10 metrics, `HALF_EVEN`); no partial durable outcome; no remote migration apply  
+**Language/Version**: Java 21
+**Primary Dependencies**: Existing domain, market-data, strategy-core, combination and experiment public contracts; Spring JDBC only inside `modules/persistence`; no new production library required
+**Storage**: PostgreSQL/Supabase source of truth; forward-only SQL migration after `20260831000100_f006_prerequisite_integrity.sql`; no Redis dependency in F-006
+**Testing**: JUnit 5, existing test conventions, ArchUnit 1.5, PostgreSQL integration tests and SQL verification scripts
+**Target Platform**: Java modular-monolith backend on JVM 21; local/test PostgreSQL-compatible environment
+**Project Type**: Multi-module backend capability libraries with JDBC persistence adapters
+**Performance Goals**: O(number of Candles) simulation; memory bounded by one `CandleBatch` (maximum 5,000) plus resolved Strategy lookback and constant execution state; deterministic output across batch sizes
+**Constraints**: Long-only one-position execution; next-Candle-open fills; exact decimals (scale 12 trades, scale 10 metrics, `HALF_EVEN`); no partial durable outcome; no remote migration apply
 **Scale/Scope**: Frozen Datasets may contain millions of Candles; one canonical successful Result per Candidate; four required metrics; immutable Top-10 revisions
 
 ## Constitution Check

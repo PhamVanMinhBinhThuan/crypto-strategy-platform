@@ -11,6 +11,7 @@ dependencies {
     implementation(project(":modules:backtesting"))
     implementation(project(":modules:evaluation"))
     implementation(project(":modules:leaderboard"))
+    implementation(project(":modules:experiment-execution"))
     implementation(libs.spring.jdbc)
     implementation(libs.jackson.databind)
     implementation(libs.slf4j.api)

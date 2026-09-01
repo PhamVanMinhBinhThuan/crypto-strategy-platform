@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.util.*;
 
 public final class DeterministicBacktestEngine {
-    public BacktestResult run(BacktestRunCommand command, DatasetCandleReader reader, Strategy strategy) {
+    public BacktestResult run(ResolvedBacktestRun command, DatasetCandleReader reader, Strategy strategy) {
         Objects.requireNonNull(command);Objects.requireNonNull(reader);Objects.requireNonNull(strategy);
         BacktestResultId resultId=BacktestResultId.generate();List<Trade> trades=new ArrayList<>();EquityAccumulator equity=new EquityAccumulator();
         TradeExecutionPolicy execution=new TradeExecutionPolicy();StrategyExecutionSession session=new StrategyExecutionSession(command.dataset(),strategy,command.lookback());

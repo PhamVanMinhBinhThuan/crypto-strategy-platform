@@ -1,12 +1,11 @@
 package com.cryptostrategy.platform.backtesting.internal;
 
 import com.cryptostrategy.platform.backtesting.api.error.*;
-import com.cryptostrategy.platform.backtesting.api.model.BacktestRunCommand;
 import com.cryptostrategy.platform.domain.api.market.Candle;
 import com.cryptostrategy.platform.marketdata.api.model.DatasetMembership;
 
 final class BacktestInputValidator {
-    void validate(BacktestRunCommand command, Candle candle, DatasetMembership member,
+    void validate(ResolvedBacktestRun command, Candle candle, DatasetMembership member,
             int expectedSequence, Candle previous) {
         if (member.sequenceNo() != expectedSequence
                 || !member.datasetVersionId().equals(command.dataset().datasetVersionId())) {
