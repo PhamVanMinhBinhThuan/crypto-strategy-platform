@@ -26,7 +26,7 @@
 - [X] T009 Implement one-time WebSocket ticket model/store/issuer với expiry, origin binding và single-use enforcement tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketService.java`.
 - [ ] T010 Implement correlation context/filter/response propagation cho REST và realtime tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java` và package `observability/`.
 - [ ] T011 Implement public `ErrorEnvelope`, safe details và exception-to-status mapper theo error contract tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/`.
-- [ ] T012 Implement owner authorization facade nhận authenticated UUID và parent-chain lookup qua published ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/OwnerAuthorizationService.java`.
+- [X] T012 Implement owner authorization facade nhận authenticated UUID và parent-chain lookup qua published ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/OwnerAuthorizationService.java`.
 - [ ] T013 Implement canonical request hashing và idempotency adapter qua F-005 port tại `apps/api/src/main/java/com/cryptostrategy/platform/api/idempotency/IdempotencyService.java`.
 - [ ] T014 Implement cursor/limit validation và common page mapping tại `apps/api/src/main/java/com/cryptostrategy/platform/api/transport/PageRequestMapper.java` và `PageResponseMapper.java`.
 - [ ] T015 [P] Viết foundational tests cho ticket single-use/expiry/origin, owner isolation, canonical hash và cursor validation tại `apps/api/src/test/java/com/cryptostrategy/platform/api/foundation/FoundationalBoundaryTest.java`.
@@ -42,7 +42,7 @@
 ### Tests for User Story 1
 
 - [ ] T016 [P] [US1] Viết authentication integration tests cho missing/expired/malformed/wrong issuer-audience JWT tại `apps/api/src/test/java/com/cryptostrategy/platform/api/auth/AuthenticationIntegrationTest.java`.
-- [ ] T017 [P] [US1] Viết two-user ownership tests cho resource ID trực tiếp và parent-chain ID tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/OwnershipIsolationIntegrationTest.java`.
+- [X] T017 [P] [US1] Viết two-user ownership tests cho resource ID trực tiếp và parent-chain ID tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/OwnershipIsolationIntegrationTest.java`.
 - [ ] T018 [P] [US1] Viết error redaction tests chứng minh token, secret, SQL, path, stack trace và provider payload không xuất hiện tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/PublicRedactionIntegrationTest.java`.
 - [ ] T019 [P] [US1] Viết WebSocket ticket handshake tests cho single-use, expiry, origin và authentication expiry tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/WebSocketTicketIntegrationTest.java`.
 

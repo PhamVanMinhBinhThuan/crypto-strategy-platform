@@ -45,6 +45,17 @@ public class ApiExceptionHandler {
                 request);
     }
 
+    @ExceptionHandler(ResourceInaccessibleException.class)
+    ResponseEntity<ErrorEnvelope> resourceInaccessible(
+            ResourceInaccessibleException exception,
+            HttpServletRequest request) {
+        return response(
+                HttpStatus.NOT_FOUND,
+                "RESOURCE_NOT_FOUND",
+                "The requested resource was not found.",
+                request);
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<ErrorEnvelope> unexpectedFailure(Exception exception, HttpServletRequest request) {
         LOGGER.error("request_failed exceptionType={}", exception.getClass().getSimpleName());
