@@ -208,24 +208,84 @@ và Luật review integration/security boundary.
 **Phụ trách chính**: **Luật**; Nghi Văn, Văn Minh và Tiến cung cấp application service
 của capability mình sở hữu.
 
-### F-010 — Web MVP
+### F-010 — Search Coordinator
 
-**Phụ thuộc**: Các API cần cho demo trong F-009.
+**Phụ thuộc**: F-004, F-005, F-006 và F-007; mở khóa các command Start/Stop/Reproduce
+còn bị readiness gate trong F-009.
 
 **Phạm vi**:
 
+- Search Generator contract/registry và Random Search deterministic theo seed.
+- Validate search space, generator version, stop conditions và giới hạn Candidate đang chạy.
+- Điều phối Search Run từ frozen Dataset, Strategy version và Experiment Manifest.
+- Tạo Candidate/Backtest Job theo durable state; chống trùng bằng idempotency và fingerprint.
+- Dừng, phục hồi và tiếp tục Search an toàn sau restart hoặc duplicate/out-of-order delivery.
+- Điều phối Reproduce Experiment bất đồng bộ và lưu kết quả `MATCHED`, `MISMATCHED` hoặc `FAILED`.
+- Phát progress/lifecycle contract để F-009 cung cấp REST/WebSocket cho Frontend.
+- Chứng minh có thể thay Search Generator mà không sửa Backtest, Evaluation, Leaderboard hoặc
+  public workflow.
+
+**Ngoài phạm vi**: Không triển khai UI, public transport mới, giao dịch tiền thật, Composite
+Search, Bayesian/adaptive search hoặc distributed multi-leader Coordinator.
+
+**Cách chia**: **Văn Minh** phụ trách Generator contract và tính deterministic; **Tiến** phụ trách
+durable Search state, transaction/idempotency và reproduction coordination; **Luật** tích hợp
+readiness gate của F-009; **Nghi Văn** cung cấp Dataset fixture cho kiểm thử E2E.
+
+### F-011 — Web Foundation and Authentication
+
+**Phụ thuộc**: Public contract và authentication boundary của F-009.
+
+**Phạm vi**:
+
+- Khởi tạo Next.js App Router với TypeScript và cấu trúc source/test dùng chung.
+- Layout, navigation, design tokens và các component nền tảng.
 - Supabase login/session ở browser.
-- Market, Experiment progress, Result, Leaderboard, News/Sentiment screens.
-- API/WebSocket client; browser không truy cập business table trực tiếp.
-- Loading/error/degraded state và demo flow.
+- Protected routes và truyền access token tới Backend API.
+- API/WebSocket client dùng chung; browser không truy cập business table trực tiếp.
+- Component/loading pattern dùng chung cho loading, empty, error và degraded state.
+- Mock adapter/fixture để F-012 và F-013 phát triển độc lập khi endpoint tương ứng chưa sẵn sàng.
 
-**Cách chia**: **Luật** giữ API client/auth integration; **Nghi Văn** làm Market và News;
-**Văn Minh** làm Strategy/Backtest Result; **Tiến** làm Experiment progress và
-Leaderboard. Chỉ bắt đầu màn hình khi API contract tương ứng ổn định.
+**Phụ trách chính**: **Luật**. F-011 phải hoàn thành foundation tối thiểu và công bố interface
+API/WebSocket client trước khi F-012 và F-013 bắt đầu phát triển song song.
 
-### F-011 — End-to-End Demo and Hardening
+### F-012 — Market, Strategy and News UI
 
-**Phụ thuộc**: F-003 đến F-010.
+**Phụ thuộc**: F-011 và các Market/Strategy/News API tương ứng trong F-009.
+
+**Phạm vi**:
+
+- Market Dashboard và biểu đồ Candle historical/realtime.
+- Chọn pair, timeframe và quản lý trạng thái kết nối Market Data.
+- Strategy catalog, system/private Strategy và thông tin version/parameters.
+- News và Sentiment screens, bao gồm degraded state khi Sentiment Service lỗi.
+- Tích hợp REST/WebSocket qua client của F-011; không gọi trực tiếp Binance, Supabase business
+  table hoặc Sentiment Service nội bộ.
+
+**Phụ trách chính**: **Nghi Văn**; **Văn Minh** review Strategy contract. Có thể làm song song
+F-013 sau khi F-011 công bố foundation và client interface ổn định.
+
+### F-013 — Experiment, Result and Leaderboard UI
+
+**Phụ thuộc**: F-011, public Experiment/Result/Leaderboard API trong F-009 và Search Coordinator
+F-010 cho Start/Stop/Reproduce cùng Search progress.
+
+**Phạm vi**:
+
+- Form tạo, dừng và reproduce Experiment.
+- Theo dõi Experiment, Job và Search progress qua REST/WebSocket.
+- Hiển thị Backtest Result, danh sách Trade và bốn Evaluation metrics.
+- Hiển thị Leaderboard Top-K và xử lý realtime revision/update.
+- Loading, validation, conflict, authorization, failure và retryable/degraded state phù hợp.
+- Chỉ dùng public contract; không tự điều phối Search hoặc tính lại Backtest/Ranking ở Frontend.
+
+**Phụ trách chính**: **Tiến**; **Văn Minh** review Backtest/Evaluation contract và **Luật** review
+API/realtime integration. Có thể làm song song F-012 sau khi F-011 hoàn thành foundation tối thiểu.
+
+### F-014 — End-to-End Demo and Hardening
+
+**Phụ thuộc**: F-003 đến F-013; đặc biệt yêu cầu F-012 và F-013 đã tích hợp trên cùng foundation
+F-011.
 
 **Phạm vi**:
 
@@ -247,11 +307,18 @@ F-002 Java Foundation
         ├── DB-v2 review/apply gate ──┬── F-004 Strategy ─┤
         │                             └── F-005 Experiment ┼── F-006 Backtest/Evaluation
         └── F-008 News/Sentiment ─────────────────────────┘             │
-                                                                        ├── F-007 Worker
-                                                                        ├── F-009 API/Realtime
-                                                                        └── F-010 Web
-                                                                                │
-                                                                                └── F-011 E2E
+                                                                        ├── F-007 Worker ──┐
+                                                                        ├── F-009 API/Realtime ─┤
+                                                                        └── F-010 Search ───────┤
+                                                                                                  └── F-011 Web Foundation/Auth
+                                                                                                              │
+                                                                                      ┌───────────────────────┴───────────────────────┐
+                                                                                      │                                               │
+                                                                              F-012 Market/Strategy/News                 F-013 Experiment/Result/Leaderboard
+                                                                                      │                                               │
+                                                                                      └───────────────────────┬───────────────────────┘
+                                                                                                              │
+                                                                                                        F-014 E2E
 ```
 
 ## Việc cần làm ngay
