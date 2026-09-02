@@ -85,6 +85,14 @@
 
 **Independent Test**: Replay cùng command 100 lần, đổi payload cùng key, stop/cancel/reproduce và kiểm tra Job/Experiment state bằng User A/B.
 
+### Gap closure cho standalone Backtest (bắt buộc trước T034–T042)
+
+- [X] T079 [US3] Ghi quyết định ownership/identity/transaction boundary tại `docs/adr/0015-standalone-backtest-aggregate.md` và đồng bộ artifact F-009.
+- [ ] T080 [US3] Tạo typed `BacktestId`, immutable standalone Backtest command/outcome và owner-scoped published input/output ports trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api/`.
+- [ ] T081 [US3] Implement F-005 service canonicalize/freeze single-run Manifest/Candidate/Job/Outbox tại `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/internal/`.
+- [ ] T082 [US3] Thêm forward migration và JDBC transaction atomically ghi standalone aggregate, Job, Outbox và idempotency outcome tại `supabase/migrations/` và `modules/persistence/`.
+- [ ] T083 [US3] Viết domain/persistence evidence cho identity riêng, ownership, replay/conflict và rollback không để partial graph tại `modules/experiment/src/test/` và `modules/persistence/src/experimentIntegrationTest/`.
+
 ### Tests for User Story 3
 
 - [ ] T034 [P] [US3] Viết idempotency replay/conflict integration tests cho Backtest và Experiment tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/IdempotencyCommandIntegrationTest.java`.

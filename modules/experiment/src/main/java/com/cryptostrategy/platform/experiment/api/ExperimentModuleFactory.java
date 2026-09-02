@@ -4,18 +4,29 @@ import com.cryptostrategy.platform.experiment.api.port.in.CompleteStoppedExperim
 import com.cryptostrategy.platform.experiment.api.port.in.GetFrozenBacktestExecutionUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.TrustedWorkerExperimentUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.TrustedWorkerRecoveryQueryUseCase;
+import com.cryptostrategy.platform.experiment.api.port.in.StartStandaloneBacktestUseCase;
 import com.cryptostrategy.platform.experiment.api.port.out.ExecutionAttemptStore;
 import com.cryptostrategy.platform.experiment.api.port.out.ExperimentStore;
 import com.cryptostrategy.platform.experiment.api.port.out.JobStore;
+import com.cryptostrategy.platform.experiment.api.port.out.StandaloneBacktestStore;
 import com.cryptostrategy.platform.experiment.internal.CanonicalFingerprintCalculator;
 import com.cryptostrategy.platform.experiment.internal.ExperimentApplicationService;
 import com.cryptostrategy.platform.experiment.internal.FrozenBacktestExecutionService;
 import com.cryptostrategy.platform.experiment.internal.JobApplicationService;
+import com.cryptostrategy.platform.experiment.internal.StandaloneBacktestService;
 import com.cryptostrategy.platform.experiment.internal.TrustedWorkerExperimentService;
 import com.cryptostrategy.platform.experiment.internal.TrustedWorkerRecoveryQueryService;
 
 public final class ExperimentModuleFactory {
     private ExperimentModuleFactory() {}
+
+    public static StartStandaloneBacktestUseCase startStandaloneBacktestUseCase(
+            StandaloneBacktestStore store,
+            java.time.Clock clock
+    ) {
+        return new StandaloneBacktestService(
+                store, new CanonicalFingerprintCalculator(), clock);
+    }
 
     public static TrustedWorkerExperimentUseCase trustedWorkerExperimentUseCase(
             JobStore jobStore,

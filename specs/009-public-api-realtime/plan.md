@@ -71,12 +71,16 @@ Chi tiết và các phương án bị loại được ghi tại [research.md](re
   mapping) để tránh enumeration. Internal audit dùng service credential riêng.
 - Idempotency hash dùng canonical JSON stable với scope `owner + operation`; cùng key/cùng
   hash replay outcome, cùng key/khác hash trả conflict.
+- Backtest đơn lẻ dùng `BacktestId` riêng và một F-005 aggregate single-run theo
+  ADR-0015. Aggregate atomically tạo Experiment Manifest, Candidate, Backtest Job,
+  Outbox và idempotency outcome; API không dùng `CandidateId` làm public Backtest ID.
 
 ## Kiểm tra Constitution
 
 *Gate trước Phase 0: PASS.*
 
 - **Đặc tả trước/ADR**: F-009 spec tồn tại; ADR-0004, ADR-0011 và ADR-0012 đều Accepted.
+  ADR-0015 ghi quyết định aggregate Backtest đơn lẻ và phải được Accepted trước merge.
   Quyết định ticket và sequencing là chi tiết triển khai được ghi trong plan/contracts;
   nếu thay đổi semantics public hoặc deployment sẽ tạo ADR amendment trước merge.
 - **Ownership module/data**: API chỉ gọi application ports công khai; ownership đi qua
@@ -141,9 +145,9 @@ apps/api/src/test/java/com/cryptostrategy/platform/api/
 └── observability/
 ```
 
-Capability modules remain unchanged unless a published application port is missing;
-such a change belongs to the owning F-003–F-008 feature and is not implemented by
-importing an internal class into `apps/api`.
+Capability modules remain unchanged unless a published application port is missing.
+Gap đã xác nhận cho Backtest đơn lẻ được xử lý trong F-005 bằng published port và
+forward migration theo ADR-0015; `apps/api` không import class internal hoặc adapter.
 
 **Quyết định cấu trúc**: chọn `apps/api` làm transport/orchestration boundary, tách DTO
 theo public capability và realtime concern; contract fixtures/documents nằm trong feature
@@ -157,15 +161,17 @@ spec, còn business model và persistence adapter giữ nguyên module owner.
 2. Xây auth/correlation/error boundary, WebSocket ticket và test không leak secret.
 3. Xây read-only slices: Candle/Dataset, system/private Strategy, News, Experiment/Job,
    Result và Leaderboard.
-4. Xây command slices: start Backtest/Experiment, stop/cancel/reproduce, idempotency,
+4. Trước command Backtest, bổ sung F-005 standalone Backtest aggregate, atomic
+   acceptance store và forward migration theo ADR-0015.
+5. Xây command slices: start Backtest/Experiment, stop/cancel/reproduce, idempotency,
    Location/202 responses và state conflict.
-5. Xây realtime session/subscription, marker-based synchronization, ordering, backpressure,
+6. Xây realtime session/subscription, marker-based synchronization, ordering, backpressure,
    reconnect và recovery tests.
-6. Chạy unit/contract/architecture, sau đó chạy database/Compose smoke khi dependency
+7. Chạy unit/contract/architecture, sau đó chạy database/Compose smoke khi dependency
    environment sẵn sàng; chỉ ghi evidence `Verified` khi có kết quả thật gắn commit.
 
 ## Theo dõi độ phức tạp
 
-Không có violation Constitution cần biện minh. WebSocket là boundary đã được ADR-0004
-Accepted; one-time ticket và marker sequencing làm rõ security/recovery semantics chứ
-không thêm capability owner hoặc hệ thống message broker mới.
+ADR-0015 là gate mới vì standalone Backtest bổ sung durable identity và transaction
+boundary trong F-005. Implementation có thể được kiểm chứng trên feature branch nhưng
+không được merge khi ADR còn `Proposed`. WebSocket vẫn dùng boundary của ADR-0004.

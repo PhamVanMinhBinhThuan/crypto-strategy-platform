@@ -45,6 +45,10 @@ python3.11 -m venv /tmp/crypto-sentiment-f009
    không tiết lộ metadata.
 5. Đọc Job sau khi worker thất bại; xác nhận HTTP read thành công và payload có terminal
    failure classification.
+6. Với Backtest đơn lẻ, xác nhận `backtestId`, `candidateId` và `jobId` trong database là
+   ba identity khác nhau; chỉ `backtestId` và `jobId` xuất hiện trong acceptance response.
+7. Gây lỗi giữa transaction acceptance và commit; xác nhận không còn partial Experiment,
+   Candidate, Job, Outbox hoặc idempotency receipt.
 
 ## Luồng WebSocket acceptance tối thiểu
 

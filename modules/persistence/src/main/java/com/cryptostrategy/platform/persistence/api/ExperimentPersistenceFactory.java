@@ -5,6 +5,7 @@ import com.cryptostrategy.platform.experiment.api.port.out.ExperimentStore;
 import com.cryptostrategy.platform.experiment.api.port.out.IdempotencyStore;
 import com.cryptostrategy.platform.experiment.api.port.out.JobStore;
 import com.cryptostrategy.platform.experiment.api.port.out.OutboxStore;
+import com.cryptostrategy.platform.experiment.api.port.out.StandaloneBacktestStore;
 import com.cryptostrategy.platform.persistence.internal.experiment.ExperimentJsonMapper;
 import com.cryptostrategy.platform.persistence.internal.experiment.ExperimentRows;
 import com.cryptostrategy.platform.persistence.internal.experiment.JdbcExecutionAttemptStore;
@@ -12,6 +13,7 @@ import com.cryptostrategy.platform.persistence.internal.experiment.JdbcExperimen
 import com.cryptostrategy.platform.persistence.internal.experiment.JdbcIdempotencyStore;
 import com.cryptostrategy.platform.persistence.internal.experiment.JdbcJobStore;
 import com.cryptostrategy.platform.persistence.internal.experiment.JdbcOutboxStore;
+import com.cryptostrategy.platform.persistence.internal.experiment.JdbcStandaloneBacktestStore;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -59,5 +61,10 @@ public class ExperimentPersistenceFactory {
 
     public OutboxStore createOutboxStore() {
         return new JdbcOutboxStore(jdbcTemplate, jsonMapper);
+    }
+
+    public StandaloneBacktestStore createStandaloneBacktestStore() {
+        return new JdbcStandaloneBacktestStore(
+                jdbcTemplate, transactionTemplate, rows, jsonMapper);
     }
 }

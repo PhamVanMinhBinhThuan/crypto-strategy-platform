@@ -21,10 +21,10 @@ import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.job.JobStatus;
 import com.cryptostrategy.platform.experiment.api.job.JobType;
-import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenance;
-import com.cryptostrategy.platform.experiment.api.provenance.DatasetVersionId;
-import com.cryptostrategy.platform.experiment.api.provenance.StrategyPluginId;
-import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenance;
+import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenanceSnapshot;
+import com.cryptostrategy.platform.domain.api.market.DatasetVersionId;
+import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
+import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
 import com.cryptostrategy.platform.persistence.api.BacktestingPersistenceFactory;
 import com.cryptostrategy.platform.persistence.api.EvaluationPersistenceFactory;
 import com.cryptostrategy.platform.persistence.api.ExperimentPersistenceFactory;
@@ -73,16 +73,16 @@ class BacktestAtomicCompletionIntegrationTest {
         var experimentStore = expFactory.createExperimentStore();
         var jobStore = expFactory.createJobStore();
         var attemptStore = expFactory.createExecutionAttemptStore();
-        var btResultStore = btFactory.createBacktestResultStore();
-        var evalResultStore = evalFactory.createEvaluationResultStore();
+        var btResultStore = btFactory.createResultStore();
+        var evalResultStore = evalFactory.createStore();
         var lbStore = lbFactory.createLeaderboardStore();
 
         // 1. Setup Experiment, Candidate, Job
         Experiment experiment = Experiment.create(experimentId, ownerUserId, "Atomic Test", null, null, now);
         ExperimentManifest manifest = new ExperimentManifest(
                 experimentId, 1,
-                new DatasetProvenance(new DatasetVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W3"), "BTCUSDT", "1m", now.minusSeconds(3600), now, 100, "hash"),
-                StrategyProvenance.single(new StrategyPluginId("momentum"), 1, Map.of("period", 14), null),
+                new DatasetProvenanceSnapshot(new DatasetVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W3"), "v1", "hash", "binance", "BTCUSDT", "1m", "norm-v1", now.minusSeconds(3600), now, 100),
+                StrategyProvenanceSnapshot.single(new com.cryptostrategy.platform.strategy.api.model.StrategyReference(new com.cryptostrategy.platform.strategy.api.model.StrategyVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W2"), new StrategyPluginId("momentum"), new com.cryptostrategy.platform.strategy.api.model.SemanticVersion(1, 0, 0)), com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.empty(), java.util.Optional.empty(), "fp"),
                 Map.of("capital", 10000), Map.of(), Map.of(), null, "1.0", "commit-1", "fingerprint-1", now
         );
         experimentStore.insertExperiment(ownerUserId, experiment, manifest);

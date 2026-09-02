@@ -8,6 +8,7 @@ import com.cryptostrategy.platform.strategy.api.StrategyPlugin;
 import com.cryptostrategy.platform.strategy.api.StrategyModuleFactory;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyCatalogSynchronization;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyRegistry;
+import com.cryptostrategy.platform.strategy.api.port.in.StrategyFingerprintCalculator;
 import com.cryptostrategy.platform.strategy.api.port.in.UserStrategyApplication;
 import com.cryptostrategy.platform.strategy.api.port.out.StrategyCatalogStore;
 import com.cryptostrategy.platform.strategy.api.port.out.UserStrategyStore;
@@ -21,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
 public class StrategyConfiguration {
     @Bean List<StrategyPlugin> strategyPlugins(){return StrategyPlugins.trusted();}
     @Bean StrategyRegistry strategyRegistry(List<StrategyPlugin> plugins){return StrategyModuleFactory.registry(plugins);}
+    @Bean StrategyFingerprintCalculator strategyFingerprintCalculator(){return StrategyModuleFactory.fingerprints();}
     @Bean List<CombinationPolicy> combinationPolicies(){return CombinationPolicies.supported();}
     @Bean StrategyCatalogStore strategyCatalogStore(DataSource dataSource){return StrategyPersistenceFactory.catalog(dataSource);}
     @Bean UserStrategyStore userStrategyStore(DataSource dataSource){return StrategyPersistenceFactory.userStrategies(dataSource);}

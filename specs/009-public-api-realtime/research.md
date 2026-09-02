@@ -87,3 +87,16 @@ giữ spec đầy đủ nhưng không che khuất dependency gate.
 
 **Phương án khác**: trả fixture/mock như production result. Không chọn vì vi phạm evidence
 governance và reproducibility.
+
+## 7. Identity và transaction boundary cho Backtest đơn lẻ
+
+**Quyết định**: bổ sung F-005 aggregate `StandaloneBacktest` với `BacktestId` riêng,
+được backing bởi single-run Experiment, một immutable Candidate và một Backtest Job.
+Toàn bộ graph, Outbox và idempotency outcome được accept trong một database transaction.
+
+**Lý do**: F-006 worker đã thực thi an toàn từ frozen Experiment graph; reuse graph giữ
+queue contract và Result lineage ổn định, trong khi typed Backtest identity tránh việc
+giả Candidate thành public Backtest resource. Quyết định được ghi tại ADR-0015.
+
+**Phương án khác**: dùng Candidate ID làm Backtest ID hoặc đổi Job sang parent mới. Cách
+đầu sai semantics; cách sau tạo breaking queue/Attempt/worker migration không cần thiết.

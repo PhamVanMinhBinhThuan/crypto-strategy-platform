@@ -14,6 +14,8 @@ import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.job.JobStatus;
 import com.cryptostrategy.platform.experiment.api.job.JobType;
+import com.cryptostrategy.platform.experiment.api.backtest.BacktestId;
+import com.cryptostrategy.platform.experiment.api.backtest.StandaloneBacktest;
 import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenanceSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyComponentSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
@@ -111,6 +113,16 @@ public class ExperimentRows {
                 toInstant(rs.getTimestamp("created_at")),
                 toInstant(rs.getTimestamp("updated_at"))
         );
+    }
+
+    public StandaloneBacktest mapStandaloneBacktest(ResultSet rs, int rowNum)
+            throws SQLException {
+        return new StandaloneBacktest(
+                new BacktestId(rs.getString("backtest_id")),
+                new ExperimentId(rs.getString("experiment_id")),
+                new CandidateId(rs.getString("candidate_id")),
+                new JobId(rs.getString("job_id")),
+                toInstant(rs.getTimestamp("created_at")));
     }
 
     public ExecutionAttempt mapAttempt(ResultSet rs, int rowNum) throws SQLException {

@@ -35,6 +35,21 @@ Experiment, Candidate, Job, Backtest Result, Leaderboard và News. Ownership kh�
 Cùng `(ownerId, operation, idempotencyKey)` phải có cùng hash; khác hash là conflict.
 Receipt không thay thế durable Job/Experiment state.
 
+## Standalone Backtest Aggregate
+
+| Field | Quy tắc |
+|---|---|
+| `backtestId` | Typed ULID riêng của public Backtest resource; không phải Candidate/Result ID |
+| `experimentId` | Single-run Experiment backing graph, owner của Manifest và execution lineage |
+| `candidateId` | Candidate Definition thật, generation index `0`, freeze exact Strategy inputs |
+| `jobId` | Đúng một durable `BACKTEST` Job cho Candidate |
+| `createdAt` | UTC instant của atomic acceptance |
+
+`StandaloneBacktest -> Experiment -> ownerUserId` là authorization chain. Một transaction
+phải tạo Experiment ở trạng thái `QUEUED`, Manifest đã fingerprint, Candidate, Job,
+`JobQueued` Outbox event, aggregate mapping và completed idempotency receipt. Unique và
+composite foreign keys cấm mapping chéo Experiment/Candidate/Job.
+
 ## WebSocket Connection và Logical Subscription
 
 | Entity | Quan hệ/lifecycle |
@@ -59,7 +74,7 @@ không chứa secret, stack trace, SQL, path hoặc provider payload.
 ## Invariants
 
 - Collection cursor không được lặp/bỏ item khi source snapshot không đổi.
-- Experiment/Candidate/Job/Result/Leaderboard phải cùng owner qua parent chain.
+- Standalone Backtest/Experiment/Candidate/Job/Result/Leaderboard phải cùng owner qua parent chain.
 - Published Strategy, Manifest, Result, Trade, Evaluation và Leaderboard revision chỉ đọc.
 - Reproduction tạo resource identity mới và giữ nguyên evidence gốc.
 - Event duplicate/stale không tạo business mutation; terminal state/revision vẫn đọc được qua REST.

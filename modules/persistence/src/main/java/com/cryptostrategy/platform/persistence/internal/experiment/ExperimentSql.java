@@ -108,6 +108,20 @@ public final class ExperimentSql {
             ORDER BY c.generation_index ASC
             """;
 
+    // Standalone Backtest queries
+    public static final String INSERT_STANDALONE_BACKTEST = """
+            INSERT INTO experiment.standalone_backtest (
+                backtest_id, experiment_id, candidate_id, job_id, created_at
+            ) VALUES (?, ?, ?, ?, ?)
+            """;
+
+    public static final String SELECT_STANDALONE_BACKTEST_BY_ID = """
+            SELECT b.backtest_id, b.experiment_id, b.candidate_id, b.job_id, b.created_at
+            FROM experiment.standalone_backtest b
+            JOIN experiment.experiment e ON e.experiment_id = b.experiment_id
+            WHERE b.backtest_id = ? AND e.owner_user_id = ?
+            """;
+
     // Job queries
     public static final String INSERT_JOB = """
             INSERT INTO experiment.job (

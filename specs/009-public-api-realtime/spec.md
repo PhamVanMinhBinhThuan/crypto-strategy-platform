@@ -189,7 +189,7 @@ As an authenticated user, I want to browse normalized News and available sentime
 
 #### Commands, Ownership, and Idempotency
 
-- **FR-022**: Starting a Backtest MUST validate and freeze authorized Dataset, Strategy, and execution inputs before accepting exactly one durable logical Job.
+- **FR-022**: Starting a Backtest MUST validate and freeze authorized Dataset, Strategy, and execution inputs before atomically accepting exactly one owner-scoped standalone Backtest resource and exactly one durable logical Job; its public `backtestId` MUST NOT reuse a Candidate or Result identity.
 - **FR-023**: Starting an Experiment MUST require authorized immutable inputs, a versioned generator and ranking configuration, a valid search space, and at least one finite stop condition before accepting exactly one durable Search Job.
 - **FR-024**: Accepted asynchronous commands MUST return the durable resource and Job identities plus a stable location where current status can be retrieved.
 - **FR-025**: Every command that can create durable work or duplicate a business effect MUST require an idempotency key scoped by authenticated user and operation.
@@ -230,6 +230,7 @@ As an authenticated user, I want to browse normalized News and available sentime
 - **Authenticated Session Context**: The verified user identity and safe correlation context applied to one request or realtime connection; it contains no reusable privileged credential in public output.
 - **Public Resource Representation**: A versioned, client-facing view of a shared or owner-scoped domain resource without internal storage or provider details.
 - **Idempotent Command Receipt**: The owner-and-operation-scoped association between an idempotency key, canonical request meaning, and the original logical outcome.
+- **Standalone Backtest**: An owner-scoped single-run resource with its own `BacktestId`, backed by one immutable Experiment Manifest, one real Candidate Definition, and one durable Backtest Job.
 - **Realtime Connection**: One authenticated client channel that owns a bounded set of logical subscriptions and has an explicit lifecycle.
 - **Logical Subscription**: A client-chosen routing identity bound to one authorized Candle, Experiment, or Leaderboard interest until replaced, removed, or disconnected.
 - **Realtime Event Envelope**: A versioned notification identity, time, correlation, subscription routing value, and event-specific payload.
@@ -259,5 +260,5 @@ As an authenticated user, I want to browse normalized News and available sentime
 - Durable snapshots are the source of truth. Realtime delivery is transient, at-least-once or lossy, and recoverable; it is not a durable event history.
 - The exact synchronization marker used to close the snapshot/event race, connection and non-Candle subscription limits, heartbeat interval, command-rate limit, message-size limit, and authentication-expiry grace behavior will be selected in planning and then published as configuration or contract limits.
 - The Search Coordinator implementation is a dependency rather than F-009 business logic. F-009 may define its public contract, but it cannot claim the start-Experiment flow as complete until that dependency can execute the published command.
-- Database migration work is outside F-009 unless planning discovers a missing durable invariant owned by another capability; any such change requires a forward migration and the owning capability's review.
+- Planning discovered the missing standalone Backtest identity/invariant. F-005 may add the owner-scoped aggregate and a forward migration under ADR-0015; F-009 still MUST access it only through the published application boundary.
 - Health and operational endpoints may have separate exposure rules, but they must not reveal business data or secrets and are not treated as browser business operations.
