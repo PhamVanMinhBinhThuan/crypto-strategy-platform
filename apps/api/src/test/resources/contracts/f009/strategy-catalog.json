@@ -1,0 +1,56 @@
+{
+  "items": [
+    {
+      "strategyId": "ma-crossover",
+      "strategyVersionId": "01J00000000000000000000020",
+      "version": "1.0.0",
+      "contractVersion": "strategy-contract-v1",
+      "displayName": "Moving Average Crossover",
+      "description": "Compares fast and slow moving averages",
+      "category": "TREND",
+      "supportedSignals": ["BUY", "HOLD", "SELL"],
+      "requiredLookback": 25,
+      "parameters": [
+        {
+          "name": "fastPeriod",
+          "type": "INTEGER",
+          "required": true,
+          "defaultValue": "5",
+          "minimum": "2",
+          "maximum": "100",
+          "allowedValues": [],
+          "description": "fastPeriod"
+        },
+        {
+          "name": "slowPeriod",
+          "type": "INTEGER",
+          "required": true,
+          "defaultValue": "25",
+          "minimum": "3",
+          "maximum": "500",
+          "allowedValues": [],
+          "description": "slowPeriod"
+        },
+        {
+          "name": "threshold",
+          "type": "DECIMAL",
+          "required": true,
+          "defaultValue": "0.100000000001",
+          "minimum": "0.000000000001",
+          "maximum": "1.000000000001",
+          "allowedValues": [],
+          "description": "Exact decimal threshold"
+        }
+      ],
+      "constraints": [
+        {
+          "lowerParameter": "fastPeriod",
+          "upperParameter": "slowPeriod"
+        }
+      ],
+      "descriptorFingerprint": "strategy-descriptor-v1:ma-crossover:1.0.0"
+    }
+  ],
+  "nextCursor": "djE6U1lTVEVNOjE",
+  "hasMore": true
+}

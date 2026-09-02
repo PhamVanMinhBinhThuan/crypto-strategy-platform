@@ -1,0 +1,14 @@
+{
+  "datasetId": "01J00000000000000000000001",
+  "version": "candle-v1",
+  "provider": "BINANCE",
+  "pair": "BTC/USDT",
+  "timeframe": "5m",
+  "normalizationVersion": "binance-v1",
+  "startTime": "2026-09-02T00:00:00Z",
+  "endTime": "2026-09-02T00:20:00Z",
+  "membershipCount": 4,
+  "checksum": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "status": "READY",
+  "createdAt": "2026-09-02T00:21:00Z"
+}

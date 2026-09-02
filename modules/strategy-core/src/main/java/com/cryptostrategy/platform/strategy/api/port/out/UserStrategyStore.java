@@ -14,6 +14,7 @@ public interface UserStrategyStore {
     List<UserStrategySummary> listActive(UUID ownerUserId, int limit, Optional<String> cursor);
     Optional<UserStrategy> findRoot(UUID ownerUserId, UserStrategyId id);
     Optional<UserStrategyVersion> findVersion(UUID ownerUserId, UserStrategyVersionId id);
+    Optional<UserStrategyVersion> findLatestVersion(UUID ownerUserId, UserStrategyId id);
     UserStrategyVersion createNext(UUID ownerUserId, UserStrategyVersion draft, int expectedLatestVersionNo);
     UserStrategyVersion publish(UUID ownerUserId, UserStrategyVersionId id, int expectedVersionNo, Instant publishedAt);
     UserStrategy archive(UUID ownerUserId, UserStrategyId id, Instant archivedAt);

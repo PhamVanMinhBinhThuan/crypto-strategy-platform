@@ -10,13 +10,12 @@ import com.cryptostrategy.platform.strategy.api.model.UserStrategyStatus;
 import com.cryptostrategy.platform.strategy.api.model.UserStrategyVersionId;
 import com.cryptostrategy.platform.strategy.api.model.UserStrategyVersionStatus;
 import com.cryptostrategy.platform.strategy.api.model.user.CompositeStrategyDraftSource;
-import com.cryptostrategy.platform.strategy.api.model.user.CompositeStrategySnapshot;
 import com.cryptostrategy.platform.strategy.api.model.user.SingleStrategyDraftSource;
-import com.cryptostrategy.platform.strategy.api.model.user.SingleStrategySnapshot;
 import com.cryptostrategy.platform.strategy.api.model.user.StrategyDraftSource;
 import com.cryptostrategy.platform.strategy.api.model.user.StrategySnapshot;
 import com.cryptostrategy.platform.strategy.api.model.user.UserStrategy;
 import com.cryptostrategy.platform.strategy.api.model.user.UserStrategyComponent;
+import com.cryptostrategy.platform.strategy.api.model.user.UserStrategyDetails;
 import com.cryptostrategy.platform.strategy.api.model.user.UserStrategyVersion;
 import com.cryptostrategy.platform.strategy.api.model.user.command.ArchiveUserStrategyCommand;
 import com.cryptostrategy.platform.strategy.api.model.user.command.CreateNextStrategyVersionCommand;
@@ -60,23 +59,26 @@ public final class UserStrategyService implements UserStrategyApplication {
         Optional<String> privateNext=privateItems.size()==request.privatePageSize()?Optional.of(privateItems.getLast().id().value()):Optional.empty();
         return new UsableStrategyCatalog(new StrategyCatalogPage(page,next), new UserStrategyPage(privateItems,privateNext));
     }
-    @Override public UserStrategyVersion createUserStrategy(UUID owner, CreateUserStrategyCommand command) {
+    @Override public UserStrategyDetails createUserStrategy(UUID owner, CreateUserStrategyCommand command) {
         Objects.requireNonNull(owner); Instant now=clock.instant(); StrategyDraftSource source=validate(command.source()); String print=fingerprint(source);
         UserStrategy root=new UserStrategy(UserStrategyId.generate(),owner,command.kind(),command.name(),command.description(),UserStrategyStatus.ACTIVE,Optional.empty(),now,now);
         UserStrategyVersion version=new UserStrategyVersion(UserStrategyVersionId.generate(),root.id(),1,command.kind(),source,UserStrategyVersionStatus.DRAFT,print,Optional.empty(),now);
-        return store.create(root,version);
+        return new UserStrategyDetails(root,store.create(root,version));
     }
     @Override public UserStrategyVersion createNextVersion(UUID owner, CreateNextStrategyVersionCommand command) {
         UserStrategy root=requireRoot(owner,command.userStrategyId()); if(root.status()!=UserStrategyStatus.ACTIVE) conflict("Archived Strategy");
         StrategyDraftSource source=validate(command.source()); Instant now=clock.instant(); UserStrategyVersion draft=new UserStrategyVersion(UserStrategyVersionId.generate(),root.id(),command.expectedLatestVersionNo()+1,root.kind(),source,UserStrategyVersionStatus.DRAFT,fingerprint(source),Optional.empty(),now);
         return store.createNext(owner,draft,command.expectedLatestVersionNo());
     }
-    @Override public StrategySnapshot publish(UUID owner, PublishStrategyVersionCommand command) {
-        UserStrategyVersion published=store.publish(owner,command.versionId(),command.expectedVersionNo(),clock.instant()); return snapshot(owner,published);
+    @Override public UserStrategyVersion publish(UUID owner, PublishStrategyVersionCommand command) {
+        requireRoot(owner,command.userStrategyId());
+        UserStrategyVersion current=store.findVersion(owner,command.versionId()).orElseThrow(UserStrategyService::notFound);
+        if(!current.userStrategyId().equals(command.userStrategyId())) throw notFound();
+        return store.publish(owner,command.versionId(),command.expectedVersionNo(),clock.instant());
     }
-    @Override public UserStrategy getUserStrategy(UUID owner, GetUserStrategyQuery query) { return requireRoot(owner,query.userStrategyId()); }
+    @Override public UserStrategyDetails getUserStrategy(UUID owner, GetUserStrategyQuery query) { return details(owner,requireRoot(owner,query.userStrategyId())); }
     @Override public StrategySnapshot resolveSnapshot(UUID owner, ResolveStrategySnapshotQuery query) { return store.resolvePublished(owner,query.versionId()).orElseThrow(UserStrategyService::notFound); }
-    @Override public UserStrategy archive(UUID owner, ArchiveUserStrategyCommand command) { requireRoot(owner,command.userStrategyId()); return store.archive(owner,command.userStrategyId(),clock.instant()); }
+    @Override public UserStrategyDetails archive(UUID owner, ArchiveUserStrategyCommand command) { UserStrategy root=requireRoot(owner,command.userStrategyId()); if(root.status()==UserStrategyStatus.ACTIVE) root=store.archive(owner,command.userStrategyId(),clock.instant()); return details(owner,root); }
     private StrategyDraftSource validate(StrategyDraftSource source) {
         if(source instanceof SingleStrategyDraftSource single){
             StrategyParameterSet resolved = registry.resolveParameters(single.strategyReference().pluginId(), single.strategyReference().implementationVersion(), single.parameters().values());
@@ -84,6 +86,7 @@ public final class UserStrategyService implements UserStrategyApplication {
         }
         CompositeStrategyDraftSource composite=(CompositeStrategyDraftSource)source;
         if(!composite.policyId().value().equals("majority-vote")||!composite.policyVersion().toString().equals("1.0.0")) throw new StrategyException(StrategyErrorCode.UNSUPPORTED_VERSION,"Unsupported combination policy");
+        if(!composite.policyParameters().values().isEmpty()) throw new StrategyException(StrategyErrorCode.INVALID_PARAMETERS,"Combination policy does not accept parameters");
         List<UserStrategyComponent> resolvedComponents = composite.components().stream().map(component -> {
             StrategyParameterSet resolved = registry.resolveParameters(component.strategyReference().pluginId(), component.strategyReference().implementationVersion(), component.parameters().values());
             return new UserStrategyComponent(component.strategyReference(), resolved);
@@ -96,12 +99,8 @@ public final class UserStrategyService implements UserStrategyApplication {
         List<byte[]> parts=composite.components().stream().map(component->encoder.encodeSingle(component.strategyReference(),component.parameters())).toList();
         return fingerprint.composite(composite.policyId()+"@"+composite.policyVersion(),parts);
     }
-    private StrategySnapshot snapshot(UUID owner, UserStrategyVersion version) {
-        if(version.status()!=UserStrategyVersionStatus.PUBLISHED) conflict("Version is not published");
-        if(version.source() instanceof SingleStrategyDraftSource single) return new SingleStrategySnapshot(version.userStrategyId(),version.id(),version.versionNo(),owner,single,version.fingerprint());
-        return new CompositeStrategySnapshot(version.userStrategyId(),version.id(),version.versionNo(),owner,(CompositeStrategyDraftSource)version.source(),version.fingerprint());
-    }
     private UserStrategy requireRoot(UUID owner, UserStrategyId id){return store.findRoot(owner,id).orElseThrow(UserStrategyService::notFound);}
+    private UserStrategyDetails details(UUID owner,UserStrategy root){UserStrategyVersion latest=store.findLatestVersion(owner,root.id()).orElseThrow(()->new StrategyException(StrategyErrorCode.INTEGRITY_ERROR,"Strategy latest version is missing"));return new UserStrategyDetails(root,latest);}
     private static int parseCursor(Optional<String> cursor){try{return cursor.map(Integer::parseInt).orElse(0);}catch(NumberFormatException exception){throw new IllegalArgumentException("Invalid cursor",exception);}}
     private static StrategyException notFound(){return new StrategyException(StrategyErrorCode.STRATEGY_NOT_FOUND,"Strategy not found");}
     private static void conflict(String message){throw new StrategyException(StrategyErrorCode.STRATEGY_CONFLICT,message);}

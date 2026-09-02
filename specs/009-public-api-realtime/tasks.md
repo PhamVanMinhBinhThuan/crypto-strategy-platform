@@ -65,17 +65,17 @@
 ### Tests for User Story 2
 
 - [X] T025 [P] [US2] Viết REST contract tests cho Candle range, Dataset snapshot, exact decimal, UTC, cursor và provider-safe errors tại `apps/api/src/test/java/com/cryptostrategy/platform/api/market/MarketApiContractTest.java`.
-- [ ] T026 [P] [US2] Viết Strategy catalog/private-library ownership tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/strategy/StrategyApiIntegrationTest.java`.
-- [ ] T027 [P] [US2] Viết concurrency/conflict tests cho private Strategy publish/next-version tại `apps/api/src/test/java/com/cryptostrategy/platform/api/strategy/StrategyVersionConflictTest.java`.
+- [X] T026 [P] [US2] Viết Strategy catalog/private-library ownership tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/strategy/StrategyApiIntegrationTest.java`.
+- [X] T027 [P] [US2] Viết concurrency/conflict tests cho private Strategy publish/next-version tại `apps/api/src/test/java/com/cryptostrategy/platform/api/strategy/StrategyVersionConflictTest.java`.
 
 ### Implementation for User Story 2
 
 - [X] T028 [P] [US2] Tạo Candle và Dataset request/response DTO mapping tại `apps/api/src/main/java/com/cryptostrategy/platform/api/market/MarketDtos.java`.
 - [X] T029 [US2] Implement Candle/Dataset controllers gọi F-003 published ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/market/MarketController.java` và `DatasetController.java`.
-- [ ] T030 [P] [US2] Tạo system/private Strategy DTO mapping giữ exact version/parameters tại `apps/api/src/main/java/com/cryptostrategy/platform/api/strategy/StrategyDtos.java`.
-- [ ] T031 [US2] Implement Strategy catalog và private Strategy controllers gọi F-004 application ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/strategy/StrategyController.java` và `UserStrategyController.java`.
-- [ ] T032 [US2] Thêm validation cho cursor, page size, timeframe, Dataset range và Strategy version conflict tại `apps/api/src/main/java/com/cryptostrategy/platform/api/market/` và `strategy/`.
-- [ ] T033 [US2] Thêm contract fixtures và OpenAPI examples cho Market/Dataset/Strategy tại `apps/api/src/test/resources/contracts/f009/`.
+- [X] T030 [P] [US2] Tạo system/private Strategy DTO mapping giữ exact version/parameters tại `apps/api/src/main/java/com/cryptostrategy/platform/api/strategy/StrategyDtos.java`.
+- [X] T031 [US2] Implement Strategy catalog và private Strategy controllers gọi F-004 application ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/strategy/StrategyController.java` và `UserStrategyController.java`.
+- [X] T032 [US2] Thêm validation cho cursor, page size, timeframe, Dataset range và Strategy version conflict tại `apps/api/src/main/java/com/cryptostrategy/platform/api/market/` và `strategy/`.
+- [X] T033 [US2] Thêm contract fixtures và OpenAPI examples cho Market/Dataset/Strategy tại `apps/api/src/test/resources/contracts/f009/`.
 
 **Checkpoint**: User Story 2 pass với shared catalog, owner-scoped library và immutable Dataset/Strategy references.
 

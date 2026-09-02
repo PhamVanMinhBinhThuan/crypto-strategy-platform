@@ -1,0 +1,18 @@
+{
+  "items": [
+    {
+      "pair": "BTC/USDT",
+      "timeframe": "5m",
+      "openTime": "2026-09-02T00:00:00Z",
+      "closeTime": "2026-09-02T00:05:00Z",
+      "open": "59000.100000000001",
+      "high": "59120.200000000001",
+      "low": "58950.300000000001",
+      "close": "59080.400000000001",
+      "volume": "12.340000000001",
+      "closed": true
+    }
+  ],
+  "nextCursor": null,
+  "hasMore": false
+}

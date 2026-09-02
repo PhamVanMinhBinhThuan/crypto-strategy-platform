@@ -1,0 +1,33 @@
+{
+  "userStrategyId": "01J00000000000000000000002",
+  "kind": "SINGLE",
+  "name": "Private MA",
+  "description": "Exact private parameters",
+  "status": "ACTIVE",
+  "archivedAt": null,
+  "createdAt": "2026-09-02T01:00:00Z",
+  "updatedAt": "2026-09-02T01:00:00Z",
+  "latestVersion": {
+    "userStrategyVersionId": "01J00000000000000000000021",
+    "userStrategyId": "01J00000000000000000000002",
+    "versionNo": 1,
+    "kind": "SINGLE",
+    "source": {
+      "type": "SINGLE",
+      "strategy": {
+        "strategyId": "ma-crossover",
+        "strategyVersionId": "01J00000000000000000000020",
+        "version": "1.0.0",
+        "parameters": {
+          "fastPeriod": "5",
+          "slowPeriod": "25",
+          "threshold": "0.100000000001"
+        }
+      }
+    },
+    "status": "DRAFT",
+    "fingerprint": "strategy-v1:private-ma:1",
+    "publishedAt": null,
+    "createdAt": "2026-09-02T01:00:00Z"
+  }
+}
