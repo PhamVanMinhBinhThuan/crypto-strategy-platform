@@ -40,6 +40,7 @@ platform:
       jwk-set-uri: ${SUPABASE_JWT_JWKS_URI:}
       audience: ${SUPABASE_JWT_AUDIENCE:}
     websocket-ticket-lifetime: ${PLATFORM_SECURITY_WEBSOCKET_TICKET_LIFETIME:PT60S}
+    websocket-max-connection-lifetime: ${PLATFORM_SECURITY_WEBSOCKET_MAX_CONNECTION_LIFETIME:PT30M}
 
 management:
   endpoints:

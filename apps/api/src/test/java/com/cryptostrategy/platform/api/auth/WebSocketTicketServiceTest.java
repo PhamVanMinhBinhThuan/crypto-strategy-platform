@@ -21,7 +21,7 @@ class WebSocketTicketServiceTest {
         Clock clock = Clock.fixed(Instant.parse("2026-09-02T00:00:00Z"), ZoneOffset.UTC);
         WebSocketTicketService service = new WebSocketTicketService(Duration.ofSeconds(60), clock, new SecureRandom());
 
-        var issued = service.issue(USER, ORIGIN);
+        var issued = service.issue(USER, ORIGIN, Instant.MAX);
         assertThat(service.consume(issued.ticket(), ORIGIN).userId()).isEqualTo(USER);
         assertThatThrownBy(() -> service.consume(issued.ticket(), ORIGIN))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -32,7 +32,7 @@ class WebSocketTicketServiceTest {
         Instant now = Instant.parse("2026-09-02T00:00:00Z");
         MutableClock clock = new MutableClock(now);
         WebSocketTicketService service = new WebSocketTicketService(Duration.ofSeconds(60), clock, new SecureRandom());
-        var issued = service.issue(USER, ORIGIN);
+        var issued = service.issue(USER, ORIGIN, Instant.MAX);
 
         assertThatThrownBy(() -> service.consume(issued.ticket(), "https://evil.example.test"))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -40,6 +40,22 @@ class WebSocketTicketServiceTest {
         clock.advance(Duration.ofSeconds(60));
         assertThatThrownBy(() -> service.consume(issued.ticket(), ORIGIN))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void ticketAndConsumedContextCannotOutliveAuthentication() {
+        Instant now = Instant.parse("2026-09-02T00:00:00Z");
+        Instant authenticationExpiresAt = now.plusSeconds(20);
+        Clock clock = Clock.fixed(now, ZoneOffset.UTC);
+        WebSocketTicketService service =
+                new WebSocketTicketService(Duration.ofSeconds(60), clock, new SecureRandom());
+
+        var issued = service.issue(USER, ORIGIN, authenticationExpiresAt);
+        var consumed = service.consumeForHandshake(issued.ticket(), ORIGIN);
+
+        assertThat(issued.expiresAt()).isEqualTo(authenticationExpiresAt);
+        assertThat(consumed.user().authenticationExpiresAt())
+                .isEqualTo(authenticationExpiresAt);
     }
 
     private static final class MutableClock extends Clock {

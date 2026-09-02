@@ -120,6 +120,11 @@ final class JwtTestFixture implements AutoCloseable {
                 Instant.now().plusSeconds(300), Instant.now().minusSeconds(5));
     }
 
+    String missingExpirationToken(UUID userId) {
+        return token(signingKey, KEY_ID, userId.toString(), ISSUER, List.of(AUDIENCE),
+                null, Instant.now().minusSeconds(5));
+    }
+
     private static String token(
             KeyPair keyPair,
             String keyId,
@@ -132,8 +137,10 @@ final class JwtTestFixture implements AutoCloseable {
             JWTClaimsSet.Builder claims = new JWTClaimsSet.Builder()
                     .issuer(issuer)
                     .issueTime(Date.from(Instant.now()))
-                    .expirationTime(Date.from(expiresAt))
                     .notBeforeTime(Date.from(notBefore));
+            if (expiresAt != null) {
+                claims.expirationTime(Date.from(expiresAt));
+            }
             if (subject != null) {
                 claims.subject(subject);
             }

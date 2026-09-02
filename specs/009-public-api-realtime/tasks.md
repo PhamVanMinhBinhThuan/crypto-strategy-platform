@@ -44,7 +44,7 @@
 - [X] T016 [P] [US1] Viết authentication integration tests cho missing/expired/malformed/wrong issuer-audience JWT tại `apps/api/src/test/java/com/cryptostrategy/platform/api/auth/AuthenticationIntegrationTest.java`.
 - [X] T017 [P] [US1] Viết two-user ownership tests cho resource ID trực tiếp và parent-chain ID tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/OwnershipIsolationIntegrationTest.java`.
 - [X] T018 [P] [US1] Viết error redaction tests chứng minh token, secret, SQL, path, stack trace và provider payload không xuất hiện tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/PublicRedactionIntegrationTest.java`.
-- [ ] T019 [P] [US1] Viết WebSocket ticket handshake tests cho single-use, expiry, origin và authentication expiry tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/WebSocketTicketIntegrationTest.java`.
+- [X] T019 [P] [US1] Viết WebSocket ticket handshake tests cho single-use, expiry, origin và authentication expiry tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/WebSocketTicketIntegrationTest.java`.
 
 ### Implementation for User Story 1
 
@@ -140,7 +140,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T056 [US5] Implement WebSocket endpoint, authenticated handshake và connection lifecycle tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/WebSocketConfiguration.java` và `RealtimeConnection.java`.
+- [X] T056 [US5] Implement WebSocket endpoint, authenticated handshake và connection lifecycle tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/WebSocketConfiguration.java` và `RealtimeConnection.java`.
 - [ ] T057 [US5] Implement typed envelope, command parser, version validation và isolated subscription errors tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/RealtimeMessageMapper.java`.
 - [ ] T058 [US5] Implement subscription registry, four-Candle/workload limits, origin/rate/message checks tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/SubscriptionRegistry.java`.
 - [ ] T059 [US5] Implement marker-based snapshot coordinator và authorized REST refresh hints tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/SnapshotCoordinator.java`.

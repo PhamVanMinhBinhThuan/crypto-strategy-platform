@@ -42,6 +42,10 @@ public final class AllowedOriginPolicy {
         return normalized;
     }
 
+    public Set<String> allowedOrigins() {
+        return allowedOrigins;
+    }
+
     private static String normalize(String origin) {
         if (origin == null || origin.isBlank()) {
             throw new IllegalArgumentException("Origin is required");

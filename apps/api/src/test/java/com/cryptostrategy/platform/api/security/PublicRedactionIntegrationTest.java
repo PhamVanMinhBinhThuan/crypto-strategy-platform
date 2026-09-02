@@ -13,6 +13,7 @@ import com.cryptostrategy.platform.marketdata.api.error.MarketDataErrorCode;
 import com.cryptostrategy.platform.marketdata.api.error.MarketDataException;
 import com.cryptostrategy.platform.news.api.error.NewsErrorCode;
 import com.cryptostrategy.platform.news.api.error.NewsException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -102,7 +103,7 @@ class PublicRedactionIntegrationTest {
 
     private static RequestPostProcessor authenticatedAs(UUID userId) {
         var user = UsernamePasswordAuthenticationToken.authenticated(
-                new AuthenticatedUserContext(userId),
+                new AuthenticatedUserContext(userId, Instant.MAX),
                 "fixture",
                 List.of());
         return authentication(user);

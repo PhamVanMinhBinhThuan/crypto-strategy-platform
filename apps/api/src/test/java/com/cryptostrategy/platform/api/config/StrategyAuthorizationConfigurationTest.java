@@ -6,5 +6,5 @@ import java.util.Arrays;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 class StrategyAuthorizationConfigurationTest {
-    @Test void authenticatedContextIsTheOnlyOwnerSource(){UUID user=UUID.randomUUID();assertEquals(user,new AuthenticatedUserContext(user).userId());assertFalse(Arrays.stream(CreateUserStrategyCommand.class.getRecordComponents()).anyMatch(component->component.getName().toLowerCase().contains("owner")||component.getType()==UUID.class));}
+    @Test void authenticatedContextIsTheOnlyOwnerSource(){UUID user=UUID.randomUUID();assertEquals(user,new AuthenticatedUserContext(user,java.time.Instant.MAX).userId());assertFalse(Arrays.stream(CreateUserStrategyCommand.class.getRecordComponents()).anyMatch(component->component.getName().toLowerCase().contains("owner")||component.getType()==UUID.class));}
 }

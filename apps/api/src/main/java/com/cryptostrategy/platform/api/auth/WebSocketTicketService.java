@@ -36,18 +36,29 @@ public final class WebSocketTicketService {
         this.random = Objects.requireNonNull(random, "random");
     }
 
-    public IssuedTicket issue(UUID userId, String origin) {
+    public IssuedTicket issue(
+            UUID userId, String origin, Instant authenticationExpiresAt) {
         Objects.requireNonNull(userId, "userId");
+        Objects.requireNonNull(authenticationExpiresAt, "authenticationExpiresAt");
         String normalizedOrigin = requireOrigin(origin);
-        Instant expiresAt = clock.instant().plus(lifetime);
+        Instant now = clock.instant();
+        if (authenticationExpiresAt.compareTo(now) <= 0) {
+            throw new IllegalArgumentException("Authentication is expired");
+        }
+        Instant expiresAt = earlier(now.plus(lifetime), authenticationExpiresAt);
         byte[] bytes = new byte[32];
         random.nextBytes(bytes);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        tickets.put(token, new Ticket(userId, normalizedOrigin, expiresAt));
+        tickets.put(token, new Ticket(
+                userId, normalizedOrigin, expiresAt, authenticationExpiresAt));
         return new IssuedTicket(token, expiresAt);
     }
 
     public AuthenticatedUserContext consume(String token, String origin) {
+        return consumeForHandshake(token, origin).user();
+    }
+
+    public ConsumedTicket consumeForHandshake(String token, String origin) {
         if (token == null || token.isBlank()) {
             throw new IllegalArgumentException("WebSocket ticket is required");
         }
@@ -60,7 +71,12 @@ public final class WebSocketTicketService {
         if (!tickets.remove(token, ticket)) {
             throw new IllegalArgumentException("WebSocket ticket has already been consumed");
         }
-        return new AuthenticatedUserContext(ticket.userId());
+        return new ConsumedTicket(
+                new AuthenticatedUserContext(ticket.userId(), ticket.authenticationExpiresAt()));
+    }
+
+    private static Instant earlier(Instant first, Instant second) {
+        return first.compareTo(second) <= 0 ? first : second;
     }
 
     private static String requireOrigin(String origin) {
@@ -70,7 +86,17 @@ public final class WebSocketTicketService {
         return origin.trim();
     }
 
-    private record Ticket(UUID userId, String origin, Instant expiresAt) {}
+    private record Ticket(
+            UUID userId,
+            String origin,
+            Instant expiresAt,
+            Instant authenticationExpiresAt) {}
+
+    public record ConsumedTicket(AuthenticatedUserContext user) {
+        public ConsumedTicket {
+            Objects.requireNonNull(user, "user");
+        }
+    }
 
     public record IssuedTicket(String ticket, Instant expiresAt) {
         public IssuedTicket {

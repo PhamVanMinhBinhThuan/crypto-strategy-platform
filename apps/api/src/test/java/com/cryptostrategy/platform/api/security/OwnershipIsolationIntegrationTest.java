@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
 import com.cryptostrategy.platform.api.auth.OwnerAuthorizationService;
 import com.cryptostrategy.platform.api.error.ResourceInaccessibleException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -146,7 +147,7 @@ class OwnershipIsolationIntegrationTest {
 
     private static RequestPostProcessor authenticatedAs(UUID userId) {
         var token = UsernamePasswordAuthenticationToken.authenticated(
-                new AuthenticatedUserContext(userId),
+                new AuthenticatedUserContext(userId, Instant.MAX),
                 "fixture",
                 List.of());
         return authentication(token);

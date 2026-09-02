@@ -200,7 +200,7 @@ class PublicErrorContractTest {
 
     private static RequestPostProcessor authenticatedAs(UUID userId) {
         var authentication = UsernamePasswordAuthenticationToken.authenticated(
-                new AuthenticatedUserContext(userId),
+                new AuthenticatedUserContext(userId, Instant.MAX),
                 "fixture",
                 List.of());
         return authentication(authentication);

@@ -29,7 +29,8 @@ public final class WebSocketTicketController {
             return ResponseEntity.status(401).build();
         }
         String allowedOrigin = origins.requireAllowed(origin);
-        WebSocketTicketService.IssuedTicket issued = tickets.issue(user.userId(), allowedOrigin);
+        WebSocketTicketService.IssuedTicket issued = tickets.issue(
+                user.userId(), allowedOrigin, user.authenticationExpiresAt());
         return ResponseEntity.ok(new TicketResponse(issued.ticket(), issued.expiresAt()));
     }
 

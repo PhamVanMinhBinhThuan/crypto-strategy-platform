@@ -41,7 +41,7 @@ public class SecurityConfiguration {
         OAuth2TokenValidator<Jwt> issuerAndTime = JwtValidators.createDefaultWithIssuer(requiredIssuer);
         OAuth2TokenValidator<Jwt> audienceValidator = new JwtClaimValidator<List<String>>(
                 "aud", audiences -> audiences != null && audiences.contains(requiredAudience));
-        OAuth2TokenValidator<Jwt> subjectValidator = jwt -> validUuidSubject(jwt.getSubject());
+        OAuth2TokenValidator<Jwt> subjectValidator = SecurityConfiguration::validSessionClaims;
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
                 issuerAndTime,
                 audienceValidator,
@@ -55,7 +55,7 @@ public class SecurityConfiguration {
         return jwt -> new UserContextAuthenticationToken(
                 jwt,
                 authoritiesConverter.convert(jwt),
-                AuthenticatedUserContext.fromSubject(jwt.getSubject()));
+                AuthenticatedUserContext.fromSubject(jwt.getSubject(), jwt.getExpiresAt()));
     }
 
     @Bean
@@ -80,6 +80,7 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                        .requestMatchers("/ws").permitAll()
                         .anyRequest().authenticated())
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(formLogin -> formLogin.disable())
@@ -92,12 +93,21 @@ public class SecurityConfiguration {
 
     private static OAuth2TokenValidatorResult validUuidSubject(String subject) {
         try {
-            AuthenticatedUserContext.fromSubject(subject);
+            AuthenticatedUserContext.userIdFromSubject(subject);
             return OAuth2TokenValidatorResult.success();
         } catch (RuntimeException exception) {
             OAuth2Error error = new OAuth2Error("invalid_token", "JWT subject must be a UUID", null);
             return OAuth2TokenValidatorResult.failure(error);
         }
+    }
+
+    private static OAuth2TokenValidatorResult validSessionClaims(Jwt jwt) {
+        if (jwt.getExpiresAt() == null) {
+            OAuth2Error error = new OAuth2Error(
+                    "invalid_token", "JWT expiration is required", null);
+            return OAuth2TokenValidatorResult.failure(error);
+        }
+        return validUuidSubject(jwt.getSubject());
     }
 
     private static String requireNonBlank(String key, String value) {

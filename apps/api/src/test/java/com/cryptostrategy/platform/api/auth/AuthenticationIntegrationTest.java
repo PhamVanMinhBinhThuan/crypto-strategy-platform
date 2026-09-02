@@ -186,6 +186,7 @@ class AuthenticationIntegrationTest {
                 Arguments.of("wrong issuer", JWT.wrongIssuerToken(USER_ID)),
                 Arguments.of("wrong audience", JWT.wrongAudienceToken(USER_ID)),
                 Arguments.of("missing audience", JWT.missingAudienceToken(USER_ID)),
+                Arguments.of("missing expiration", JWT.missingExpirationToken(USER_ID)),
                 Arguments.of("non-UUID subject", JWT.nonUuidSubjectToken()),
                 Arguments.of("non-canonical UUID subject", JWT.nonCanonicalUuidSubjectToken()),
                 Arguments.of("missing subject", JWT.missingSubjectToken()));

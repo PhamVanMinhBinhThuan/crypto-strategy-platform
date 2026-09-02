@@ -31,7 +31,7 @@ class FoundationalBoundaryTest {
     @Test
     void websocketTicketIsOriginBoundSingleUseAndExpires() {
         WebSocketTicketService service = new WebSocketTicketService(Duration.ofMinutes(1));
-        var issued = service.issue(USER_A, ALLOWED_ORIGIN);
+        var issued = service.issue(USER_A, ALLOWED_ORIGIN, Instant.MAX);
 
         assertThatThrownBy(() -> service.consume(issued.ticket(), "https://evil.example.test"))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -44,7 +44,7 @@ class FoundationalBoundaryTest {
 
         WebSocketTicketService expiringService =
                 new WebSocketTicketService(Duration.ofMillis(5));
-        var expiringTicket = expiringService.issue(USER_A, ALLOWED_ORIGIN);
+        var expiringTicket = expiringService.issue(USER_A, ALLOWED_ORIGIN, Instant.MAX);
         awaitExpiry(expiringTicket.expiresAt());
 
         assertThatThrownBy(

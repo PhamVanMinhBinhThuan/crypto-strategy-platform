@@ -44,6 +44,8 @@ class SecurityBoundaryIntegrationTest {
             UUID.fromString("26b58306-aec9-4e70-b57c-25f77ac9e452");
     private static final String ALLOWED_ORIGIN = "https://dashboard.example.test";
     private static final String NEWS_ID = "10000000000000000000000001";
+    private static final Instant AUTHENTICATION_EXPIRES_AT =
+            Instant.parse("2026-09-02T03:00:00Z");
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,7 +58,7 @@ class SecurityBoundaryIntegrationTest {
 
     @Test
     void websocketTicketEndpointAllowsOnlyConfiguredOrigin() throws Exception {
-        when(tickets.issue(USER_ID, ALLOWED_ORIGIN)).thenReturn(
+        when(tickets.issue(USER_ID, ALLOWED_ORIGIN, AUTHENTICATION_EXPIRES_AT)).thenReturn(
                 new WebSocketTicketService.IssuedTicket(
                         "one-time-ticket",
                         Instant.parse("2026-09-02T02:00:00Z")));
@@ -76,7 +78,7 @@ class SecurityBoundaryIntegrationTest {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("FORBIDDEN_ORIGIN"));
 
-        verify(tickets).issue(USER_ID, ALLOWED_ORIGIN);
+        verify(tickets).issue(USER_ID, ALLOWED_ORIGIN, AUTHENTICATION_EXPIRES_AT);
         verifyNoMoreInteractions(tickets);
     }
 
@@ -103,7 +105,7 @@ class SecurityBoundaryIntegrationTest {
 
     private static RequestPostProcessor authenticatedAs(UUID userId) {
         var user = UsernamePasswordAuthenticationToken.authenticated(
-                new AuthenticatedUserContext(userId),
+                new AuthenticatedUserContext(userId, AUTHENTICATION_EXPIRES_AT),
                 "fixture",
                 List.of());
         return authentication(user);

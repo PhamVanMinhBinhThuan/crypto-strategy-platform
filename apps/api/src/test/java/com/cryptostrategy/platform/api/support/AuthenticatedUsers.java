@@ -3,6 +3,7 @@ package com.cryptostrategy.platform.api.support;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
 import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -18,16 +19,16 @@ public final class AuthenticatedUsers {
     private AuthenticatedUsers() {}
 
     public static AuthenticatedUserContext userA() {
-        return new AuthenticatedUserContext(USER_A_ID);
+        return new AuthenticatedUserContext(USER_A_ID, Instant.MAX);
     }
 
     public static AuthenticatedUserContext userB() {
-        return new AuthenticatedUserContext(USER_B_ID);
+        return new AuthenticatedUserContext(USER_B_ID, Instant.MAX);
     }
 
     public static RequestPostProcessor authenticatedAs(UUID userId) {
         var token = UsernamePasswordAuthenticationToken.authenticated(
-                new AuthenticatedUserContext(userId),
+                new AuthenticatedUserContext(userId, Instant.MAX),
                 "test-credential",
                 List.of());
         return authentication(token);
