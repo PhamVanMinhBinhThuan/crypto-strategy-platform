@@ -12,9 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/realtime")
 public final class WebSocketTicketController {
     private final WebSocketTicketService tickets;
+    private final AllowedOriginPolicy origins;
 
-    public WebSocketTicketController(WebSocketTicketService tickets) {
+    public WebSocketTicketController(
+            WebSocketTicketService tickets,
+            AllowedOriginPolicy origins) {
         this.tickets = tickets;
+        this.origins = origins;
     }
 
     @PostMapping("/ticket")
@@ -24,7 +28,8 @@ public final class WebSocketTicketController {
         if (user == null) {
             return ResponseEntity.status(401).build();
         }
-        WebSocketTicketService.IssuedTicket issued = tickets.issue(user.userId(), origin);
+        String allowedOrigin = origins.requireAllowed(origin);
+        WebSocketTicketService.IssuedTicket issued = tickets.issue(user.userId(), allowedOrigin);
         return ResponseEntity.ok(new TicketResponse(issued.ticket(), issued.expiresAt()));
     }
 

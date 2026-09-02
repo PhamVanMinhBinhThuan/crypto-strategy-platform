@@ -34,6 +34,7 @@ platform:
         initial-delay: ${PLATFORM_MARKET_DATA_BINANCE_RECONNECT_INITIAL_DELAY:PT0.5S}
         max-delay: ${PLATFORM_MARKET_DATA_BINANCE_RECONNECT_MAX_DELAY:PT5S}
   security:
+    allowed-origins: ${PLATFORM_SECURITY_ALLOWED_ORIGINS:}
     jwt:
       issuer: ${SUPABASE_JWT_ISSUER:}
       jwk-set-uri: ${SUPABASE_JWT_JWKS_URI:}
