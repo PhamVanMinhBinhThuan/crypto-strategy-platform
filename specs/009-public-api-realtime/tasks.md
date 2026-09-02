@@ -43,7 +43,7 @@
 
 - [X] T016 [P] [US1] Viết authentication integration tests cho missing/expired/malformed/wrong issuer-audience JWT tại `apps/api/src/test/java/com/cryptostrategy/platform/api/auth/AuthenticationIntegrationTest.java`.
 - [X] T017 [P] [US1] Viết two-user ownership tests cho resource ID trực tiếp và parent-chain ID tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/OwnershipIsolationIntegrationTest.java`.
-- [ ] T018 [P] [US1] Viết error redaction tests chứng minh token, secret, SQL, path, stack trace và provider payload không xuất hiện tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/PublicRedactionIntegrationTest.java`.
+- [X] T018 [P] [US1] Viết error redaction tests chứng minh token, secret, SQL, path, stack trace và provider payload không xuất hiện tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/PublicRedactionIntegrationTest.java`.
 - [ ] T019 [P] [US1] Viết WebSocket ticket handshake tests cho single-use, expiry, origin và authentication expiry tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/WebSocketTicketIntegrationTest.java`.
 
 ### Implementation for User Story 1
