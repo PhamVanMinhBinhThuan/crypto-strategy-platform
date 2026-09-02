@@ -2,7 +2,7 @@ openapi: 3.1.0
 
 info:
   title: Crypto Strategy Lab API
-  version: 0.1.0
+  version: 0.2.0
   description: |-
     Draft public REST contract for the Crypto Strategy Lab MVP.
     Long-running Backtest and Experiment operations are asynchronous.
@@ -17,11 +17,14 @@ security:
 
 tags:
   - name: Market
+  - name: Datasets
   - name: Strategies
+  - name: Private Strategies
   - name: Backtesting
   - name: Experiments
   - name: Leaderboard
   - name: News
+  - name: Realtime
   - name: Internal News Audit
 
 paths:
@@ -62,11 +65,68 @@ paths:
                 nextCursor: null
                 hasMore: false
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '422': { $ref: '#/components/responses/UnprocessableContent' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '502': { $ref: '#/components/responses/BadGateway' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
         '504': { $ref: '#/components/responses/GatewayTimeout' }
+
+  /datasets:
+    post:
+      tags: [Datasets]
+      operationId: createDataset
+      summary: Create an immutable Dataset snapshot
+      description: Freezes the canonical Candle membership selected by an inclusive start and exclusive end.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateDatasetRequest' }
+      responses:
+        '201':
+          description: Dataset snapshot created.
+          headers:
+            Location:
+              description: URL of the immutable Dataset snapshot.
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DatasetSnapshot' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '502': { $ref: '#/components/responses/BadGateway' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+        '504': { $ref: '#/components/responses/GatewayTimeout' }
+
+  /datasets/{datasetId}:
+    get:
+      tags: [Datasets]
+      operationId: getDataset
+      summary: Get an immutable Dataset snapshot
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/DatasetId'
+      responses:
+        '200':
+          description: Dataset snapshot returned successfully.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DatasetSnapshot' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /strategies:
     get:
@@ -101,7 +161,157 @@ paths:
                 nextCursor: null
                 hasMore: false
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /user-strategies:
+    get:
+      tags: [Private Strategies]
+      operationId: listUserStrategies
+      summary: List Strategies owned by the authenticated user
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Owner-scoped Strategy library.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserStrategyPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+    post:
+      tags: [Private Strategies]
+      operationId: createUserStrategy
+      summary: Create a private Strategy with its first immutable version
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserStrategyRequest' }
+      responses:
+        '201':
+          description: Private Strategy created.
+          headers:
+            Location:
+              description: URL of the private Strategy.
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserStrategy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+
+  /user-strategies/{userStrategyId}:
+    get:
+      tags: [Private Strategies]
+      operationId: getUserStrategy
+      summary: Get one private Strategy and its latest version
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/UserStrategyId'
+      responses:
+        '200':
+          description: Private Strategy returned successfully.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserStrategy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /user-strategies/{userStrategyId}/versions:
+    post:
+      tags: [Private Strategies]
+      operationId: createUserStrategyVersion
+      summary: Create the next immutable private Strategy version
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/UserStrategyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserStrategyVersionRequest' }
+      responses:
+        '201':
+          description: New draft version created.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserStrategyVersion' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+
+  /user-strategies/{userStrategyId}/versions/{versionId}/publish:
+    post:
+      tags: [Private Strategies]
+      operationId: publishUserStrategyVersion
+      summary: Publish an immutable private Strategy version
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/UserStrategyId'
+        - $ref: '#/components/parameters/UserStrategyVersionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PublishUserStrategyVersionRequest' }
+      responses:
+        '200':
+          description: Version published.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserStrategyVersion' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422': { $ref: '#/components/responses/UnprocessableContent' }
+
+  /user-strategies/{userStrategyId}/archive:
+    post:
+      tags: [Private Strategies]
+      operationId: archiveUserStrategy
+      summary: Archive a private Strategy without modifying published versions
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/UserStrategyId'
+      responses:
+        '200':
+          description: Strategy archived or returned from an equivalent replay.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserStrategy' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /backtests:
@@ -145,6 +355,7 @@ paths:
                 jobId: 01JJOB00000000000000000001
                 status: QUEUED
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
@@ -169,6 +380,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/BacktestResult' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
@@ -199,7 +411,34 @@ paths:
                   attempt: 3
                   failedAt: '2026-08-16T02:15:00Z'
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /jobs/{jobId}/cancel:
+    post:
+      tags: [Backtesting, Experiments]
+      operationId: cancelJob
+      summary: Request cancellation of an owned Job
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/JobId'
+      responses:
+        '202':
+          description: Cancellation accepted or an equivalent request already exists.
+          headers:
+            Location:
+              description: URL of the authoritative Job state.
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Job' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /experiments:
@@ -240,11 +479,132 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ExperimentAccepted' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '415': { $ref: '#/components/responses/UnsupportedMediaType' }
         '422': { $ref: '#/components/responses/UnprocessableContent' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /experiments/{experimentId}:
+    get:
+      tags: [Experiments]
+      operationId: getExperiment
+      summary: Get an authoritative Experiment snapshot
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/ExperimentId'
+      responses:
+        '200':
+          description: Current durable Experiment state.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Experiment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /experiments/{experimentId}/stop:
+    post:
+      tags: [Experiments]
+      operationId: stopExperiment
+      summary: Request an owned Experiment to stop
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/ExperimentId'
+      responses:
+        '202':
+          description: Stop request accepted or returned from an equivalent replay.
+          headers:
+            Location:
+              description: URL of the authoritative Experiment state.
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Experiment' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /experiments/{experimentId}/reproductions:
+    post:
+      tags: [Experiments]
+      operationId: reproduceExperiment
+      summary: Create a new Experiment linked to immutable original evidence
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/ExperimentId'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '202':
+          description: Reproduction accepted as a new Experiment and Job.
+          headers:
+            Location:
+              description: URL of the new Experiment.
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExperimentAccepted' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /experiments/{experimentId}/candidates:
+    get:
+      tags: [Experiments]
+      operationId: listExperimentCandidates
+      summary: List deterministic Candidate definitions for an owned Experiment
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/ExperimentId'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Candidate page returned successfully.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CandidatePage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /experiments/{experimentId}/candidates/{candidateId}:
+    get:
+      tags: [Experiments]
+      operationId: getExperimentCandidate
+      summary: Get one Candidate through its owned Experiment parent
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/ExperimentId'
+        - $ref: '#/components/parameters/CandidateId'
+      responses:
+        '200':
+          description: Candidate returned successfully.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Candidate' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /experiments/{experimentId}/leaderboard:
@@ -267,6 +627,7 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/Leaderboard' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
@@ -297,8 +658,31 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/NewsItemPage' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /realtime/ticket:
+    post:
+      tags: [Realtime]
+      operationId: issueWebSocketTicket
+      summary: Issue a short-lived, one-time WebSocket handshake ticket
+      description: The ticket is bound to the authenticated user and exact allowed Origin; the access token is never placed in the WebSocket URL.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/Origin'
+      responses:
+        '200':
+          description: One-time ticket issued.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WebSocketTicket' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
 
   /internal/news-items/{newsId}/sentiment:
     get:
@@ -338,6 +722,12 @@ components:
       required: false
       description: Optional client correlation ID; an invalid value may be replaced.
       schema: { $ref: '#/components/schemas/OpaqueId' }
+    Origin:
+      name: Origin
+      in: header
+      required: true
+      description: Exact browser Origin; it must match the configured allowlist.
+      schema: { type: string, format: uri }
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -399,6 +789,21 @@ components:
       in: path
       required: true
       schema: { $ref: '#/components/schemas/OpaqueId' }
+    DatasetId:
+      name: datasetId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/OpaqueId' }
+    UserStrategyId:
+      name: userStrategyId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/OpaqueId' }
+    UserStrategyVersionId:
+      name: versionId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/OpaqueId' }
     JobId:
       name: jobId
       in: path
@@ -409,10 +814,29 @@ components:
       in: path
       required: true
       schema: { $ref: '#/components/schemas/OpaqueId' }
+    CandidateId:
+      name: candidateId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/OpaqueId' }
 
   responses:
     BadRequest:
       description: Request syntax, schema, query parameter, or cursor is invalid.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Unauthorized:
+      description: Authentication is missing or invalid; token validation details are concealed.
+      headers:
+        X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: The request is denied by an Origin or security policy.
       headers:
         X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
       content:
@@ -538,6 +962,39 @@ components:
               type: array
               items: { $ref: '#/components/schemas/Candle' }
 
+    CreateDatasetRequest:
+      type: object
+      additionalProperties: false
+      required: [pair, timeframe, startTime, endTime]
+      properties:
+        pair: { $ref: '#/components/schemas/Pair' }
+        timeframe: { $ref: '#/components/schemas/Timeframe' }
+        startTime:
+          type: string
+          format: date-time
+          description: Inclusive UTC start.
+        endTime:
+          type: string
+          format: date-time
+          description: Exclusive UTC end.
+    DatasetSnapshot:
+      type: object
+      additionalProperties: false
+      required: [datasetId, version, provider, pair, timeframe, normalizationVersion, startTime, endTime, membershipCount, checksum, status, createdAt]
+      properties:
+        datasetId: { $ref: '#/components/schemas/OpaqueId' }
+        version: { type: string, minLength: 1 }
+        provider: { type: string, minLength: 1 }
+        pair: { $ref: '#/components/schemas/Pair' }
+        timeframe: { $ref: '#/components/schemas/Timeframe' }
+        normalizationVersion: { type: string, minLength: 1 }
+        startTime: { type: string, format: date-time }
+        endTime: { type: string, format: date-time }
+        membershipCount: { type: integer, minimum: 1 }
+        checksum: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        status: { type: string, const: READY }
+        createdAt: { type: string, format: date-time }
+
     Signal:
       type: string
       enum: [BUY, SELL, HOLD]
@@ -583,6 +1040,102 @@ components:
             items:
               type: array
               items: { $ref: '#/components/schemas/StrategyDescriptor' }
+
+    SingleStrategySource:
+      type: object
+      additionalProperties: false
+      required: [type, strategy]
+      properties:
+        type: { type: string, const: SINGLE }
+        strategy: { $ref: '#/components/schemas/StrategySelection' }
+    CompositeStrategySource:
+      type: object
+      additionalProperties: false
+      required: [type, policyId, policyVersion, policyParameters, components]
+      properties:
+        type: { type: string, const: COMPOSITE }
+        policyId: { type: string, minLength: 1 }
+        policyVersion: { type: string, minLength: 1 }
+        policyParameters: { type: object }
+        components:
+          type: array
+          minItems: 2
+          items: { $ref: '#/components/schemas/StrategySelection' }
+    StrategyDraftSource:
+      oneOf:
+        - $ref: '#/components/schemas/SingleStrategySource'
+        - $ref: '#/components/schemas/CompositeStrategySource'
+      discriminator:
+        propertyName: type
+    CreateUserStrategyRequest:
+      type: object
+      additionalProperties: false
+      required: [name, description, kind, source]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 2000 }
+        kind: { type: string, enum: [SINGLE, COMPOSITE] }
+        source: { $ref: '#/components/schemas/StrategyDraftSource' }
+    CreateUserStrategyVersionRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedLatestVersionNo, source]
+      properties:
+        expectedLatestVersionNo: { type: integer, minimum: 1 }
+        source: { $ref: '#/components/schemas/StrategyDraftSource' }
+    PublishUserStrategyVersionRequest:
+      type: object
+      additionalProperties: false
+      required: [expectedVersionNo]
+      properties:
+        expectedVersionNo: { type: integer, minimum: 1 }
+    UserStrategyVersion:
+      type: object
+      additionalProperties: false
+      required: [userStrategyVersionId, userStrategyId, versionNo, kind, source, status, fingerprint, publishedAt, createdAt]
+      properties:
+        userStrategyVersionId: { $ref: '#/components/schemas/OpaqueId' }
+        userStrategyId: { $ref: '#/components/schemas/OpaqueId' }
+        versionNo: { type: integer, minimum: 1 }
+        kind: { type: string, enum: [SINGLE, COMPOSITE] }
+        source: { $ref: '#/components/schemas/StrategyDraftSource' }
+        status: { type: string, enum: [DRAFT, PUBLISHED] }
+        fingerprint: { type: string, minLength: 1 }
+        publishedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+    UserStrategy:
+      type: object
+      additionalProperties: false
+      required: [userStrategyId, kind, name, description, status, archivedAt, createdAt, updatedAt, latestVersion]
+      properties:
+        userStrategyId: { $ref: '#/components/schemas/OpaqueId' }
+        kind: { type: string, enum: [SINGLE, COMPOSITE] }
+        name: { type: string, minLength: 1 }
+        description: { type: string }
+        status: { type: string, enum: [ACTIVE, ARCHIVED] }
+        archivedAt: { type: [string, 'null'], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        latestVersion: { $ref: '#/components/schemas/UserStrategyVersion' }
+    UserStrategySummary:
+      type: object
+      additionalProperties: false
+      required: [userStrategyId, kind, name, description, createdAt]
+      properties:
+        userStrategyId: { $ref: '#/components/schemas/OpaqueId' }
+        kind: { type: string, enum: [SINGLE, COMPOSITE] }
+        name: { type: string, minLength: 1 }
+        description: { type: string }
+        createdAt: { type: string, format: date-time }
+    UserStrategyPage:
+      allOf:
+        - $ref: '#/components/schemas/PaginationFields'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/UserStrategySummary' }
 
     StrategySelection:
       type: object
@@ -747,6 +1300,60 @@ components:
         jobId: { $ref: '#/components/schemas/OpaqueId' }
         status: { type: string, const: QUEUED }
 
+    ExperimentStatus:
+      type: string
+      enum: [CREATED, QUEUED, RUNNING, STOP_REQUESTED, STOPPED, COMPLETED, FAILED]
+    ExperimentFailure:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code: { type: string, pattern: '^[A-Z][A-Z0-9_]*$' }
+        message: { type: string, minLength: 1 }
+    Experiment:
+      type: object
+      additionalProperties: false
+      required: [experimentId, name, status, datasetId, jobIds, derivedFromExperimentId, reproducesExperimentId, startedAt, completedAt, failure, createdAt]
+      properties:
+        experimentId: { $ref: '#/components/schemas/OpaqueId' }
+        name: { type: string, minLength: 1 }
+        status: { $ref: '#/components/schemas/ExperimentStatus' }
+        datasetId: { $ref: '#/components/schemas/OpaqueId' }
+        jobIds:
+          type: array
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/OpaqueId' }
+        derivedFromExperimentId: { type: [string, 'null'], minLength: 1 }
+        reproducesExperimentId: { type: [string, 'null'], minLength: 1 }
+        startedAt: { type: [string, 'null'], format: date-time }
+        completedAt: { type: [string, 'null'], format: date-time }
+        failure:
+          oneOf:
+            - $ref: '#/components/schemas/ExperimentFailure'
+            - type: 'null'
+        createdAt: { type: string, format: date-time }
+    Candidate:
+      type: object
+      additionalProperties: false
+      required: [candidateId, experimentId, generationIndex, definition, generatorState, fingerprint, createdAt]
+      properties:
+        candidateId: { $ref: '#/components/schemas/OpaqueId' }
+        experimentId: { $ref: '#/components/schemas/OpaqueId' }
+        generationIndex: { type: integer, minimum: 0 }
+        definition: { type: object }
+        generatorState: { type: [object, 'null'] }
+        fingerprint: { type: string, minLength: 1 }
+        createdAt: { type: string, format: date-time }
+    CandidatePage:
+      allOf:
+        - $ref: '#/components/schemas/PaginationFields'
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items: { $ref: '#/components/schemas/Candidate' }
+
     LeaderboardEntry:
       type: object
       additionalProperties: false
@@ -812,6 +1419,17 @@ components:
             items:
               type: array
               items: { $ref: '#/components/schemas/NewsItem' }
+
+    WebSocketTicket:
+      type: object
+      additionalProperties: false
+      required: [ticket, expiresAt]
+      properties:
+        ticket:
+          type: string
+          minLength: 32
+          description: Opaque, single-use credential; it must not be logged or reused.
+        expiresAt: { type: string, format: date-time }
 
     SentimentAudit:
       type: object
@@ -883,4 +1501,3 @@ components:
       type: http
       scheme: bearer
       description: Rotated internal service token; never exposed to browser clients.
-      description: Supabase Auth access token verified by the Java API.
