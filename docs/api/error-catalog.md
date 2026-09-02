@@ -96,9 +96,11 @@ Không dùng `404` để che mọi lỗi và không trả `200` kèm error objec
 | Code | HTTP | Retry | Khi xảy ra | Client xử lý |
 | --- | ---: | --- | --- | --- |
 | `AUTHENTICATION_REQUIRED` | 401 | Không tự động | Bearer token thiếu, malformed, hết hạn, sai signature/issuer/audience hoặc subject không hợp lệ | Đăng nhập hoặc refresh session; không dựa vào message để phân biệt nguyên nhân token |
+| `WEBSOCKET_TICKET_INVALID` | 401 | Có sau khi refresh session | WebSocket ticket thiếu, sai, hết hạn hoặc đã được dùng | Không dùng lại ticket; refresh session nếu cần, gọi lại `POST /api/v1/realtime/ticket` rồi mở connection mới |
 
 Các lỗi xác thực dùng chung một public code/message an toàn; chi tiết validation token
-không được trả về client hoặc ghi raw JWT vào log.
+không được trả về client hoặc ghi raw JWT vào log. `WEBSOCKET_TICKET_INVALID` cũng không
+phân biệt ticket thiếu, malformed, hết hạn hay đã dùng để tránh làm lộ trạng thái credential.
 
 ## 5. Resource, state và idempotency
 
@@ -110,9 +112,30 @@ không được trả về client hoặc ghi raw JWT vào log.
 | `VERSION_CONFLICT` | 409 | Không | Revision/version gửi lên đã cũ hoặc trùng | Tải bản mới rồi thao tác lại |
 | `IDEMPOTENCY_KEY_CONFLICT` | 409 | Không | Cùng `Idempotency-Key` nhưng payload khác | Tạo key mới hoặc dùng payload cũ |
 | `DUPLICATE_RESOURCE` | 409 | Không | ID hoặc business key đã tồn tại | Dùng resource hiện có hoặc đổi input |
-| `FORBIDDEN_ORIGIN` | 403 | Không | Origin không nằm trong allowlist | Dùng client/environment hợp lệ |
+| `FORBIDDEN_ORIGIN` | 403 | Không | Origin thiếu, sai định dạng hoặc không khớp chính xác allowlist khi xin ticket/upgrade WebSocket | Dùng client/environment hợp lệ; không tự đổi Origin |
 
 Không trả `DUPLICATE_RESOURCE` khi request có cùng idempotency key và cùng payload; trường hợp đó phải trả lại resource/job logic trước đó.
+
+### 5.1. Quy tắc operation của F-009
+
+Các operation tạo durable outcome dưới đây dùng scope idempotency ổn định
+`authenticated user + operation + Idempotency-Key`:
+
+| REST operation | Operation scope |
+| --- | --- |
+| `POST /api/v1/datasets` | `CREATE_DATASET` |
+| `POST /api/v1/backtests` | `START_BACKTEST` |
+| `POST /api/v1/experiments` | `START_EXPERIMENT` |
+| `POST /api/v1/experiments/{experimentId}/reproductions` | `REPRODUCE_EXPERIMENT` |
+
+Cùng key và cùng canonical payload phải replay outcome ban đầu, kể cả khi outcome đang
+xử lý, đã hoàn thành hoặc đã thất bại. Cùng key trong cùng scope nhưng payload khác trả
+`IDEMPOTENCY_KEY_CONFLICT`; cùng key của user hoặc operation khác là scope độc lập.
+
+Với resource private, identifier không tồn tại và identifier thuộc user khác phải dùng
+cùng public inaccessible code/status được operation công bố. Response không được chứa
+owner, parent ID, state hoặc metadata giúp phân biệt hai trường hợp. `resourceId` chỉ được
+trả khi bản thân contract lỗi cho phép công bố identifier đó cho user hiện tại.
 
 ## 6. Market data
 
@@ -292,6 +315,7 @@ Client không tự retry `POST` tạo job nếu không dùng cùng `Idempotency-
 - password, token, API key, Supabase service-role key;
 - Binance credential;
 - Authorization header, cookie hoặc secret environment variable;
+- one-time WebSocket ticket, kể cả query string của request upgrade;
 - SQL chứa dữ liệu nhạy cảm;
 - toàn bộ News content nếu không cần thiết;
 - raw Python/Binance response có dữ liệu không được công bố;

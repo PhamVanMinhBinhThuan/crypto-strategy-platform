@@ -58,6 +58,10 @@ python3.11 -m venv /tmp/crypto-sentiment-f009
    xác nhận không mất terminal state hoặc tạo duplicate business effect.
 5. Gửi command vượt limit/payload quá lớn/unknown field; xác nhận lỗi đúng scope hoặc
    connection close theo security policy.
+6. Cho JWT gốc hết hạn trong khi connection đang mở; xác nhận server dừng private event và
+   đóng bằng `4001 REAUTHENTICATION_REQUIRED`. Client refresh session, xin ticket mới,
+   reconnect/resubscribe và reconcile REST mà không yêu cầu đăng nhập lại khi refresh token
+   còn hợp lệ.
 
 ## Integration evidence
 

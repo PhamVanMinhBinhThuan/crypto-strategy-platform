@@ -3,8 +3,13 @@
 ## Connection và envelope
 
 Endpoint `/ws`, UTF-8 JSON, một connection mỗi browser tab. Handshake cần one-time ticket
-ngắn hạn và Origin allowlist. Envelope bắt buộc: `eventType`, `eventVersion`, `eventId`,
+ngắn hạn và Origin allowlist. Ticket do authenticated REST cấp, gắn user/Origin/JWT expiry,
+chỉ consume một lần và không được log. Envelope bắt buộc: `eventType`, `eventVersion`, `eventId`,
 `occurredAt` UTC, `correlationId`, `subscriptionId`, `payload`.
+
+MVP không nhận reauthentication command. Connection đóng bằng code `4001`
+`REAUTHENTICATION_REQUIRED` tại thời điểm sớm hơn giữa JWT expiry và maximum connection
+lifetime; client refresh session, xin ticket mới, reconnect, resubscribe và đọc REST snapshot.
 
 ## Commands/events
 
@@ -19,7 +24,7 @@ Không nhận command tạo/stop/cancel/publish/archive/reproduce business state
 
 ## Sequencing và recovery
 
-Subscription confirmation gắn synchronization marker/boundary. Snapshot REST và events
+Subscription confirmation `ACTIVE` gắn synchronization marker/boundary opaque. Snapshot REST và events
 được ghép theo marker; event duplicate/stale bị bỏ qua theo `eventId`, Candle identity,
 hoặc Leaderboard revision. Sau reconnect client resubscribe và đọc REST để backfill; server
 không cam kết exactly-once.

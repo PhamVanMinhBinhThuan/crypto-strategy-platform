@@ -8,7 +8,8 @@
   data nhưng vẫn qua API boundary.
 - Cross-owner và missing resource dùng cùng inaccessible response; identifier không cấp
   quyền.
-- WebSocket subscription phải authorize trước confirmation/snapshot/event; token hết hạn
-  thì connection chuyển policy reauthentication/disconnect mà không phát tiếp private data.
+- WebSocket subscription phải authorize trước confirmation/snapshot/event. Connection đóng
+  và dừng phát private data tại thời điểm sớm hơn giữa JWT gốc hết hạn và maximum lifetime;
+  client refresh session ngoài WebSocket, lấy ticket mới, reconnect và resubscribe.
 - Internal sentiment audit và trusted worker operations không được gọi từ browser; chúng
   dùng boundary/credential riêng, không coi user JWT là service authority.

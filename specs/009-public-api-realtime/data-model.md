@@ -12,6 +12,7 @@ receipt/ticket state cần thiết cho boundary.
 | `correlationId` | Opaque value, nhận hoặc sinh mới, đi xuyên request/event |
 | `origin` | Được kiểm tra với allowlist ở WebSocket handshake |
 | `authenticatedAt` | UTC instant; chỉ dùng cho policy/observability |
+| `authenticationExpiresAt` | JWT expiry dùng làm hard deadline cho realtime connection; không trả trong public event |
 
 ## Public Resource Representation
 
@@ -45,7 +46,9 @@ Receipt không thay thế durable Job/Experiment state.
 | `EventEnvelope` | Event identity/version/time/correlation/subscription/payload |
 
 Một connection tối đa bốn Candle subscriptions và giới hạn workload cấu hình. Unsubscribe,
-expiry hoặc connection close phải giải phóng toàn bộ logical subscriptions thuộc connection.
+JWT expiry, maximum connection lifetime hoặc connection close phải dừng private delivery và
+giải phóng toàn bộ logical subscriptions thuộc connection. Refresh tạo connection mới, không
+thay principal ngay trong connection cũ.
 
 ## Public Error
 

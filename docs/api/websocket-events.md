@@ -32,13 +32,26 @@ Các thao tác trên dùng REST API. WebSocket chỉ phát update và ID để F
 | STOMP/SockJS | Không dùng trong MVP |
 | Encoding | UTF-8 |
 | Số connection | Một connection cho mỗi browser tab |
-| Authentication | Bắt buộc theo ADR-0011 |
+| Authentication | One-time ticket lấy qua authenticated REST; không nhận access token dài hạn trong URL/message |
 | Origin | Backend chỉ chấp nhận Origin nằm trong allowlist cấu hình |
+| Ticket lifetime | Mặc định 60 giây, cấu hình bằng `platform.security.websocket-ticket-lifetime` |
+| Connection lifetime | Tối đa 30 phút hoặc tới khi JWT gốc hết hạn, tùy thời điểm nào đến trước |
 
-WebSocket upgrade phải xác thực user bằng secure cookie hoặc short-lived
-one-time ticket lấy từ authenticated REST API. Không đặt Supabase access token
-dài hạn trong query string. Subscription tới Experiment/Leaderboard phải kiểm
-tra ownership trước khi gửi snapshot hoặc event.
+Trình tự handshake bắt buộc:
+
+1. Frontend dùng Bearer JWT hiện tại và exact `Origin` gọi
+   `POST /api/v1/realtime/ticket`.
+2. Backend trả `{ "ticket": "...", "expiresAt": "..." }`. Ticket được gắn với user,
+   exact Origin, thời điểm hết hạn ticket và thời điểm hết hạn của JWT đã cấp ticket.
+3. Frontend mở `/ws?ticket=<one-time-ticket>` với cùng Origin. Backend kiểm tra allowlist,
+   consume ticket đúng một lần rồi mới tạo connection.
+4. Ticket thiếu, sai, hết hạn hoặc đã dùng bị từ chối bằng cùng
+   `401 WEBSOCKET_TICKET_INVALID`; Origin không hợp lệ trả `403 FORBIDDEN_ORIGIN`.
+
+Ticket query là credential ngắn hạn và không được ghi vào access log, metric label,
+error response hay tracing attribute. Không đặt Supabase access token dài hạn trong URL
+và không gửi token/refresh token trong WebSocket message. Subscription tới
+Experiment/Leaderboard phải kiểm tra ownership trước confirmation, snapshot hint hoặc event.
 
 ## 3. Message Envelope
 
@@ -234,12 +247,23 @@ Khoảng gửi PING và timeout do cấu hình môi trường quyết định, k
   "subscriptionId": "chart-1",
   "payload": {
     "subscriptionType": "CANDLES",
-    "status": "ACTIVE"
+    "status": "ACTIVE",
+    "syncMarker": "01JSYNCMARKER0000000000001"
   }
 }
 ```
 
-`subscriptionType` nhận một trong `CANDLES`, `EXPERIMENT`, `LEADERBOARD`. `status` nhận `ACTIVE` hoặc `INACTIVE`.
+`subscriptionType` nhận một trong `CANDLES`, `EXPERIMENT`, `LEADERBOARD`. `status` nhận
+`ACTIVE` hoặc `INACTIVE`. Confirmation `ACTIVE` bắt buộc có `syncMarker`; confirmation
+`INACTIVE` không có marker. Marker là string opaque, chỉ có ý nghĩa trong đúng lần kích
+hoạt subscription và connection hiện tại; client không parse, so sánh thứ tự hoặc tái sử
+dụng nó sau reconnect.
+
+Backend phải đăng ký nguồn event trước, chụp synchronization boundary, rồi phát
+`SUBSCRIPTION_CONFIRMED`. Event của subscription chỉ được phát sau confirmation đó.
+Frontend giữ các event đến sau confirmation trong lúc tải authoritative REST snapshot,
+sau đó merge bằng `eventId` và identity/revision của resource. Marker giúp client gắn
+snapshot recovery với đúng activation, nhưng không biến WebSocket thành nguồn truth.
 
 ### 5.2. `CANDLE_UPDATED`
 
@@ -459,10 +483,12 @@ Backend chỉ đóng connection khi có protocol hoặc security violation nghi�
 ### 7.1. Mở Dashboard
 
 1. Frontend gọi REST để tải Historical Candles và trạng thái ban đầu.
-2. Frontend mở một WebSocket connection đến `/ws`.
-3. Khi connection mở, Frontend gửi các command `SUBSCRIBE_*` đang cần.
-4. Backend validate và trả `SUBSCRIPTION_CONFIRMED` cho từng subscription.
-5. Frontend chỉ coi chart/job đã subscribe sau khi nhận confirmation.
+2. Frontend dùng session hiện tại gọi `POST /api/v1/realtime/ticket` với exact Origin.
+3. Frontend mở `/ws?ticket=<one-time-ticket>` trước `expiresAt`.
+4. Khi connection mở, Frontend gửi các command `SUBSCRIBE_*` đang cần.
+5. Backend validate và trả `SUBSCRIPTION_CONFIRMED` kèm `syncMarker` cho từng subscription.
+6. Frontend chỉ coi chart/job đã subscribe sau khi nhận confirmation, rồi reconcile với
+   authoritative REST snapshot theo marker/revision.
 
 ### 7.2. Đổi pair hoặc timeframe
 
@@ -483,15 +509,34 @@ CONNECTING -> CONNECTED -> RECONNECTING -> DISCONNECTED
 Khi connection đóng ngoài ý muốn:
 
 1. Hiển thị `RECONNECTING`; không giả vờ dữ liệu vẫn realtime.
-2. Reconnect bằng exponential backoff có jitter và giới hạn số lần.
-3. Sau khi kết nối lại, gửi lại toàn bộ active subscriptions.
-4. Gọi REST từ Candle cuối đã biết để lấp khoảng dữ liệu bị thiếu.
-5. Merge và deduplicate historical/realtime data.
-6. Nếu hết số lần retry, chuyển `DISCONNECTED` và cho phép người dùng thử lại thủ công.
+2. Nếu close code là `4001 REAUTHENTICATION_REQUIRED`, Frontend dùng refresh token qua
+   auth flow thông thường để lấy JWT mới. Bước này diễn ra ngầm và không yêu cầu nhập lại
+   mật khẩu khi refresh session còn hợp lệ.
+3. Gọi `POST /api/v1/realtime/ticket` để lấy ticket mới cho mọi lần reconnect; không dùng
+   lại ticket hoặc connection credential cũ.
+4. Reconnect bằng exponential backoff có jitter và giới hạn số lần.
+5. Sau khi kết nối lại, gửi lại toàn bộ active subscriptions.
+6. Gọi REST từ Candle cuối đã biết và đọc lại durable workload/Leaderboard snapshot.
+7. Merge và deduplicate historical/realtime data theo marker, event identity và revision.
+8. Nếu refresh session hết hạn/bị thu hồi thì yêu cầu đăng nhập lại. Nếu hết số lần retry
+   transport, chuyển `DISCONNECTED` và cho phép người dùng thử lại thủ công.
 
 Giá trị backoff, retry cap, heartbeat interval và timeout được cấu hình theo môi trường và chốt trong feature plan; UI component không hard-code riêng các giá trị này.
 
-### 7.4. Cleanup
+### 7.4. Authentication expiry và giới hạn connection
+
+MVP không hỗ trợ reauthentication ngay bên trong WebSocket. Deadline của connection là
+thời điểm sớm hơn giữa `JWT exp` đã dùng để cấp ticket và
+`connectedAt + platform.security.websocket-max-connection-lifetime` (mặc định 30 phút).
+
+Tại deadline, Backend phải dừng phát private event, giải phóng subscription rồi đóng
+connection bằng application close code `4001` và reason ổn định
+`REAUTHENTICATION_REQUIRED`. Reason không cho biết token hết hạn, bị thu hồi hay connection
+đạt giới hạn tuổi. Client thực hiện silent refresh, xin ticket mới, reconnect, resubscribe và
+đọc authoritative REST snapshot. Chỉ khi refresh session không còn hợp lệ mới chuyển người
+dùng về màn hình đăng nhập.
+
+### 7.5. Cleanup
 
 - Component unmount phải gửi command unsubscribe phù hợp.
 - Khi browser tab đóng hoặc connection timeout, Backend hủy toàn bộ logical subscriptions thuộc connection.
@@ -508,6 +553,8 @@ Hệ thống không đảm bảo exactly-once delivery. Client phải xử lý d
 - Với Leaderboard, chỉ áp dụng `revision` lớn hơn revision hiện tại.
 - Sau reconnect, REST backfill là cơ chế phục hồi khoảng thiếu; WebSocket không replay toàn bộ lịch sử.
 - Event tiến trình chỉ phục vụ UI; trạng thái bền vững phải đọc lại qua REST khi cần xác nhận.
+- `syncMarker` chỉ xác định boundary của một lần activation; nó không phải global offset,
+  cursor lịch sử hoặc bằng chứng exactly-once.
 
 ## 9. Backpressure và hiệu năng
 
@@ -523,6 +570,10 @@ Hệ thống không đảm bảo exactly-once delivery. Client phải xử lý d
 - Validate `eventType`, `eventVersion`, ID, timestamp, pair, timeframe và payload.
 - Giới hạn kích thước message và số command trên một khoảng thời gian bằng cấu hình.
 - Giới hạn tối đa bốn Candle subscriptions trên mỗi connection.
+- Giới hạn tối đa bốn workload subscriptions (Experiment và Leaderboard cộng lại) trên mỗi connection.
+- Mặc định giới hạn message 64 KiB và 30 commands trong 10 giây trên mỗi connection.
+- Mặc định heartbeat 30 giây, timeout 90 giây và connection lifetime 30 phút; mọi ngưỡng
+  phải lấy từ cấu hình server.
 - Chỉ cho phép Origin trong allowlist.
 - Không nhận `START_SEARCH`, `STOP_SEARCH` hoặc command thay đổi business state qua WebSocket.
 - Không gửi credential, token, SQL, internal class name, stack trace hoặc raw Binance/Python response.
@@ -537,6 +588,15 @@ Hệ thống không đảm bảo exactly-once delivery. Client phải xử lý d
 - Server từ chối command version không hỗ trợ bằng `SUBSCRIPTION_ERROR` với code `VERSION_CONFLICT` khi có thể cô lập.
 - Frontend phải bỏ qua field response mới chưa biết nhưng không được im lặng chấp nhận enum làm thay đổi nghiệp vụ.
 - Producer và consumer phải có contract test cho envelope, command và event quan trọng.
+- Ticket là transport credential ngoài event version; thay đổi field response ticket theo
+  compatibility rule REST/OpenAPI, còn thay đổi cách bind user/Origin/expiry theo security
+  contract phải được review cùng handshake tests.
+- `syncMarker` là bắt buộc đối với `SUBSCRIPTION_CONFIRMED` trạng thái `ACTIVE` của version
+  1 trước khi contract F-009 được phát hành. Sau khi phát hành, xóa/đổi tên/đổi ý nghĩa marker
+  hoặc cho phép event chạy trước confirmation là breaking change và cần event version mới.
+- Thêm close code khiến client phải rẽ nhánh, thay đổi retry/reconnect semantics hoặc nhận
+  reauthentication message trong connection là thay đổi contract và phải cập nhật tài liệu,
+  producer/consumer tests trong cùng Pull Request.
 
 Khi feature contract được duyệt, cập nhật file này cùng `docs/api/openapi.yaml`, integration DTO và contract test trong cùng Pull Request. Không duy trì một payload khác chỉ trong source code hoặc `examples.md`.
 

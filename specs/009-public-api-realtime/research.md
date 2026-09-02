@@ -37,6 +37,21 @@ resource revision/timestamp phù hợp; client đọc REST snapshot và bỏ qua
 state thay đổi giữa hai thao tác; chỉ dùng được khi có backfill marker, nên không đủ làm
 contract mặc định.
 
+### 3.1. Authentication hết hạn trên connection
+
+**Quyết định**: MVP không reauthenticate ngay trong WebSocket. Connection đóng bằng code
+ổn định khi đến thời điểm sớm hơn giữa JWT gốc hết hạn và maximum connection lifetime.
+Client refresh session qua auth flow bình thường, xin one-time ticket mới, reconnect,
+resubscribe và reconcile bằng REST snapshot.
+
+**Lý do**: refresh token không đi qua WebSocket, connection không phải giữ thêm auth command
+hoặc thay principal giữa session, và người dùng vẫn không phải đăng nhập lại khi refresh
+session còn hợp lệ.
+
+**Phương án khác**: gửi access/refresh token bằng WebSocket command để thay identity trên
+connection hiện tại. Không chọn vì mở rộng credential surface và làm lifecycle authorization,
+subscription cleanup khó kiểm chứng hơn trong MVP.
+
 ## 4. Giới hạn và backpressure
 
 **Quyết định**: mặc định bốn Candle subscriptions, bốn workload subscriptions, message
