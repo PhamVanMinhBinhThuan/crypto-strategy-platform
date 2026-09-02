@@ -10,6 +10,8 @@ spring:
       connection-timeout: 3000
 
 platform:
+  error:
+    retry-after-seconds: ${PLATFORM_ERROR_RETRY_AFTER_SECONDS:5}
   idempotency:
     receipt-lifetime: ${PLATFORM_IDEMPOTENCY_RECEIPT_LIFETIME:PT24H}
   market-data:

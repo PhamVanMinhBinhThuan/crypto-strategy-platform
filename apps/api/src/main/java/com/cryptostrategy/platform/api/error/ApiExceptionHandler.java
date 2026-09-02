@@ -6,6 +6,9 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -14,9 +17,16 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class ApiExceptionHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(ApiExceptionHandler.class);
     private final PublicErrorMapper errorMapper;
+    private final int retryAfterSeconds;
 
-    public ApiExceptionHandler(PublicErrorMapper errorMapper) {
+    public ApiExceptionHandler(
+            PublicErrorMapper errorMapper,
+            @Value("${platform.error.retry-after-seconds:5}") int retryAfterSeconds) {
         this.errorMapper = errorMapper;
+        if (retryAfterSeconds < 1) {
+            throw new IllegalArgumentException("Retry-After seconds must be positive");
+        }
+        this.retryAfterSeconds = retryAfterSeconds;
     }
 
     @ExceptionHandler(Exception.class)
@@ -29,15 +39,25 @@ public class ApiExceptionHandler {
         return response(error, request);
     }
 
-    private static ResponseEntity<ErrorEnvelope> response(
+    private ResponseEntity<ErrorEnvelope> response(
             PublicErrorMapper.MappedError error,
             HttpServletRequest request) {
         String correlationId = correlationId(request);
         ErrorEnvelope envelope = new ErrorEnvelope(
                 error.code(), error.message(), error.details(), correlationId, Instant.now());
-        return ResponseEntity.status(error.status())
-                .header(CorrelationId.HEADER, correlationId)
-                .body(envelope);
+        ResponseEntity.BodyBuilder response = ResponseEntity.status(error.status())
+                .header(CorrelationId.HEADER, correlationId);
+        if (requiresRetryAfter(error)) {
+            response.header(HttpHeaders.RETRY_AFTER, Integer.toString(retryAfterSeconds));
+        }
+        return response.body(envelope);
+    }
+
+    private static boolean requiresRetryAfter(PublicErrorMapper.MappedError error) {
+        boolean retryable = Boolean.TRUE.equals(error.details().get("retryable"));
+        return retryable && (error.status() == HttpStatus.TOO_MANY_REQUESTS
+                || error.status() == HttpStatus.SERVICE_UNAVAILABLE
+                || error.status() == HttpStatus.GATEWAY_TIMEOUT);
     }
 
     private static String correlationId(HttpServletRequest request) {

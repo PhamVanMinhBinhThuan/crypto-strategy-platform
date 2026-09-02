@@ -11,6 +11,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
 import com.cryptostrategy.platform.experiment.api.error.IdempotencyConflictException;
 import com.cryptostrategy.platform.experiment.api.error.InvalidStateTransitionException;
+import com.cryptostrategy.platform.marketdata.api.error.MarketDataErrorCode;
+import com.cryptostrategy.platform.marketdata.api.error.MarketDataException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -128,6 +130,22 @@ class PublicErrorContractTest {
     }
 
     @Test
+    void retryableDependencyFailureIncludesBoundedRetryHeader() throws Exception {
+        MvcResult unavailable = expectError(
+                "dependency", "DEPENDENCY-CONTRACT-123", 503, "MARKET_PROVIDER_UNAVAILABLE");
+        MvcResult invalidResponse = expectError(
+                "invalid-upstream", "UPSTREAM-CONTRACT-123", 502, "MARKET_DATA_MAPPING_FAILED");
+
+        assertThat(unavailable.getResponse().getHeader("Retry-After")).isEqualTo("5");
+        assertThat(objectMapper.readTree(unavailable.getResponse().getContentAsString())
+                        .path("details")
+                        .path("retryable")
+                        .asBoolean())
+                .isTrue();
+        assertThat(invalidResponse.getResponse().getHeader("Retry-After")).isNull();
+    }
+
+    @Test
     void envelopeDefensivelyCopiesAllowlistedStructuredDetails() {
         List<Map<String, String>> fieldErrors = new ArrayList<>();
         fieldErrors.add(new LinkedHashMap<>(Map.of(
@@ -210,6 +228,12 @@ class PublicErrorContractTest {
                         "key=" + SENSITIVE_FRAGMENT + " was reused with another payload");
                 case "state" -> throw new InvalidStateTransitionException(
                         "internal-state=QUEUED cannot transition");
+                case "dependency" -> throw new MarketDataException(
+                        MarketDataErrorCode.MARKET_PROVIDER_UNAVAILABLE,
+                        "provider token=" + SENSITIVE_FRAGMENT);
+                case "invalid-upstream" -> throw new MarketDataException(
+                        MarketDataErrorCode.MARKET_DATA_MAPPING_FAILED,
+                        "provider payload=" + SENSITIVE_FRAGMENT);
                 default -> throw new IllegalStateException(
                         "token=" + SENSITIVE_FRAGMENT
                                 + " SQL=SELECT * FROM private_credentials"
