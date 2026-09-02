@@ -24,6 +24,7 @@ Các ADR được tổng hợp thành C4/Dynamic View và ma trận kiểm chứ
 | `0013-backtest-execution-integration.md` | Next-open Backtest và public dependency/Strategy integration cho F-006 |
 | `0014-experiment-execution-orchestrator.md` | Module điều phối pipeline Experiment xuyên capability |
 | `0015-standalone-backtest-aggregate.md` | Aggregate single-run và identity chính thức cho Backtest đơn lẻ |
+| `0016-search-coordinator-durable-orchestration.md` | Search Coordinator, durable decision và consumer-group boundary |
 
 ## Quy ước
 
