@@ -7,7 +7,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
@@ -23,16 +22,16 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
-        String correlationId = CorrelationId.resolve(request.getHeader(CorrelationId.HEADER));
-        request.setAttribute(CorrelationId.MDC_KEY, correlationId);
-        response.setHeader(CorrelationId.HEADER, correlationId);
-        MDC.put(CorrelationId.MDC_KEY, correlationId);
-        try {
-            filterChain.doFilter(request, response);
-        } finally {
-            LOGGER.info("request_completed method={} path={} status={}",
-                    request.getMethod(), request.getRequestURI(), response.getStatus());
-            MDC.remove(CorrelationId.MDC_KEY);
+        try (CorrelationContext.Scope scope = CorrelationContext.open(
+                request.getHeader(CorrelationId.HEADER))) {
+            request.setAttribute(CorrelationId.MDC_KEY, scope.correlationId());
+            response.setHeader(CorrelationId.HEADER, scope.correlationId());
+            try {
+                filterChain.doFilter(request, response);
+            } finally {
+                LOGGER.info("request_completed method={} path={} status={}",
+                        request.getMethod(), request.getRequestURI(), response.getStatus());
+            }
         }
     }
 }

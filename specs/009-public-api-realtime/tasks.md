@@ -24,7 +24,7 @@
 - [ ] T007 [P] Viết architecture test cấm API import persistence/internal/provider implementation tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/PublicApiBoundaryTest.java`.
 - [X] T008 [P] Implement typed `AuthenticatedUserContext` và mapping UUID từ JWT subject tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticatedUserContext.java`.
 - [X] T009 Implement one-time WebSocket ticket model/store/issuer với expiry, origin binding và single-use enforcement tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketService.java`.
-- [ ] T010 Implement correlation context/filter/response propagation cho REST và realtime tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java` và package `observability/`.
+- [X] T010 Implement correlation context/filter/response propagation cho REST và realtime tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java` và package `observability/`.
 - [X] T011 Implement public `ErrorEnvelope`, safe details và exception-to-status mapper theo error contract tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/`.
 - [X] T012 Implement owner authorization facade nhận authenticated UUID và parent-chain lookup qua published ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/OwnerAuthorizationService.java`.
 - [X] T013 Implement canonical request hashing và idempotency adapter qua F-005 port tại `apps/api/src/main/java/com/cryptostrategy/platform/api/idempotency/IdempotencyService.java`.
@@ -51,7 +51,7 @@
 - [X] T020 [US1] Tích hợp `SecurityFilterChain` với authenticated user context và public endpoint policy tại `apps/api/src/main/java/com/cryptostrategy/platform/api/config/SecurityConfiguration.java`.
 - [X] T021 [US1] Tạo endpoint cấp one-time WebSocket ticket, không trả access token hoặc đặt token dài hạn trong URL tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketController.java`.
 - [ ] T022 [US1] Tích hợp `ApiExceptionHandler` với error catalog, ownership-safe 404 và retry headers tại `apps/api/src/main/java/com/cryptostrategy/platform/api/error/ApiExceptionHandler.java`.
-- [ ] T023 [US1] Tích hợp correlation ID vào mọi REST response và log context tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java`.
+- [X] T023 [US1] Tích hợp correlation ID vào mọi REST response và log context tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java`.
 - [ ] T024 [US1] Tạo security configuration tests cho origin allowlist, internal service-token boundary và browser-to-internal denial tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/SecurityBoundaryIntegrationTest.java`.
 
 **Checkpoint**: User Story 1 pass; mọi story sau phải reuse cùng auth/error/owner boundary.

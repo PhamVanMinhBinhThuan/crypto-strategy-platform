@@ -1,14 +1,19 @@
 package com.cryptostrategy.platform.api.observability;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Map;
+import java.util.concurrent.Callable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,6 +27,7 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -61,6 +67,22 @@ class CorrelationIntegrationTest {
                 .andReturn().getResponse().getHeader(HEADER);
 
         assertThat(generated).matches("[0-9A-HJKMNP-TV-Z]{26}");
+        assertThat(MDC.get(CorrelationId.MDC_KEY)).isNull();
+    }
+
+    @Test
+    void correlationContextIsAvailableInsideAsyncRestWork(CapturedOutput output) throws Exception {
+        MvcResult pending = mockMvc.perform(get("/__test/async")
+                        .header(HEADER, "ASYNC-CORRELATION-123"))
+                .andExpect(request().asyncStarted())
+                .andExpect(header().string(HEADER, "ASYNC-CORRELATION-123"))
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(pending))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HEADER, "ASYNC-CORRELATION-123"));
+
+        assertThat(output).contains("async_handler correlation=ASYNC-CORRELATION-123");
         assertThat(MDC.get(CorrelationId.MDC_KEY)).isNull();
     }
 
@@ -121,9 +143,19 @@ class CorrelationIntegrationTest {
 
     @RestController
     static class FixtureController {
+        private static final Logger LOGGER = LoggerFactory.getLogger(FixtureController.class);
+
         @GetMapping("/__test/success")
         Map<String, String> success() {
             return Map.of("status", "ok");
+        }
+
+        @GetMapping("/__test/async")
+        Callable<Map<String, String>> asyncSuccess() {
+            return () -> {
+                LOGGER.info("async_handler correlation={}", MDC.get(CorrelationId.MDC_KEY));
+                return Map.of("status", "ok");
+            };
         }
 
         @GetMapping("/__test/validation")
