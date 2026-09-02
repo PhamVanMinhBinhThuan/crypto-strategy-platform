@@ -20,6 +20,7 @@ import com.cryptostrategy.platform.experiment.api.port.in.CancelJobUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.CreateBacktestJobUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.CreateSearchJobUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.FinalizeAttemptUseCase;
+import com.cryptostrategy.platform.experiment.api.port.in.GetJobUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.RequeueRetryUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.StartNextAttemptUseCase;
 import com.cryptostrategy.platform.experiment.api.port.out.ExecutionAttemptStore;
@@ -38,7 +39,8 @@ public class JobApplicationService implements
         StartNextAttemptUseCase,
         FinalizeAttemptUseCase,
         RequeueRetryUseCase,
-        CancelJobUseCase {
+        CancelJobUseCase,
+        GetJobUseCase {
 
     private final JobStore jobStore;
     private final ExecutionAttemptStore attemptStore;
@@ -261,6 +263,23 @@ public class JobApplicationService implements
         } else {
             throw new InvalidStateTransitionException("Cannot cancel job in terminal status: " + job.status());
         }
+    }
+
+    @Override
+    public Optional<Job> getJob(UUID ownerUserId, JobId jobId) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId cannot be null");
+        Objects.requireNonNull(jobId, "jobId cannot be null");
+        return jobStore.findJobById(ownerUserId, jobId);
+    }
+
+    @Override
+    public java.util.List<Job> listJobs(UUID ownerUserId, ExperimentId experimentId) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId cannot be null");
+        Objects.requireNonNull(experimentId, "experimentId cannot be null");
+        if (experimentStore.findExperimentById(ownerUserId, experimentId).isEmpty()) {
+            return java.util.List.of();
+        }
+        return jobStore.listJobsByExperimentId(ownerUserId, experimentId);
     }
 
     @Override

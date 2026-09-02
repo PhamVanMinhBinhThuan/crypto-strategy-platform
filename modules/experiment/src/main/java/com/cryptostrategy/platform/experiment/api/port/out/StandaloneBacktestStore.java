@@ -8,10 +8,13 @@ import com.cryptostrategy.platform.experiment.api.backtest.StandaloneBacktestAcc
 import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 /** Atomic acceptance boundary owned by F-005. */
 public interface StandaloneBacktestStore {
+    Optional<StandaloneBacktest> findById(UUID ownerUserId, com.cryptostrategy.platform.experiment.api.backtest.BacktestId backtestId);
+
     StandaloneBacktestAcceptance accept(
             UUID ownerUserId,
             String operation,

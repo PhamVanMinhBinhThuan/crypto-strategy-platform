@@ -2,6 +2,7 @@ package com.cryptostrategy.platform.marketdata.api;
 
 import com.cryptostrategy.platform.marketdata.api.port.in.CreateDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.GetTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.LoadHistoricalCandlesUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.ResolveTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.SubscribeCandlesUseCase;
@@ -41,6 +42,9 @@ public final class MarketDataModuleFactory {
         return new FixtureMarketDataProvider(List.copyOf(candles));
     }
     public static ResolveTradingPairUseCase referenceData(MarketReferenceDataStore references) {
+        return new MarketReferenceDataQueryService(references);
+    }
+    public static GetTradingPairUseCase tradingPairData(MarketReferenceDataStore references) {
         return new MarketReferenceDataQueryService(references);
     }
     public static MarketDataProvider binanceProvider(URI restBaseUrl, URI streamBaseUrl,

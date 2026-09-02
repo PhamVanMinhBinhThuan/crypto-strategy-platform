@@ -11,4 +11,8 @@ public interface LeaderboardStore {
     Optional<LeaderboardRevision> latest(ExperimentId experimentId);
     LeaderboardRevision save(LeaderboardRevision revision);
     List<EvaluationResult> listEvaluationsForExperiment(ExperimentId experimentId, int limit);
+    default Optional<EvaluationResult> findEvaluation(
+            com.cryptostrategy.platform.evaluation.api.model.EvaluationResultId evaluationResultId) {
+        return Optional.empty();
+    }
 }

@@ -5,10 +5,11 @@ import com.cryptostrategy.platform.domain.api.market.TradingPair;
 import com.cryptostrategy.platform.marketdata.api.error.MarketDataErrorCode;
 import com.cryptostrategy.platform.marketdata.api.error.MarketDataException;
 import com.cryptostrategy.platform.marketdata.api.port.in.ResolveTradingPairUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.GetTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.out.MarketReferenceDataStore;
 import java.util.Objects;
 
-public final class MarketReferenceDataQueryService implements ResolveTradingPairUseCase {
+public final class MarketReferenceDataQueryService implements ResolveTradingPairUseCase, GetTradingPairUseCase {
     private final MarketReferenceDataStore references;
 
     public MarketReferenceDataQueryService(MarketReferenceDataStore references) {
@@ -26,6 +27,15 @@ public final class MarketReferenceDataQueryService implements ResolveTradingPair
                 .filter(TradingPair::active)
                 .filter(pair -> pair.baseAsset().active() && pair.quoteAsset().active())
                 .orElseThrow(MarketReferenceDataQueryService::invalidPair);
+    }
+
+    @Override
+    public java.util.Optional<TradingPair> getTradingPair(
+            com.cryptostrategy.platform.domain.api.market.TradingPairId tradingPairId) {
+        Objects.requireNonNull(tradingPairId, "tradingPairId");
+        return references.findTradingPair(tradingPairId)
+                .filter(TradingPair::active)
+                .filter(pair -> pair.baseAsset().active() && pair.quoteAsset().active());
     }
 
     private static MarketDataException invalidPair() {

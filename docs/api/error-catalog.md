@@ -126,11 +126,18 @@ Các operation tạo durable outcome dưới đây dùng scope idempotency ổn 
 | `POST /api/v1/datasets` | `CREATE_DATASET` |
 | `POST /api/v1/backtests` | `START_BACKTEST` |
 | `POST /api/v1/experiments` | `START_EXPERIMENT` |
+| `POST /api/v1/experiments/{experimentId}/stop` | `STOP_EXPERIMENT` |
 | `POST /api/v1/experiments/{experimentId}/reproductions` | `REPRODUCE_EXPERIMENT` |
+| `POST /api/v1/jobs/{jobId}/cancel` | `CANCEL_JOB` |
 
 Cùng key và cùng canonical payload phải replay outcome ban đầu, kể cả khi outcome đang
 xử lý, đã hoàn thành hoặc đã thất bại. Cùng key trong cùng scope nhưng payload khác trả
 `IDEMPOTENCY_KEY_CONFLICT`; cùng key của user hoặc operation khác là scope độc lập.
+
+`START_EXPERIMENT` và `REPRODUCE_EXPERIMENT` hiện là contract được giữ chỗ nhưng luôn
+trả `503 DEPENDENCY_UNAVAILABLE` cho tới khi Search Coordinator có published application
+boundary. OpenAPI gắn readiness marker `BLOCKED_SEARCH_COORDINATOR`; hai operation này
+không claim receipt và không tạo graph một phần trong lúc bị gate.
 
 Với resource private, identifier không tồn tại và identifier thuộc user khác phải dùng
 cùng public inaccessible code/status được operation công bố. Response không được chứa
@@ -204,7 +211,7 @@ Strategy không tạo Trade là kết quả Backtest hợp lệ, không phải e
 | `JOB_NOT_FOUND` | 404 | Không | Job ID không tồn tại | Tải lại Experiment |
 | `QUEUE_UNAVAILABLE` | 503 | Có | Redis Streams hoặc publisher tạm không hoạt động | Giữ trạng thái chờ và thử lại sau |
 | `DATABASE_UNAVAILABLE` | 503 | Có | PostgreSQL/Supabase tạm không khả dụng | Hiển thị service unavailable, retry có backoff |
-| `DEPENDENCY_UNAVAILABLE` | 503 | Có | Dependency nội bộ chưa có code cụ thể phù hợp | Thử lại có giới hạn |
+| `DEPENDENCY_UNAVAILABLE` | 503 | Có | Dependency nội bộ tạm lỗi hoặc capability owner chưa ready, gồm Search Coordinator hiện tại | Thử lại có giới hạn; không xem operation là đã accept |
 | `UPSTREAM_RESPONSE_INVALID` | 502 | Có điều kiện | Upstream trả payload không đúng contract | Báo lỗi; Backend ghi correlation ID |
 | `UPSTREAM_TIMEOUT` | 504 | Có | Dependency quá timeout | Thử lại theo policy |
 | `INTERNAL_ERROR` | 500 | Có điều kiện | Lỗi không dự kiến, không có code an toàn cụ thể | Hiển thị lỗi chung và cung cấp correlation ID |
@@ -234,16 +241,29 @@ Ví dụ:
 ```json
 {
   "jobId": "01J...",
+  "experimentId": "01J...",
+  "candidateId": "01J...",
+  "type": "BACKTEST",
   "status": "FAILED",
+  "totalWork": 1,
+  "completedWork": 0,
+  "failedWork": 1,
+  "bestScore": null,
+  "queuedAt": "2026-08-13T08:30:00Z",
+  "startedAt": "2026-08-13T08:30:01Z",
+  "finishedAt": "2026-08-13T08:45:00Z",
+  "nextRetryAt": null,
   "failure": {
     "code": "JOB_EXECUTION_TIMEOUT",
-    "message": "The job exceeded its execution timeout.",
-    "retryable": true,
-    "attempt": 3,
-    "failedAt": "2026-08-13T08:45:00Z"
-  }
+    "message": "The job exceeded its execution timeout."
+  },
+  "createdAt": "2026-08-13T08:30:00Z",
+  "updatedAt": "2026-08-13T08:45:00Z"
 }
 ```
+
+Retry timing được biểu diễn bằng lifecycle (`RETRY_SCHEDULED`) và `nextRetryAt`; public
+Job failure không công bố worker attempt hay internal retry policy.
 
 Catalog failure code nền tảng:
 

@@ -17,6 +17,20 @@ platform:
     retry-after-seconds: ${PLATFORM_ERROR_RETRY_AFTER_SECONDS:5}
   idempotency:
     receipt-lifetime: ${PLATFORM_IDEMPOTENCY_RECEIPT_LIFETIME:PT24H}
+  realtime:
+    max-candle-subscriptions: ${PLATFORM_REALTIME_MAX_CANDLE_SUBSCRIPTIONS:4}
+    max-workload-subscriptions: ${PLATFORM_REALTIME_MAX_WORKLOAD_SUBSCRIPTIONS:4}
+    max-message-bytes: ${PLATFORM_REALTIME_MAX_MESSAGE_BYTES:65536}
+    max-commands-per-window: ${PLATFORM_REALTIME_MAX_COMMANDS_PER_WINDOW:30}
+    command-window: ${PLATFORM_REALTIME_COMMAND_WINDOW:PT10S}
+    outbound-buffer-capacity: ${PLATFORM_REALTIME_OUTBOUND_BUFFER_CAPACITY:128}
+    heartbeat-timeout: ${PLATFORM_REALTIME_HEARTBEAT_TIMEOUT:PT90S}
+    streams:
+      enabled: ${PLATFORM_REALTIME_WORK_STREAM_ENABLED:true}
+      progress: ${PLATFORM_REALTIME_PROGRESS_STREAM:progress.events.v1}
+      lifecycle: ${PLATFORM_REALTIME_LIFECYCLE_STREAM:lifecycle.events.v1}
+      candidate-evaluated: ${PLATFORM_REALTIME_CANDIDATE_EVALUATED_STREAM:candidate.evaluated.v1}
+      poll-timeout: ${PLATFORM_REALTIME_STREAM_POLL_TIMEOUT:PT1S}
   market-data:
     provider: ${PLATFORM_MARKET_DATA_PROVIDER:fixture}
     normalization-version: ${PLATFORM_MARKET_DATA_NORMALIZATION_VERSION:binance-v1}
@@ -44,6 +58,7 @@ platform:
       audience: ${SUPABASE_JWT_AUDIENCE:}
     websocket-ticket-lifetime: ${PLATFORM_SECURITY_WEBSOCKET_TICKET_LIFETIME:PT60S}
     websocket-max-connection-lifetime: ${PLATFORM_SECURITY_WEBSOCKET_MAX_CONNECTION_LIFETIME:PT30M}
+    internal-news-audit-token: ${PLATFORM_SECURITY_INTERNAL_NEWS_AUDIT_TOKEN:}
 
 management:
   endpoints:

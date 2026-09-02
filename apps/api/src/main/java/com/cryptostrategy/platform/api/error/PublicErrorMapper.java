@@ -12,6 +12,7 @@ import com.cryptostrategy.platform.news.api.error.NewsException;
 import com.cryptostrategy.platform.api.transport.InvalidCursorException;
 import com.cryptostrategy.platform.strategy.api.error.StrategyErrorCode;
 import com.cryptostrategy.platform.strategy.api.error.StrategyException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,6 +32,10 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 public final class PublicErrorMapper {
     public MappedError map(Exception exception) {
         if (exception instanceof HttpMessageNotReadableException) {
+            if (hasCause(exception, UnrecognizedPropertyException.class)) {
+                return error(HttpStatus.BAD_REQUEST, "UNKNOWN_REQUEST_FIELD",
+                        "The request contains an unknown field.");
+            }
             return error(HttpStatus.BAD_REQUEST, "MALFORMED_JSON", "The request body is malformed.");
         }
         if (exception instanceof MethodArgumentTypeMismatchException) {
@@ -60,10 +65,13 @@ public final class PublicErrorMapper {
         if (exception instanceof AccessDeniedException) {
             return error(HttpStatus.FORBIDDEN, "FORBIDDEN_ORIGIN", "The request is not permitted.");
         }
+        if (exception instanceof DependencyUnavailableException) {
+            return retryable(HttpStatus.SERVICE_UNAVAILABLE, "DEPENDENCY_UNAVAILABLE",
+                    "A required capability is not available yet.");
+        }
         if (exception instanceof NoResourceFoundException
                 || exception instanceof ResourceInaccessibleException
-                || exception instanceof com.cryptostrategy.platform.experiment.api.error
-                        .ResourceInaccessibleException) {
+                || exception instanceof com.cryptostrategy.platform.experiment.api.error.ResourceInaccessibleException) {
             return error(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND",
                     "The requested resource was not found.");
         }
@@ -92,6 +100,17 @@ public final class PublicErrorMapper {
             return mapBacktest(backtestException.code());
         }
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred.");
+    }
+
+    private static boolean hasCause(Throwable error, Class<? extends Throwable> type) {
+        Throwable current = error;
+        while (current != null) {
+            if (type.isInstance(current)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private static MappedError mapMarketData(MarketDataErrorCode code) {

@@ -25,6 +25,21 @@ public interface ExperimentStore {
     void stopExperimentWithOutbox(UUID ownerUserId, ExperimentId experimentId, OutboxEvent outboxEvent, Instant updatedAt);
     void insertCandidate(UUID ownerUserId, CandidateDefinition candidate);
     List<CandidateDefinition> listCandidatesByExperimentId(UUID ownerUserId, ExperimentId experimentId);
+    default List<CandidateDefinition> listCandidatesPage(
+            UUID ownerUserId,
+            ExperimentId experimentId,
+            int afterGenerationIndex,
+            String afterCandidateId,
+            int limit) {
+        return listCandidatesByExperimentId(ownerUserId, experimentId).stream()
+                .filter(candidate -> candidate.generationIndex() > afterGenerationIndex
+                        || candidate.generationIndex() == afterGenerationIndex
+                        && candidate.candidateId().value().compareTo(afterCandidateId) > 0)
+                .sorted(java.util.Comparator.comparingInt(CandidateDefinition::generationIndex)
+                        .thenComparing(candidate -> candidate.candidateId().value()))
+                .limit(limit)
+                .toList();
+    }
     Optional<CandidateDefinition> findCandidateById(UUID ownerUserId, CandidateId candidateId);
 
     Optional<UUID> findOwnerUserIdByExperimentId(ExperimentId experimentId);

@@ -244,6 +244,24 @@ public class JdbcExperimentStore implements ExperimentStore {
     }
 
     @Override
+    public List<CandidateDefinition> listCandidatesPage(
+            UUID ownerUserId,
+            ExperimentId experimentId,
+            int afterGenerationIndex,
+            String afterCandidateId,
+            int limit) {
+        return jdbcTemplate.query(
+                ExperimentSql.SELECT_CANDIDATE_PAGE,
+                rows::mapCandidate,
+                experimentId.value(),
+                ownerUserId,
+                afterGenerationIndex,
+                afterGenerationIndex,
+                afterCandidateId,
+                limit);
+    }
+
+    @Override
     public Optional<CandidateDefinition> findCandidateById(UUID ownerUserId, CandidateId candidateId) {
         try {
             CandidateDefinition candidate = jdbcTemplate.queryForObject(

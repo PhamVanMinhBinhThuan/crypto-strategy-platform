@@ -41,6 +41,19 @@ public final class JdbcBacktestEvidenceReader implements BacktestResultReader {
         } catch (EmptyResultDataAccessException absent) { return Optional.empty(); }
     }
 
+    @Override
+    public Optional<BacktestResult> findByJobId(JobId jobId) {
+        try {
+            BacktestResultId resultId = jdbc.queryForObject(
+                    "select backtest_result_id from experiment.backtest_result where job_id=?",
+                    (rs, row) -> new BacktestResultId(rs.getString(1)),
+                    jobId.value());
+            return resultId == null ? Optional.empty() : findById(resultId);
+        } catch (EmptyResultDataAccessException absent) {
+            return Optional.empty();
+        }
+    }
+
     private List<Trade> readTrades(BacktestResultId resultId) {
         return jdbc.query("""
                 select trade_id,sequence_no,side,entry_time,exit_time,entry_price,exit_price,quantity,

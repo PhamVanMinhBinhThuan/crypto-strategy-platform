@@ -1,29 +1,53 @@
 package com.cryptostrategy.platform.api.news;
 
-import com.cryptostrategy.platform.domain.api.market.TradingPairId;
-import com.cryptostrategy.platform.marketdata.api.port.out.MarketReferenceDataStore;
 import com.cryptostrategy.platform.news.api.model.AnalysisStatus;
 import com.cryptostrategy.platform.news.api.port.in.ListNewsUseCase;
-import java.util.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/news-items")
-public class NewsController {
-    private final ListNewsUseCase news; private final MarketReferenceDataStore pairs;
-    public NewsController(ListNewsUseCase news,MarketReferenceDataStore pairs){this.news=news;this.pairs=pairs;}
-    @GetMapping public ResponseEntity<NewsResponse> list(@RequestParam(required=false)String tradingPairId,
-            @RequestParam(required=false)Set<AnalysisStatus> analysisStatus,@RequestParam(required=false)String cursor,
-            @RequestParam(defaultValue="20")int limit){
-        var assets=new LinkedHashSet<com.cryptostrategy.platform.domain.api.market.AssetId>();
-        if(tradingPairId!=null){var pair=pairs.findTradingPair(new TradingPairId(tradingPairId));if(pair.isEmpty())return ResponseEntity.notFound().build();assets.add(pair.get().baseAsset().assetId());assets.add(pair.get().quoteAsset().assetId());}
-        var page=news.list(new ListNewsUseCase.Query(assets,analysisStatus==null?Set.of():Set.copyOf(analysisStatus),Optional.ofNullable(cursor),limit));
-        var items=page.items().stream().map(i->{
-            Optional<NewsResponse.Sentiment> sentiment=i.analysisStatus()==AnalysisStatus.ANALYZED&&i.label().isPresent()&&i.confidence().isPresent()&&i.polarityScore().isPresent()
-                ?Optional.of(new NewsResponse.Sentiment(i.label().orElseThrow(),i.confidence().orElseThrow().toPlainString(),i.polarityScore().orElseThrow().toPlainString())):Optional.empty();
-            return new NewsResponse.Item(new NewsResponse.NewsResponseId(i.newsId().value()),i.title(),i.source(),i.url(),i.publishedAt(),i.analysisStatus().name(),i.relatedAssetIds().stream().map(a->a.value()).toList(),sentiment);
+@RequestMapping("/api/v1/news-items")
+public final class NewsController {
+    private final ListNewsUseCase news;
+    private final NewsQueryMapper queries;
+
+    public NewsController(ListNewsUseCase news, NewsQueryMapper queries) {
+        this.news = Objects.requireNonNull(news, "news");
+        this.queries = Objects.requireNonNull(queries, "queries");
+    }
+
+    @GetMapping
+    public NewsResponse list(
+            @RequestParam(required = false) String tradingPairId,
+            @RequestParam(required = false) Set<AnalysisStatus> analysisStatus,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer limit) {
+        var page = news.list(queries.map(tradingPairId, analysisStatus, cursor, limit));
+        var items = page.items().stream().map(item -> {
+            Optional<NewsResponse.Sentiment> sentiment = item.analysisStatus() == AnalysisStatus.ANALYZED
+                    && item.label().isPresent()
+                    && item.confidence().isPresent()
+                    && item.polarityScore().isPresent()
+                    ? Optional.of(new NewsResponse.Sentiment(
+                            item.label().orElseThrow(),
+                            item.confidence().orElseThrow().toPlainString(),
+                            item.polarityScore().orElseThrow().toPlainString()))
+                    : Optional.empty();
+            return new NewsResponse.Item(
+                    new NewsResponse.NewsResponseId(item.newsId().value()),
+                    item.title(),
+                    item.source(),
+                    item.url(),
+                    item.publishedAt(),
+                    item.analysisStatus().name(),
+                    item.relatedAssetIds().stream().map(asset -> asset.value()).toList(),
+                    sentiment);
         }).toList();
-        return ResponseEntity.ok(new NewsResponse(items,page.nextCursor(),page.nextCursor().isPresent()));
+        return new NewsResponse(items, page.nextCursor(), page.nextCursor().isPresent());
     }
 }

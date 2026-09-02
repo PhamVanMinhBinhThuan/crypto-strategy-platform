@@ -5,6 +5,7 @@ plugins {
 dependencies {
     implementation(platform(libs.spring.boot.dependencies))
     implementation(project(":modules:domain"))
+    implementation(project(":modules:contracts"))
     implementation(project(":modules:experiment"))
     implementation(project(":modules:backtesting"))
     implementation(project(":modules:market-data"))
@@ -12,9 +13,12 @@ dependencies {
     implementation(project(":modules:strategies"))
     implementation(project(":modules:combination"))
     implementation(project(":modules:news"))
+    implementation(project(":modules:evaluation"))
+    implementation(project(":modules:leaderboard"))
     implementation(project(":modules:persistence"))
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
+    implementation(libs.spring.boot.starter.data.redis)
     implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -25,6 +29,12 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("com.h2database:h2")
+}
+
+tasks.named<Test>("test") {
+    // Unit/contract tests exercise the consumer directly; Redis recovery runs in the
+    // dedicated integration environment instead of opening localhost connections here.
+    systemProperty("platform.realtime.streams.enabled", "false")
 }
 
 val supabaseIntegrationTest by sourceSets.creating {

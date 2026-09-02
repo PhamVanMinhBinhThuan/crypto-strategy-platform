@@ -1,0 +1,18 @@
+{
+  "jobId": "01J00000000000000000000001",
+  "experimentId": "01J00000000000000000000002",
+  "candidateId": "01J00000000000000000000003",
+  "type": "BACKTEST",
+  "status": "FAILED",
+  "totalWork": 1,
+  "completedWork": 0,
+  "failedWork": 1,
+  "bestScore": null,
+  "queuedAt": "2026-09-02T10:00:00Z",
+  "startedAt": "2026-09-02T10:00:01Z",
+  "finishedAt": "2026-09-02T10:00:03Z",
+  "nextRetryAt": null,
+  "failure": {"code": "JOB_BACKTEST_FAILED", "message": "Backtest execution failed."},
+  "createdAt": "2026-09-02T10:00:00Z",
+  "updatedAt": "2026-09-02T10:00:03Z"
+}

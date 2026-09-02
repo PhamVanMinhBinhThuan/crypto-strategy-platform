@@ -408,7 +408,7 @@ paths:
                 initialCapital: '10000.00'
                 feeRate: '0.001'
                 positionMode: LONG_ONLY
-                executionPriceRule: CANDLE_CLOSE
+                executionPriceRule: NEXT_CANDLE_OPEN
       responses:
         '202':
           description: Backtest accepted for asynchronous execution.
@@ -473,13 +473,23 @@ paths:
               schema: { $ref: '#/components/schemas/Job' }
               example:
                 jobId: 01JJOB00000000000000000002
+                experimentId: 01JEXPERIMENT0000000000001
+                candidateId: 01JCANDIDATE00000000000001
+                type: BACKTEST
                 status: FAILED
+                totalWork: 1
+                completedWork: 0
+                failedWork: 1
+                bestScore: null
+                queuedAt: '2026-08-16T02:00:00Z'
+                startedAt: '2026-08-16T02:00:01Z'
+                finishedAt: '2026-08-16T02:15:00Z'
+                nextRetryAt: null
                 failure:
                   code: JOB_EXECUTION_TIMEOUT
                   message: The job exceeded its execution timeout.
-                  retryable: true
-                  attempt: 3
-                  failedAt: '2026-08-16T02:15:00Z'
+                createdAt: '2026-08-16T02:00:00Z'
+                updatedAt: '2026-08-16T02:15:00Z'
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -493,6 +503,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/JobId'
+        - $ref: '#/components/parameters/IdempotencyKey'
       responses:
         '202':
           description: Cancellation accepted or an equivalent request already exists.
@@ -516,7 +527,11 @@ paths:
       tags: [Experiments]
       operationId: startExperiment
       summary: Start a strategy search Experiment
-      description: Freezes the search configuration and queues execution. A finite stop condition is required.
+      description: |-
+        Reserved contract for freezing a search configuration and queuing execution.
+        This operation currently returns `503 DEPENDENCY_UNAVAILABLE` until the Search
+        Coordinator publishes its application boundary; no partial Experiment is created.
+      x-readiness: BLOCKED_SEARCH_COORDINATOR
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -538,16 +553,6 @@ paths:
               stopCondition: { maximumCandidates: 100, maximumDurationSeconds: 300 }
               topK: 10
       responses:
-        '202':
-          description: Experiment accepted for asynchronous execution.
-          headers:
-            Location:
-              description: URL of the Job used to track Experiment execution.
-              schema: { type: string, format: uri-reference }
-            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ExperimentAccepted' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -586,6 +591,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/ExperimentId'
+        - $ref: '#/components/parameters/IdempotencyKey'
       responses:
         '202':
           description: Stop request accepted or returned from an equivalent replay.
@@ -609,21 +615,15 @@ paths:
       tags: [Experiments]
       operationId: reproduceExperiment
       summary: Create a new Experiment linked to immutable original evidence
+      description: |-
+        Reserved contract. This operation currently returns `503 DEPENDENCY_UNAVAILABLE`
+        until the Search Coordinator is available; the original Experiment is not modified.
+      x-readiness: BLOCKED_SEARCH_COORDINATOR
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/ExperimentId'
         - $ref: '#/components/parameters/IdempotencyKey'
       responses:
-        '202':
-          description: Reproduction accepted as a new Experiment and Job.
-          headers:
-            Location:
-              description: URL of the new Experiment.
-              schema: { type: string, format: uri-reference }
-            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ExperimentAccepted' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -1285,10 +1285,17 @@ components:
       additionalProperties: false
       required: [initialCapital, feeRate, positionMode, executionPriceRule]
       properties:
-        initialCapital: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        initialCapital:
+          allOf: [{ $ref: '#/components/schemas/NonNegativeDecimalString' }]
+          description: Must be greater than zero.
         feeRate: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        slippageRate:
+          allOf: [{ $ref: '#/components/schemas/NonNegativeDecimalString' }]
+          default: '0'
         positionMode: { type: string, enum: [LONG_ONLY] }
-        executionPriceRule: { type: string, enum: [CANDLE_CLOSE] }
+        executionPriceRule: { type: string, enum: [NEXT_CANDLE_OPEN] }
+        forceCloseAtEnd: { type: boolean, default: true }
+        roundingMode: { type: string, enum: [HALF_EVEN], default: HALF_EVEN }
     StartBacktestRequest:
       type: object
       additionalProperties: false
@@ -1312,7 +1319,7 @@ components:
     JobFailure:
       type: object
       additionalProperties: false
-      required: [code, message, retryable, attempt, failedAt]
+      required: [code, message]
       properties:
         code:
           type: string
@@ -1331,21 +1338,34 @@ components:
             - JOB_SENTIMENT_ANALYSIS_FAILED
             - JOB_INTERNAL_ERROR
         message: { type: string, minLength: 1 }
-        retryable: { type: boolean }
-        attempt: { type: integer, minimum: 1 }
-        failedAt: { type: string, format: date-time }
     Job:
       type: object
       additionalProperties: false
-      required: [jobId, status]
+      required: [jobId, experimentId, candidateId, type, status, totalWork, completedWork, failedWork, bestScore, queuedAt, startedAt, finishedAt, nextRetryAt, failure, createdAt, updatedAt]
       properties:
         jobId: { $ref: '#/components/schemas/OpaqueId' }
+        experimentId: { $ref: '#/components/schemas/OpaqueId' }
+        candidateId: { type: [string, 'null'], minLength: 1 }
+        type: { type: string, enum: [SEARCH, BACKTEST] }
         status: { $ref: '#/components/schemas/JobStatus' }
+        totalWork: { type: integer, minimum: 1 }
+        completedWork: { type: integer, minimum: 0 }
+        failedWork: { type: integer, minimum: 0 }
+        bestScore:
+          oneOf:
+            - $ref: '#/components/schemas/DecimalString'
+            - type: 'null'
+        queuedAt: { type: string, format: date-time }
+        startedAt: { type: [string, 'null'], format: date-time }
+        finishedAt: { type: [string, 'null'], format: date-time }
+        nextRetryAt: { type: [string, 'null'], format: date-time }
         failure:
           oneOf:
             - $ref: '#/components/schemas/JobFailure'
             - type: 'null'
           description: Present only when `status` is `FAILED`.
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
     BacktestMetrics:
       type: object
       additionalProperties: false
@@ -1358,26 +1378,66 @@ components:
     Trade:
       type: object
       additionalProperties: false
-      required: [tradeId, side, entryTime, entryPrice, exitTime, exitPrice, profitLoss]
+      required: [tradeId, sequence, side, entryTime, entryPrice, exitTime, exitPrice, quantity, entryFee, exitFee, totalFee, profitLoss, postTradeCash, exitReason]
       properties:
         tradeId: { $ref: '#/components/schemas/OpaqueId' }
-        side: { type: string, enum: [LONG, SHORT] }
+        sequence: { type: integer, minimum: 0 }
+        side: { type: string, enum: [LONG] }
         entryTime: { type: string, format: date-time }
         entryPrice: { $ref: '#/components/schemas/NonNegativeDecimalString' }
         exitTime: { type: string, format: date-time }
         exitPrice: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        quantity: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        entryFee: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        exitFee: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        totalFee: { $ref: '#/components/schemas/NonNegativeDecimalString' }
         profitLoss: { $ref: '#/components/schemas/DecimalString' }
+        postTradeCash: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        exitReason: { type: string, enum: [STRATEGY_SELL, FORCED_FINAL_CLOSE] }
+    BacktestProvenance:
+      type: object
+      additionalProperties: false
+      required: [experimentId, candidateId, jobId, successfulAttemptId, manifestFingerprint, datasetFingerprint, strategyFingerprint, resultFingerprint]
+      properties:
+        experimentId: { $ref: '#/components/schemas/OpaqueId' }
+        candidateId: { $ref: '#/components/schemas/OpaqueId' }
+        jobId: { $ref: '#/components/schemas/OpaqueId' }
+        successfulAttemptId: { $ref: '#/components/schemas/OpaqueId' }
+        manifestFingerprint: { type: string, minLength: 1 }
+        datasetFingerprint: { type: string, minLength: 1 }
+        strategyFingerprint: { type: string, minLength: 1 }
+        resultFingerprint: { type: string, minLength: 1 }
+    BacktestAssumptions:
+      type: object
+      additionalProperties: false
+      required: [assumptionsVersion, initialCapital, feeRate, slippageRate, positionMode, executionPriceRule, forceCloseAtEnd, roundingMode]
+      properties:
+        assumptionsVersion: { type: string, minLength: 1 }
+        initialCapital: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        feeRate: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        slippageRate: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        positionMode: { type: string, enum: [LONG_ONLY] }
+        executionPriceRule: { type: string, enum: [NEXT_CANDLE_OPEN] }
+        forceCloseAtEnd: { type: boolean }
+        roundingMode: { type: string, enum: [HALF_EVEN] }
     BacktestResult:
       type: object
       additionalProperties: false
-      required: [backtestResultId, status, metrics, trades]
+      required: [backtestResultId, backtestId, status, metrics, trades, provenance, assumptions, initialCapital, finalCapital, totalFees, completedAt]
       properties:
         backtestResultId: { $ref: '#/components/schemas/OpaqueId' }
+        backtestId: { $ref: '#/components/schemas/OpaqueId' }
         status: { type: string, const: COMPLETED }
         metrics: { $ref: '#/components/schemas/BacktestMetrics' }
         trades:
           type: array
           items: { $ref: '#/components/schemas/Trade' }
+        provenance: { $ref: '#/components/schemas/BacktestProvenance' }
+        assumptions: { $ref: '#/components/schemas/BacktestAssumptions' }
+        initialCapital: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        finalCapital: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        totalFees: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        completedAt: { type: string, format: date-time }
 
     GeneratorSelection:
       type: object
@@ -1490,24 +1550,27 @@ components:
     LeaderboardEntry:
       type: object
       additionalProperties: false
-      required: [rank, candidateId, score, strategyId, strategyVersion, parameters, backtestResultId]
+      required: [rank, evaluationResultId, backtestResultId, score, maximumDrawdown, evaluationFingerprint]
       properties:
         rank: { type: integer, minimum: 1 }
-        candidateId: { $ref: '#/components/schemas/OpaqueId' }
-        score: { $ref: '#/components/schemas/DecimalString' }
-        strategyId: { type: string, minLength: 1 }
-        strategyVersion: { type: string, minLength: 1 }
-        parameters: { type: object }
+        evaluationResultId: { $ref: '#/components/schemas/OpaqueId' }
         backtestResultId: { $ref: '#/components/schemas/OpaqueId' }
+        score: { $ref: '#/components/schemas/DecimalString' }
+        maximumDrawdown: { $ref: '#/components/schemas/NonNegativeDecimalString' }
+        evaluationFingerprint: { type: string, minLength: 1 }
     Leaderboard:
       allOf:
         - $ref: '#/components/schemas/PaginationFields'
         - type: object
-          required: [experimentId, revision, rankingPolicyVersion, items]
+          required: [experimentId, revisionId, revision, topK, rankingPolicyVersion, fingerprint, createdAt, items]
           properties:
             experimentId: { $ref: '#/components/schemas/OpaqueId' }
-            revision: { type: integer, minimum: 0 }
+            revisionId: { $ref: '#/components/schemas/OpaqueId' }
+            revision: { type: integer, minimum: 1 }
+            topK: { type: integer, minimum: 1 }
             rankingPolicyVersion: { type: string, minLength: 1 }
+            fingerprint: { type: string, minLength: 1 }
+            createdAt: { type: string, format: date-time }
             items:
               type: array
               items: { $ref: '#/components/schemas/LeaderboardEntry' }

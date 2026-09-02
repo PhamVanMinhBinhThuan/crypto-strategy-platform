@@ -142,8 +142,11 @@ Idempotency-Key: backtest-demo-001
   "configuration": {
     "initialCapital": "10000.00",
     "feeRate": "0.001",
+    "slippageRate": "0",
     "positionMode": "LONG_ONLY",
-    "executionPriceRule": "CANDLE_CLOSE"
+    "executionPriceRule": "NEXT_CANDLE_OPEN",
+    "forceCloseAtEnd": true,
+    "roundingMode": "HALF_EVEN"
   }
 }
 ```
@@ -168,6 +171,7 @@ Accept: application/json
 ```json
 {
   "backtestResultId": "01JBACKTESTRESULT0000000001",
+  "backtestId": "01JBACKTEST0000000000000001",
   "status": "COMPLETED",
   "metrics": {
     "totalReturn": "0.1245",
@@ -178,14 +182,45 @@ Accept: application/json
   "trades": [
     {
       "tradeId": "01JTRADE000000000000000001",
+      "sequence": 0,
       "side": "LONG",
       "entryTime": "2026-07-01T08:00:00Z",
       "entryPrice": "61200.00",
       "exitTime": "2026-07-01T12:00:00Z",
       "exitPrice": "61850.00",
-      "profitLoss": "93.28"
+      "quantity": "0.153186274510",
+      "entryFee": "9.375000000000",
+      "exitFee": "9.474570588235",
+      "totalFee": "18.849570588235",
+      "profitLoss": "80.727352941176",
+      "postTradeCash": "10080.727352941176",
+      "exitReason": "STRATEGY_SELL"
     }
-  ]
+  ],
+  "provenance": {
+    "experimentId": "01JEXPERIMENT0000000000001",
+    "candidateId": "01JCANDIDATE00000000000001",
+    "jobId": "01JJOB00000000000000000001",
+    "successfulAttemptId": "01JATTEMPT00000000000000001",
+    "manifestFingerprint": "sha256:manifest",
+    "datasetFingerprint": "sha256:dataset",
+    "strategyFingerprint": "sha256:strategy",
+    "resultFingerprint": "sha256:result"
+  },
+  "assumptions": {
+    "assumptionsVersion": "backtest-assumptions-v1",
+    "initialCapital": "10000.000000000000",
+    "feeRate": "0.001000000000",
+    "slippageRate": "0.000000000000",
+    "positionMode": "LONG_ONLY",
+    "executionPriceRule": "NEXT_CANDLE_OPEN",
+    "forceCloseAtEnd": true,
+    "roundingMode": "HALF_EVEN"
+  },
+  "initialCapital": "10000.000000000000",
+  "finalCapital": "11245.000000000000",
+  "totalFees": "42.500000000000",
+  "completedAt": "2026-07-01T12:00:01Z"
 }
 ```
 
@@ -225,13 +260,17 @@ Idempotency-Key: search-demo-001
 }
 ```
 
-Response dự kiến: `202 Accepted`.
+Trạng thái hiện tại: `503 Service Unavailable` với code
+`DEPENDENCY_UNAVAILABLE`. Search Coordinator chưa có published application boundary nên
+API không claim request, không tạo Experiment/Job một phần và không trả `202` giả.
 
 ```json
 {
-  "experimentId": "01JEXPERIMENT0000000000001",
-  "jobId": "01JJOB00000000000000000002",
-  "status": "QUEUED"
+  "code": "DEPENDENCY_UNAVAILABLE",
+  "message": "A required capability is not available yet.",
+  "details": {"retryable": true},
+  "correlationId": "01JSEARCHREQUEST00000000001",
+  "timestamp": "2026-09-02T12:00:00Z"
 }
 ```
 
@@ -247,12 +286,12 @@ Response dự kiến: `202 Accepted`.
   "subscriptionId": "experiment-01JEXPERIMENT0000000000001",
   "payload": {
     "experimentId": "01JEXPERIMENT0000000000001",
+    "jobId": "01JJOB00000000000000000002",
     "status": "RUNNING",
-    "generatedCandidates": 40,
-    "completedCandidates": 35,
-    "failedCandidates": 1,
-    "maximumCandidates": 100,
-    "elapsedSeconds": 85
+    "completedWork": 35,
+    "failedWork": 1,
+    "totalWork": 100,
+    "bestScore": "0.8125"
   }
 }
 ```
@@ -267,20 +306,20 @@ Accept: application/json
 ```json
 {
   "experimentId": "01JEXPERIMENT0000000000001",
+  "revisionId": "01JLEADERBOARD000000000001",
   "revision": 7,
-  "rankingPolicyVersion": "1.0.0",
+  "topK": 10,
+  "rankingPolicyVersion": "ranking-v1",
+  "fingerprint": "sha256:leaderboard",
+  "createdAt": "2026-08-16T02:11:01Z",
   "items": [
     {
       "rank": 1,
-      "candidateId": "01JCANDIDATE00000000000001",
+      "evaluationResultId": "01JEVALUATION0000000000001",
+      "backtestResultId": "01JBACKTESTRESULT0000000001",
       "score": "0.8125",
-      "strategyId": "ma-crossover",
-      "strategyVersion": "1.0.0",
-      "parameters": {
-        "fastPeriod": 12,
-        "slowPeriod": 60
-      },
-      "backtestResultId": "01JBACKTESTRESULT0000000001"
+      "maximumDrawdown": "0.0710",
+      "evaluationFingerprint": "sha256:evaluation"
     }
   ],
   "nextCursor": null,
@@ -293,7 +332,7 @@ Accept: application/json
 ### 4.1. Lấy danh sách News
 
 ```http
-GET /api/v1/news-items?pair=BTC%2FUSDT&limit=20
+GET /api/v1/news-items?tradingPairId=01JPAIR0000000000000000001&limit=20
 Accept: application/json
 ```
 
@@ -301,16 +340,17 @@ Accept: application/json
 {
   "items": [
     {
-      "newsItemId": "01JNEWS000000000000000001",
+      "newsId": "01JNEWS000000000000000001",
       "title": "Example cryptocurrency market update",
       "source": "Example News",
       "url": "https://example.com/news/crypto-market-update",
       "publishedAt": "2026-08-16T01:30:00Z",
+      "analysisStatus": "ANALYZED",
+      "relatedAssetIds": ["01JASSET000000000000000001"],
       "sentiment": {
         "label": "POSITIVE",
         "confidence": "0.82",
-        "polarityScore": "0.64",
-        "modelVersion": "baseline-1.0.0"
+        "polarityScore": "0.64"
       }
     }
   ],
@@ -350,24 +390,33 @@ Request đọc Job vẫn trả `200 OK`; trạng thái thất bại nằm trong 
 ```json
 {
   "jobId": "01JJOB00000000000000000002",
+  "experimentId": "01JEXPERIMENT0000000000001",
+  "candidateId": "01JCANDIDATE00000000000001",
+  "type": "BACKTEST",
   "status": "FAILED",
+  "totalWork": 1,
+  "completedWork": 0,
+  "failedWork": 1,
+  "bestScore": null,
+  "queuedAt": "2026-08-16T02:00:00Z",
+  "startedAt": "2026-08-16T02:00:01Z",
+  "finishedAt": "2026-08-16T02:15:00Z",
+  "nextRetryAt": null,
   "failure": {
     "code": "JOB_EXECUTION_TIMEOUT",
-    "message": "The job exceeded its execution timeout.",
-    "retryable": true,
-    "attempt": 3,
-    "failedAt": "2026-08-16T02:15:00Z"
-  }
+    "message": "The job exceeded its execution timeout."
+  },
+  "createdAt": "2026-08-16T02:00:00Z",
+  "updatedAt": "2026-08-16T02:15:00Z"
 }
 ```
 
-## 6. Nội dung cần chốt sau Feature Specs
+## 6. Readiness còn bị chặn
 
-- Tên endpoint và quan hệ resource chính thức.
-- Request/response field bắt buộc, optional và nullable.
-- Parameter schema của bốn Strategy và Composite Strategy.
-- Backtest assumptions, metric scale và rounding rule.
-- Search Space, Stop Condition và Ranking Policy contract.
+Chỉ Start/Reproduce Experiment chưa ready vì Search Coordinator nằm ngoài F-009 chưa tồn
+tại. Backtest đơn lẻ, các authoritative read, stop/cancel, realtime Candle/workload, News
+và internal audit đã có transport boundary; readiness cuối vẫn cần PostgreSQL/Redis smoke
+trong môi trường integration.
 - Pagination limit, time-range limit và sorting được hỗ trợ.
 - WebSocket payload cuối cùng và compatibility rule.
 - Internal API giữa Java Worker và Python Sentiment Service.

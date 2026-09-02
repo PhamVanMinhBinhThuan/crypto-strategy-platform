@@ -229,9 +229,9 @@ Khoảng gửi PING và timeout do cấu hình môi trường quyết định, k
 | `SUBSCRIPTION_CONFIRMED` | Subscribe hoặc unsubscribe đã được áp dụng | `subscriptionType`, `status` |
 | `CANDLE_UPDATED` | Có trạng thái mới của Candle đang mở hoặc Candle vừa đóng | Canonical Candle |
 | `MARKET_CONNECTION_STATUS_CHANGED` | Trạng thái kết nối nguồn Market Data thay đổi | `status`, `lastSuccessfulEventAt` |
-| `EXPERIMENT_PROGRESS_UPDATED` | Trạng thái/tiến trình Search thay đổi | ID, status, stage và candidate counts |
+| `EXPERIMENT_PROGRESS_UPDATED` | Trạng thái/tiến trình durable work thay đổi | Experiment/Job ID, status và work counts khi có |
 | `BACKTEST_COMPLETED` | Một Backtest hoàn thành thành công | ID của result liên quan |
-| `LEADERBOARD_UPDATED` | Top-K read model có revision mới | ID, revision và top summary |
+| `LEADERBOARD_UPDATED` | Top-K read model có revision mới | ID, monotonic revision và REST snapshot URL |
 | `SUBSCRIPTION_ERROR` | Một command/subscription không hợp lệ hoặc gặp lỗi | Error code chuẩn hóa |
 | `PONG` | Backend nhận `PING` hợp lệ | `clientTime`, `serverTime` |
 
@@ -257,8 +257,7 @@ Khoảng gửi PING và timeout do cấu hình môi trường quyết định, k
 `ACTIVE` hoặc `INACTIVE`. Confirmation `ACTIVE` bắt buộc có `syncMarker`; confirmation
 `INACTIVE` không có marker. Marker là string opaque, chỉ có ý nghĩa trong đúng lần kích
 hoạt subscription và connection hiện tại; client không parse, so sánh thứ tự hoặc tái sử
-dụng nó sau reconnect.
-
+dụng marker đó sau reconnect.
 Backend phải đăng ký nguồn event trước, chụp synchronization boundary, rồi phát
 `SUBSCRIPTION_CONFIRMED`. Event của subscription chỉ được phát sau confirmation đó.
 Frontend giữ các event đến sau confirmation trong lúc tải authoritative REST snapshot,
@@ -344,13 +343,12 @@ Frontend phải hiển thị rõ khi dữ liệu không còn realtime. Event kh�
   "subscriptionId": "experiment-progress-1",
   "payload": {
     "experimentId": "01JEXPERIMENT0000000000001",
+    "jobId": "01JJOB00000000000000000001",
     "status": "RUNNING",
-    "stage": "BACKTESTING",
-    "generatedCandidates": 40,
-    "completedCandidates": 35,
-    "failedCandidates": 1,
-    "maximumCandidates": 100,
-    "elapsedSeconds": 85
+    "completedWork": 35,
+    "failedWork": 1,
+    "totalWork": 100,
+    "bestScore": "0.8125"
   }
 }
 ```
@@ -361,13 +359,11 @@ Experiment `status` trong MVP:
 CREATED, QUEUED, RUNNING, STOP_REQUESTED, STOPPED, COMPLETED, FAILED
 ```
 
-`stage` mô tả bước hiện tại để hiển thị, tối thiểu hỗ trợ:
-
-```text
-GENERATING, BACKTESTING, EVALUATING, RANKING, FINALIZING
-```
-
-Các count là số nguyên không âm. `maximumCandidates` phản ánh Stop Condition hiện tại. Khi Stop Condition không dùng giới hạn candidate, field này có thể là `null`; quy tắc nullable cuối cùng phải được đồng bộ vào OpenAPI/feature contract.
+`completedWork`, `failedWork` và `totalWork` là số nguyên không âm lấy từ normalized
+F-007 progress event. `bestScore` là exact decimal string và chỉ xuất hiện sau khi có kết
+quả xếp hạng. Với terminal lifecycle event, payload tối thiểu có `experimentId`, `status`,
+`snapshotUrl` và có `jobId` nếu producer cung cấp. Client luôn refresh REST snapshot thay
+vì suy diễn state còn thiếu từ notification.
 
 ### 5.5. `BACKTEST_COMPLETED`
 
@@ -404,8 +400,7 @@ Event chỉ mang ID cần thiết. Frontend gọi REST để lấy metrics, Trad
     "experimentId": "01JEXPERIMENT0000000000001",
     "leaderboardId": "01JLEADERBOARD000000000001",
     "revision": 7,
-    "topCandidateId": "01JCANDIDATE00000000000001",
-    "topScore": "0.8125"
+    "snapshotUrl": "/api/v1/experiments/01JEXPERIMENT0000000000001/leaderboard"
   }
 }
 ```
@@ -471,8 +466,13 @@ Các lỗi thường gặp:
 | `REQUEST_VALIDATION_FAILED` | Envelope/payload thiếu field hoặc sai kiểu |
 | `INVALID_MARKET_QUERY` | Pair/timeframe không hợp lệ |
 | `MARKET_SUBSCRIPTION_LIMIT_EXCEEDED` | Vượt tối đa bốn Candle subscriptions |
+| `WORKLOAD_SUBSCRIPTION_LIMIT_EXCEEDED` | Vượt tối đa bốn Experiment/Leaderboard subscriptions cộng lại |
+| `DUPLICATE_SUBSCRIPTION_ID` | `subscriptionId` đã được dùng trên connection hiện tại |
+| `SUBSCRIPTION_NOT_FOUND` | Unsubscribe một logical subscription không hoạt động |
 | `EXPERIMENT_NOT_FOUND` | Experiment không tồn tại |
 | `LEADERBOARD_NOT_FOUND` | Leaderboard/read model không tồn tại |
+| `MARKET_PROVIDER_UNAVAILABLE` | Nguồn Market Data tạm thời không dùng được |
+| `MARKET_PROVIDER_RATE_LIMITED` | Nguồn Market Data đang rate-limit |
 | `RATE_LIMIT_EXCEEDED` | Gửi command quá nhanh |
 | `VERSION_CONFLICT` | Client gửi event version không được hỗ trợ |
 
@@ -536,6 +536,14 @@ connection bằng application close code `4001` và reason ổn định
 đọc authoritative REST snapshot. Chỉ khi refresh session không còn hợp lệ mới chuyển người
 dùng về màn hình đăng nhập.
 
+Các close code do server phát:
+
+| Code | Reason | Xử lý |
+| ---: | --- | --- |
+| `4001` | `REAUTHENTICATION_REQUIRED` | Silent refresh, xin ticket mới và reconnect |
+| `4002` | `HEARTBEAT_TIMEOUT` | Kiểm tra transport rồi reconnect và tải snapshot |
+| `4008` | `RATE_LIMIT_EXCEEDED` hoặc `SLOW_CONSUMER` | Backoff, giảm tốc độ rồi reconnect |
+
 ### 7.5. Cleanup
 
 - Component unmount phải gửi command unsubscribe phù hợp.
@@ -564,6 +572,8 @@ Hệ thống không đảm bảo exactly-once delivery. Client phải xử lý d
 - Frontend batch chart updates theo animation/render frame, không render lại toàn trang cho từng tick.
 - Không gửi Historical dataset, toàn bộ Trades hoặc Leaderboard history trong WebSocket event.
 - Khi client quá chậm và không thể phục hồi an toàn, Backend được phép đóng connection; Frontend reconnect và đồng bộ lại bằng REST.
+- Close code cho slow consumer là `4008 SLOW_CONSUMER`; cùng numeric code có thể được
+  dùng với reason `RATE_LIMIT_EXCEEDED`, vì client phải phân nhánh theo cả code và reason.
 
 ## 10. Validation, giới hạn và bảo mật
 
@@ -574,6 +584,10 @@ Hệ thống không đảm bảo exactly-once delivery. Client phải xử lý d
 - Mặc định giới hạn message 64 KiB và 30 commands trong 10 giây trên mỗi connection.
 - Mặc định heartbeat 30 giây, timeout 90 giây và connection lifetime 30 phút; mọi ngưỡng
   phải lấy từ cấu hình server.
+- Workload notification được consume từ Redis Streams `progress.events.v1`,
+  `lifecycle.events.v1` và `candidate.evaluated.v1`. Có thể đổi tên bằng
+  `platform.realtime.streams.*`; khi stream gián đoạn, REST read vẫn hoạt động và là
+  nguồn trạng thái authoritative.
 - Chỉ cho phép Origin trong allowlist.
 - Không nhận `START_SEARCH`, `STOP_SEARCH` hoặc command thay đổi business state qua WebSocket.
 - Không gửi credential, token, SQL, internal class name, stack trace hoặc raw Binance/Python response.

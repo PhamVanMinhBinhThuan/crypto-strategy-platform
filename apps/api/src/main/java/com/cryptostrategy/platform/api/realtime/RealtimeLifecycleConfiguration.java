@@ -15,7 +15,7 @@ class RealtimeLifecycleConfiguration {
     @Bean(name = "realtimeTaskScheduler", destroyMethod = "shutdown")
     ThreadPoolTaskScheduler realtimeTaskScheduler() {
         ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(1);
+        scheduler.setPoolSize(4);
         scheduler.setThreadNamePrefix("realtime-lifecycle-");
         scheduler.setRemoveOnCancelPolicy(true);
         return scheduler;

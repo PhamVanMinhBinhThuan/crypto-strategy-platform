@@ -192,6 +192,41 @@ public class ExperimentApplicationService implements
     }
 
     @Override
+    public List<CandidateDefinition> listCandidates(
+            UUID ownerUserId,
+            ExperimentId experimentId,
+            int afterGenerationIndex,
+            String afterCandidateId,
+            int limit) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId cannot be null");
+        Objects.requireNonNull(experimentId, "experimentId cannot be null");
+        Objects.requireNonNull(afterCandidateId, "afterCandidateId cannot be null");
+        if (afterGenerationIndex < -1 || limit < 1 || limit > 101) {
+            throw new IllegalArgumentException("Candidate page boundary is invalid");
+        }
+        return experimentStore.listCandidatesPage(
+                ownerUserId,
+                experimentId,
+                afterGenerationIndex,
+                afterCandidateId,
+                limit);
+    }
+
+    @Override
+    public Optional<CandidateDefinition> getCandidate(
+            UUID ownerUserId, ExperimentId experimentId, CandidateId candidateId) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId cannot be null");
+        Objects.requireNonNull(experimentId, "experimentId cannot be null");
+        Objects.requireNonNull(candidateId, "candidateId cannot be null");
+
+        if (experimentStore.findExperimentById(ownerUserId, experimentId).isEmpty()) {
+            return Optional.empty();
+        }
+        return experimentStore.findCandidateById(ownerUserId, candidateId)
+                .filter(candidate -> candidate.experimentId().equals(experimentId));
+    }
+
+    @Override
     public Experiment reproduceExperiment(UUID ownerUserId, ExperimentId sourceExperimentId, String newName) {
         Objects.requireNonNull(ownerUserId, "ownerUserId cannot be null");
         Objects.requireNonNull(sourceExperimentId, "sourceExperimentId cannot be null");

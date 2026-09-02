@@ -135,6 +135,18 @@ class StandaloneBacktestServiceTest {
         private OutboxEvent outbox;
 
         @Override
+        public java.util.Optional<StandaloneBacktest> findById(
+                UUID ownerUserId,
+                com.cryptostrategy.platform.experiment.api.backtest.BacktestId backtestId) {
+            String ownerPrefix = ownerUserId + ":";
+            return receipts.entrySet().stream()
+                    .filter(entry -> entry.getKey().startsWith(ownerPrefix))
+                    .map(entry -> entry.getValue().acceptance().backtest())
+                    .filter(backtest -> backtest.backtestId().equals(backtestId))
+                    .findFirst();
+        }
+
+        @Override
         public StandaloneBacktestAcceptance accept(
                 UUID ownerUserId,
                 String operation,

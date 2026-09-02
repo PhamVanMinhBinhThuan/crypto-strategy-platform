@@ -2,7 +2,7 @@
 
 **Status**: Planned — Chưa có implementation evidence
 
-**Last Updated**: 2026-08-14
+**Last Updated**: 2026-09-02
 
 **Owner**: Văn Minh
 
@@ -70,3 +70,19 @@ Tài liệu này nối yêu cầu với view, quyết định và cách kiểm c
 - Không dùng số minh họa trong PDF/slide làm kết quả của nhóm.
 - Screenshot một mình không đủ cho performance/reliability; kèm log, metric hoặc assertion.
 - Runtime evidence thuộc demo/test artifact; tài liệu này chỉ ghi link và kết luận ngắn sau khi có thật.
+
+## F-009 Public API và Realtime evidence (2026-09-02)
+
+- **Verified bằng automated tests**: public authentication/error/ownership/redaction,
+  standalone Backtest atomic acceptance, immutable REST reads, deterministic pagination,
+  realtime protocol/subscription/backpressure/snapshot recovery, workload stream mapping và
+  News degraded isolation.
+- **Contract evidence**: `docs/api/openapi.yaml`, `error-catalog.md`, `examples.md` và
+  `websocket-events.md` được khóa bằng `DocumentationParityTest`.
+- **Architecture evidence**: full architecture suite kiểm tra dependency matrix, internal
+  package access, cycle, framework purity và canonical UUID/typed-ULID/exact-decimal/UTC boundary.
+- **Chưa Verified runtime**: PostgreSQL/Supabase và Redis integration chưa chạy vì môi trường
+  hiện tại không có database/Redis variables. Không dùng unit performance smoke để claim latency
+  production hoặc multi-worker throughput.
+- **Dependency gate**: Experiment start/reproduce trả stable `503 DEPENDENCY_UNAVAILABLE` cho
+  đến khi Search Coordinator cung cấp published runtime boundary; read/stop và Job cancel vẫn ready.

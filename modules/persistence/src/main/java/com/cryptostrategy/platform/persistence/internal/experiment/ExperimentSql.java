@@ -105,7 +105,19 @@ public final class ExperimentSql {
             FROM experiment.candidate_definition c
             JOIN experiment.experiment e ON e.experiment_id = c.experiment_id
             WHERE c.experiment_id = ? AND e.owner_user_id = ?
-            ORDER BY c.generation_index ASC
+            ORDER BY c.generation_index ASC, c.candidate_id ASC
+            """;
+
+    public static final String SELECT_CANDIDATE_PAGE = """
+            SELECT c.candidate_id, c.experiment_id, c.generation_index, c.definition,
+                   c.generator_state, c.fingerprint, c.created_at
+            FROM experiment.candidate_definition c
+            JOIN experiment.experiment e ON e.experiment_id = c.experiment_id
+            WHERE c.experiment_id = ? AND e.owner_user_id = ?
+              AND (c.generation_index > ?
+                   OR (c.generation_index = ? AND c.candidate_id > ?))
+            ORDER BY c.generation_index ASC, c.candidate_id ASC
+            LIMIT ?
             """;
 
     // Standalone Backtest queries

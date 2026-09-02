@@ -39,6 +39,22 @@ public final class JdbcStandaloneBacktestStore implements StandaloneBacktestStor
     }
 
     @Override
+    public java.util.Optional<StandaloneBacktest> findById(
+            UUID ownerUserId, BacktestId backtestId) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId");
+        Objects.requireNonNull(backtestId, "backtestId");
+        try {
+            return java.util.Optional.ofNullable(jdbcTemplate.queryForObject(
+                    ExperimentSql.SELECT_STANDALONE_BACKTEST_BY_ID,
+                    rows::mapStandaloneBacktest,
+                    backtestId.value(),
+                    ownerUserId));
+        } catch (EmptyResultDataAccessException exception) {
+            return java.util.Optional.empty();
+        }
+    }
+
+    @Override
     public StandaloneBacktestAcceptance accept(
             UUID ownerUserId,
             String operation,

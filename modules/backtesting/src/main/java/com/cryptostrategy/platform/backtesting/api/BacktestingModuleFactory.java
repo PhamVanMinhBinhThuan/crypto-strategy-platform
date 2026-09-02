@@ -1,8 +1,11 @@
 package com.cryptostrategy.platform.backtesting.api;
 
 import com.cryptostrategy.platform.backtesting.api.port.out.BacktestResultStore;
+import com.cryptostrategy.platform.backtesting.api.port.out.BacktestResultReader;
+import com.cryptostrategy.platform.backtesting.api.port.in.GetBacktestResultUseCase;
 import com.cryptostrategy.platform.backtesting.api.port.out.FrozenStrategyResolver;
 import com.cryptostrategy.platform.backtesting.internal.RunBacktestService;
+import com.cryptostrategy.platform.backtesting.internal.BacktestResultQueryService;
 import com.cryptostrategy.platform.experiment.api.port.in.GetFrozenBacktestExecutionUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.VerifyDatasetUseCase;
@@ -10,6 +13,11 @@ import com.cryptostrategy.platform.marketdata.api.port.out.DatasetCandleReader;
 
 public final class BacktestingModuleFactory {
     private BacktestingModuleFactory() {}
+
+    public static GetBacktestResultUseCase getBacktestResultUseCase(
+            BacktestResultReader resultReader) {
+        return new BacktestResultQueryService(resultReader);
+    }
 
     public static RunBacktestService runBacktestService(
             GetFrozenBacktestExecutionUseCase frozenExecutionUseCase,

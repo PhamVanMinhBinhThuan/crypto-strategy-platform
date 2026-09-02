@@ -88,25 +88,32 @@
 ### Gap closure cho standalone Backtest (bắt buộc trước T034–T042)
 
 - [X] T079 [US3] Ghi quyết định ownership/identity/transaction boundary tại `docs/adr/0015-standalone-backtest-aggregate.md` và đồng bộ artifact F-009.
-- [ ] T080 [US3] Tạo typed `BacktestId`, immutable standalone Backtest command/outcome và owner-scoped published input/output ports trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api/`.
-- [ ] T081 [US3] Implement F-005 service canonicalize/freeze single-run Manifest/Candidate/Job/Outbox tại `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/internal/`.
-- [ ] T082 [US3] Thêm forward migration và JDBC transaction atomically ghi standalone aggregate, Job, Outbox và idempotency outcome tại `supabase/migrations/` và `modules/persistence/`.
-- [ ] T083 [US3] Viết domain/persistence evidence cho identity riêng, ownership, replay/conflict và rollback không để partial graph tại `modules/experiment/src/test/` và `modules/persistence/src/experimentIntegrationTest/`.
+- [X] T080 [US3] Tạo typed `BacktestId`, immutable standalone Backtest command/outcome và owner-scoped published input/output ports trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api/`.
+- [X] T081 [US3] Implement F-005 service canonicalize/freeze single-run Manifest/Candidate/Job/Outbox tại `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/internal/`.
+- [X] T082 [US3] Thêm forward migration và JDBC transaction atomically ghi standalone aggregate, Job, Outbox và idempotency outcome tại `supabase/migrations/` và `modules/persistence/`.
+- [X] T083 [US3] Viết domain/persistence evidence cho identity riêng, ownership, replay/conflict và rollback không để partial graph tại `modules/experiment/src/test/` và `modules/persistence/src/experimentIntegrationTest/`.
 
 ### Tests for User Story 3
 
 - [ ] T034 [P] [US3] Viết idempotency replay/conflict integration tests cho Backtest và Experiment tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/IdempotencyCommandIntegrationTest.java`.
-- [ ] T035 [P] [US3] Viết command acceptance tests kiểm tra 202, Location, immutable input freeze và owner validation tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/AsyncCommandApiTest.java`.
+- [X] T035 [P] [US3] Viết command acceptance tests kiểm tra 202, Location, immutable input freeze và owner validation tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/AsyncCommandApiTest.java`.
 - [ ] T036 [P] [US3] Viết stop/cancel/reproduce state-conflict tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/ExperimentCommandStateTest.java`.
+
+> Gate còn lại của T034/T036: Backtest replay/conflict và stop/cancel conflict đã verified;
+> start/reproduce Experiment chủ động trả `503 DEPENDENCY_UNAVAILABLE` cho tới khi Search
+> Coordinator có published runtime boundary, nên chưa thể tạo state/replay evidence giả.
 
 ### Implementation for User Story 3
 
-- [ ] T037 [P] [US3] Tạo Experiment/Backtest/Job command và accepted response DTO tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/CommandDtos.java`.
-- [ ] T038 [US3] Implement start Backtest controller gọi F-005/F-006 published use cases tại `apps/api/src/main/java/com/cryptostrategy/platform/api/backtest/BacktestController.java`.
+- [X] T037 [P] [US3] Tạo Experiment/Backtest/Job command và accepted response DTO tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/CommandDtos.java`.
+- [X] T038 [US3] Implement start Backtest controller gọi F-005/F-006 published use cases tại `apps/api/src/main/java/com/cryptostrategy/platform/api/backtest/BacktestController.java`.
 - [ ] T039 [US3] Implement start/stop/reproduce Experiment controller gọi F-005 application ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentController.java`.
-- [ ] T040 [US3] Implement Job read/cancel mapping và terminal failure representation tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/JobController.java`.
-- [ ] T041 [US3] Tích hợp idempotency receipt với response replay, conflict mapping và Location header tại `apps/api/src/main/java/com/cryptostrategy/platform/api/idempotency/IdempotencyCommandExecutor.java`.
-- [ ] T042 [US3] Tạo integration fixtures cho queued/running/retry/cancelled/failed/completed state tại `apps/api/src/test/resources/fixtures/f009/jobs/`.
+
+> T039 partial: stop và toàn bộ read path đã hoạt động; start/reproduce được expose dưới
+> readiness gate ổn định thay vì giả lập một operation chưa có Search Coordinator.
+- [X] T040 [US3] Implement Job read/cancel mapping và terminal failure representation tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/JobController.java`.
+- [X] T041 [US3] Tích hợp idempotency receipt với response replay, conflict mapping và Location header tại `apps/api/src/main/java/com/cryptostrategy/platform/api/idempotency/IdempotencyCommandExecutor.java`.
+- [X] T042 [US3] Tạo integration fixtures cho queued/running/retry/cancelled/failed/completed state tại `apps/api/src/test/resources/fixtures/f009/jobs/`.
 
 **Checkpoint**: User Story 3 pass; mỗi command tạo tối đa một logical outcome và không bypass owner/application boundary.
 
@@ -118,18 +125,18 @@
 
 ### Tests for User Story 4
 
-- [ ] T043 [P] [US4] Viết Experiment/Candidate/Job read contract và ownership tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/ExperimentReadApiTest.java`.
-- [ ] T044 [P] [US4] Viết Backtest Result immutable exact-decimal/provenance tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/backtest/BacktestResultApiTest.java`.
-- [ ] T045 [P] [US4] Viết Leaderboard revision/order/cursor tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/leaderboard/LeaderboardApiTest.java`.
+- [X] T043 [P] [US4] Viết Experiment/Candidate/Job read contract và ownership tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/ExperimentReadApiTest.java`.
+- [X] T044 [P] [US4] Viết Backtest Result immutable exact-decimal/provenance tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/backtest/BacktestResultApiTest.java`.
+- [X] T045 [P] [US4] Viết Leaderboard revision/order/cursor tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/leaderboard/LeaderboardApiTest.java`.
 
 ### Implementation for User Story 4
 
-- [ ] T046 [P] [US4] Tạo immutable snapshot DTO cho Experiment/Candidate/Job tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ReadDtos.java`.
-- [ ] T047 [US4] Implement Experiment/Candidate/Job read controllers và cursor mapping tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/`.
-- [ ] T048 [P] [US4] Tạo Backtest Result/Trade DTO giữ decimal string, UTC và provenance tại `apps/api/src/main/java/com/cryptostrategy/platform/api/backtest/ResultDtos.java`.
-- [ ] T049 [US4] Implement Backtest Result controller gọi F-006 result reader tại `apps/api/src/main/java/com/cryptostrategy/platform/api/backtest/BacktestResultController.java`.
-- [ ] T050 [P] [US4] Tạo Leaderboard DTO với ranking policy, revision và deterministic entries tại `apps/api/src/main/java/com/cryptostrategy/platform/api/leaderboard/LeaderboardDtos.java`.
-- [ ] T051 [US4] Implement Leaderboard controller gọi F-006/F-006 persistence boundary tại `apps/api/src/main/java/com/cryptostrategy/platform/api/leaderboard/LeaderboardController.java`.
+- [X] T046 [P] [US4] Tạo immutable snapshot DTO cho Experiment/Candidate/Job tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ReadDtos.java`.
+- [X] T047 [US4] Implement Experiment/Candidate/Job read controllers và cursor mapping tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/`.
+- [X] T048 [P] [US4] Tạo Backtest Result/Trade DTO giữ decimal string, UTC và provenance tại `apps/api/src/main/java/com/cryptostrategy/platform/api/backtest/ResultDtos.java`.
+- [X] T049 [US4] Implement Backtest Result controller gọi F-006 result reader tại `apps/api/src/main/java/com/cryptostrategy/platform/api/backtest/BacktestResultController.java`.
+- [X] T050 [P] [US4] Tạo Leaderboard DTO với ranking policy, revision và deterministic entries tại `apps/api/src/main/java/com/cryptostrategy/platform/api/leaderboard/LeaderboardDtos.java`.
+- [X] T051 [US4] Implement Leaderboard controller gọi F-006/F-006 persistence boundary tại `apps/api/src/main/java/com/cryptostrategy/platform/api/leaderboard/LeaderboardController.java`.
 
 **Checkpoint**: User Story 4 pass khi không cần WebSocket để xác định durable state mới nhất.
 
@@ -141,20 +148,20 @@
 
 ### Tests for User Story 5
 
-- [ ] T052 [P] [US5] Viết envelope/command/event schema tests cho tất cả event version 1 tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/WebSocketContractTest.java`.
-- [ ] T053 [P] [US5] Viết subscription limit, duplicate ID, unsubscribe và owner isolation tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/SubscriptionLifecycleTest.java`.
-- [ ] T054 [P] [US5] Viết snapshot-marker ordering/reconnect/deduplication tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/SnapshotRecoveryTest.java`.
-- [ ] T055 [P] [US5] Viết bounded buffer/coalescing/terminal-event retention tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/BackpressureTest.java`.
+- [X] T052 [P] [US5] Viết envelope/command/event schema tests cho tất cả event version 1 tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/WebSocketContractTest.java`.
+- [X] T053 [P] [US5] Viết subscription limit, duplicate ID, unsubscribe và owner isolation tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/SubscriptionLifecycleTest.java`.
+- [X] T054 [P] [US5] Viết snapshot-marker ordering/reconnect/deduplication tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/SnapshotRecoveryTest.java`.
+- [X] T055 [P] [US5] Viết bounded buffer/coalescing/terminal-event retention tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/BackpressureTest.java`.
 
 ### Implementation for User Story 5
 
 - [X] T056 [US5] Implement WebSocket endpoint, authenticated handshake và connection lifecycle tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/WebSocketConfiguration.java` và `RealtimeConnection.java`.
-- [ ] T057 [US5] Implement typed envelope, command parser, version validation và isolated subscription errors tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/RealtimeMessageMapper.java`.
-- [ ] T058 [US5] Implement subscription registry, four-Candle/workload limits, origin/rate/message checks tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/SubscriptionRegistry.java`.
-- [ ] T059 [US5] Implement marker-based snapshot coordinator và authorized REST refresh hints tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/SnapshotCoordinator.java`.
-- [ ] T060 [US5] Implement F-003 realtime adapter bridge cho Candle events và close-event ordering tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/MarketEventBridge.java`.
-- [ ] T061 [US5] Implement F-007 progress/lifecycle consumer bridge cho Experiment, completion và Leaderboard events tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/WorkEventBridge.java`.
-- [ ] T062 [US5] Implement bounded outbound queue, coalescing, heartbeat, disconnect và reconnect recovery signals tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/RealtimeDeliveryService.java`.
+- [X] T057 [US5] Implement typed envelope, command parser, version validation và isolated subscription errors tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/RealtimeMessageMapper.java`.
+- [X] T058 [US5] Implement subscription registry, four-Candle/workload limits, origin/rate/message checks tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/SubscriptionRegistry.java`.
+- [X] T059 [US5] Implement marker-based snapshot coordinator và authorized REST refresh hints tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/SnapshotCoordinator.java`.
+- [X] T060 [US5] Implement F-003 realtime adapter bridge cho Candle events và close-event ordering tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/MarketEventBridge.java`.
+- [X] T061 [US5] Implement F-007 progress/lifecycle consumer bridge cho Experiment, completion và Leaderboard events tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/WorkEventBridge.java`.
+- [X] T062 [US5] Implement bounded outbound queue, coalescing, heartbeat, disconnect và reconnect recovery signals tại `apps/api/src/main/java/com/cryptostrategy/platform/api/realtime/RealtimeDeliveryService.java`.
 
 **Checkpoint**: User Story 5 pass với duplicate-safe delivery, không leak private event và recoverable terminal state.
 
@@ -166,16 +173,16 @@
 
 ### Tests for User Story 6
 
-- [ ] T063 [P] [US6] Viết News list/filter/pagination/public sentiment summary tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/news/NewsPublicApiTest.java`.
-- [ ] T064 [P] [US6] Viết degraded sentiment isolation tests cho News, Market, Strategy và Backtest tại `apps/api/src/test/java/com/cryptostrategy/platform/api/news/NewsDegradedIsolationTest.java`.
-- [ ] T065 [P] [US6] Viết browser-to-internal-audit denial và redaction tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/news/NewsAuditSecurityTest.java`.
+- [X] T063 [P] [US6] Viết News list/filter/pagination/public sentiment summary tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/news/NewsPublicApiTest.java`.
+- [X] T064 [P] [US6] Viết degraded sentiment isolation tests cho News, Market, Strategy và Backtest tại `apps/api/src/test/java/com/cryptostrategy/platform/api/news/NewsDegradedIsolationTest.java`.
+- [X] T065 [P] [US6] Viết browser-to-internal-audit denial và redaction tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/news/NewsAuditSecurityTest.java`.
 
 ### Implementation for User Story 6
 
-- [ ] T066 [US6] Hoàn thiện public News DTO/filter/cursor mapping theo F-008 contract tại `apps/api/src/main/java/com/cryptostrategy/platform/api/news/NewsResponse.java` và `NewsQueryMapper.java`.
-- [ ] T067 [US6] Implement public News controller gọi News query port, không gọi Python service trực tiếp tại `apps/api/src/main/java/com/cryptostrategy/platform/api/news/NewsController.java`.
-- [ ] T068 [US6] Tách protected audit mapping khỏi browser route và kiểm tra dedicated credential tại `apps/api/src/main/java/com/cryptostrategy/platform/api/news/NewsAuditController.java`.
-- [ ] T069 [US6] Map sentiment unavailable/timeout/invalid response thành degraded News state và stable error khi audit được gọi tại `apps/api/src/main/java/com/cryptostrategy/platform/api/news/NewsExceptionMapper.java`.
+- [X] T066 [US6] Hoàn thiện public News DTO/filter/cursor mapping theo F-008 contract tại `apps/api/src/main/java/com/cryptostrategy/platform/api/news/NewsResponse.java` và `NewsQueryMapper.java`.
+- [X] T067 [US6] Implement public News controller gọi News query port, không gọi Python service trực tiếp tại `apps/api/src/main/java/com/cryptostrategy/platform/api/news/NewsController.java`.
+- [X] T068 [US6] Tách protected audit mapping khỏi browser route và kiểm tra dedicated credential tại `apps/api/src/main/java/com/cryptostrategy/platform/api/news/NewsAuditController.java`.
+- [X] T069 [US6] Map sentiment unavailable/timeout/invalid response thành degraded News state và stable error khi audit được gọi; implementation được tập trung trong `PublicErrorMapper` để tránh một mapper song song chỉ nhằm khớp tên file.
 
 **Checkpoint**: User Story 6 pass; News/Sentiment failure không lan sang Market, Strategy hoặc technical Backtest.
 
@@ -183,15 +190,15 @@
 
 **Mục đích**: Đồng bộ evidence, hiệu năng, bảo mật và release readiness.
 
-- [ ] T070 [P] Cập nhật `docs/api/openapi.yaml`, `docs/api/websocket-events.md`, `docs/api/error-catalog.md` và examples để parity 100% với transport DTO.
-- [ ] T071 [P] Thêm contract drift test cho REST/error/WebSocket docs tại `apps/api/src/test/java/com/cryptostrategy/platform/api/contract/DocumentationParityTest.java`.
-- [ ] T072 [P] Thêm security scan tests bảo đảm không log token, body nhạy cảm, provider payload hoặc internal exception tại `apps/api/src/test/java/com/cryptostrategy/platform/api/security/LoggingRedactionTest.java`.
-- [ ] T073 [P] Thêm performance smoke test bounded reads, async acceptance và realtime delivery theo SC-003/SC-004 tại `apps/api/src/test/java/com/cryptostrategy/platform/api/performance/PublicApiPerformanceTest.java`.
+- [X] T070 [P] Cập nhật `docs/api/openapi.yaml`, `docs/api/websocket-events.md`, `docs/api/error-catalog.md` và examples để parity 100% với transport DTO.
+- [X] T071 [P] Thêm contract drift test cho REST/error/WebSocket docs tại `apps/api/src/test/java/com/cryptostrategy/platform/api/contract/DocumentationParityTest.java`.
+- [X] T072 [P] Thêm security scan tests bảo đảm không log token, body nhạy cảm, provider payload hoặc internal exception; evidence nằm trong `PublicRedactionIntegrationTest`, bao phủ cả response và structured log.
+- [X] T073 [P] Thêm performance smoke test bounded reads, async acceptance và realtime delivery theo SC-003/SC-004 tại `apps/api/src/test/java/com/cryptostrategy/platform/api/performance/PublicApiPerformanceTest.java`.
 - [ ] T074 Chạy database integration tests với Supabase/PostgreSQL và Redis recovery theo `specs/009-public-api-realtime/quickstart.md`, ghi commit/môi trường/evidence.
-- [ ] T075 Chạy full `JAVA_HOME=<JDK21> ./gradlew test` và Python contract suite; sửa warning/failure liên quan F-009.
-- [ ] T076 Review dependency gates F-003/F-008/Search Coordinator, đánh dấu operation readiness đúng evidence và cập nhật `specs/009-public-api-realtime/quickstart.md`.
-- [ ] T077 Cập nhật `docs/architecture/architecture-evidence.md` từ Planned sang Verified chỉ cho quality scenarios có evidence thật.
-- [ ] T078 Review toàn bộ scope/security/ADR/contract/migration checklist trước PR tại `specs/009-public-api-realtime/checklists/`.
+- [X] T075 Chạy full `JAVA_HOME=<JDK21> ./gradlew test` và Python contract suite; sửa warning/failure liên quan F-009.
+- [X] T076 Review dependency gates F-003/F-008/Search Coordinator, đánh dấu operation readiness đúng evidence và cập nhật `specs/009-public-api-realtime/quickstart.md`.
+- [X] T077 Cập nhật `docs/architecture/architecture-evidence.md` từ Planned sang Verified chỉ cho quality scenarios có evidence thật.
+- [X] T078 Review toàn bộ scope/security/ADR/contract/migration checklist trước PR tại `specs/009-public-api-realtime/checklists/`.
 
 ## Dependencies & Execution Order
 

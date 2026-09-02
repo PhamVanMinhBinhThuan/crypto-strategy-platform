@@ -79,3 +79,36 @@ môi trường và kết quả vào evidence F-009; không đánh dấu `Verifie
 - REST snapshot có pagination deterministic và exact/UTC representation.
 - WebSocket không yêu cầu exactly-once nhưng reconcile được từ snapshot.
 - News/Sentiment degraded không làm hỏng Market, Strategy hoặc technical Backtest reads.
+
+## Readiness snapshot (2026-09-02)
+
+| Capability | Trạng thái | Evidence |
+| --- | --- | --- |
+| Auth/error/ownership/idempotency | Ready | API integration và redaction tests |
+| Market, Dataset, Strategy | Ready | Contract, ownership và conflict tests |
+| Standalone Backtest start/read | Ready | Atomic aggregate + API/result tests |
+| Experiment read/stop, Job read/cancel | Ready | Command/read/state tests |
+| Experiment start/reproduce | Gated | Trả `503 DEPENDENCY_UNAVAILABLE` đến khi Search Coordinator có runtime boundary |
+| Realtime Candle/workload/leaderboard | Code-ready | Protocol, lifecycle, backpressure, recovery và Redis consumer tests; production Redis smoke chưa chạy |
+| Public News và protected audit | Ready | Public/degraded/security tests; audit giữ route `/internal/news-items/**` |
+
+Redis workload streams mặc định bật trong runtime bằng
+`platform.realtime.streams.enabled=true`; Gradle unit test tắt listener để không phụ thuộc
+dịch vụ ngoài. Các stream là `work.progress`, `work.lifecycle` và
+`work.candidate-evaluated`.
+
+### Evidence đã chạy
+
+- `JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home ./gradlew test`
+  — `BUILD SUCCESSFUL` (68 actionable tasks; full repository suite).
+- `/tmp/crypto-sentiment-f009/bin/python -m pytest apps/sentiment/tests -q`
+  — `10 passed`.
+- OpenAPI YAML parse và documentation parity test — pass.
+
+### Evidence chưa thể chạy trong môi trường hiện tại
+
+Tại thời điểm kiểm chứng, `DATABASE_URL`, `SUPABASE_DB_URL`,
+`SPRING_DATASOURCE_URL`, `REDIS_URL` và `SPRING_DATA_REDIS_HOST` đều chưa được cấu hình.
+Vì vậy T074 vẫn mở: chưa claim PostgreSQL/Supabase/Redis runtime integration hoặc latency
+production. Việc này không làm transport giả vờ hoạt động; Experiment start/reproduce giữ
+readiness gate và REST snapshot vẫn là nguồn trạng thái authoritative.

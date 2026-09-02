@@ -129,4 +129,31 @@ public final class JdbcLeaderboardStore implements LeaderboardStore {
                 limit
         );
     }
+
+    @Override
+    public Optional<EvaluationResult> findEvaluation(EvaluationResultId evaluationResultId) {
+        try {
+            return Optional.ofNullable(jdbc.queryForObject(
+                    "select evaluation_result_id, experiment_id, backtest_result_id, metric_version, ranking_version, " +
+                            "total_return, win_rate, maximum_drawdown, number_of_trades, overall_score, leaderboard_eligible, " +
+                            "evaluation_fingerprint, evaluated_at from experiment.evaluation_result where evaluation_result_id = ?",
+                    (rs, n) -> new EvaluationResult(
+                            new EvaluationResultId(rs.getString(1)),
+                            new ExperimentId(rs.getString(2)),
+                            new BacktestResultId(rs.getString(3)),
+                            new MetricVersion(rs.getString(4)),
+                            new RankingVersion(rs.getString(5)),
+                            rs.getBigDecimal(6),
+                            rs.getBigDecimal(7),
+                            rs.getBigDecimal(8),
+                            rs.getInt(9),
+                            rs.getBigDecimal(10),
+                            rs.getBoolean(11),
+                            rs.getString(12),
+                            rs.getTimestamp(13).toInstant()),
+                    evaluationResultId.value()));
+        } catch (EmptyResultDataAccessException exception) {
+            return Optional.empty();
+        }
+    }
 }

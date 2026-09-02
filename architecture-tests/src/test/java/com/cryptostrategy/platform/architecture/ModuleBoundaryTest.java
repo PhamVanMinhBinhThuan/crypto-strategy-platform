@@ -54,7 +54,8 @@ class ModuleBoundaryTest {
     void productionPackagesRespectTheAllowedDependencyMatrix() {
         JavaClasses production = productionClasses();
 
-        assertFalse(allowedModuleDependencies(PLATFORM).evaluate(production).hasViolation());
+        var result = allowedModuleDependencies(PLATFORM).evaluate(production);
+        assertFalse(result.hasViolation(), result.getFailureReport().toString());
     }
 
     @Test

@@ -63,7 +63,7 @@ final class BacktestRequestMapper {
             throw invalid("Dataset, Strategy, and Backtest configuration are required");
         }
 
-        var dataset = datasets.getDataset(new com.cryptostrategy.platform.domain.api.market.DatasetVersionId(request.datasetId()));
+        var dataset = datasets.getDataset(request.datasetId());
         DatasetProvenanceSnapshot datasetProvenance = new DatasetProvenanceSnapshot(
                 dataset.datasetVersionId(),
                 dataset.version(),

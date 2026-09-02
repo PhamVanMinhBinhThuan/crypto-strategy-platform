@@ -3,8 +3,10 @@ package com.cryptostrategy.platform.api.config;
 import com.cryptostrategy.platform.marketdata.api.MarketDataModuleFactory;
 import com.cryptostrategy.platform.marketdata.api.port.in.CreateDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.GetTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.LoadHistoricalCandlesUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.ResolveTradingPairUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.SubscribeCandlesUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.out.MarketDataProvider;
 import com.cryptostrategy.platform.persistence.api.MarketDataPersistenceFactory;
 import java.time.Clock;
@@ -41,7 +43,15 @@ public class MarketDataConfiguration {
     }
     @Bean ResolveTradingPairUseCase resolveTradingPairUseCase(
             MarketDataPersistenceFactory.Components persistence) {
-        return MarketDataModuleFactory.referenceData(persistence.references());
+        ResolveTradingPairUseCase delegate = MarketDataModuleFactory.referenceData(
+                persistence.references());
+        return delegate::resolveTradingPair;
+    }
+    @Bean GetTradingPairUseCase getTradingPairUseCase(
+            MarketDataPersistenceFactory.Components persistence) {
+        GetTradingPairUseCase delegate = MarketDataModuleFactory.tradingPairData(
+                persistence.references());
+        return delegate::getTradingPair;
     }
     @Bean LoadHistoricalCandlesUseCase loadHistoricalCandlesUseCase(
             MarketDataModuleFactory.Components marketData) {
@@ -54,5 +64,9 @@ public class MarketDataConfiguration {
     @Bean GetDatasetUseCase getDatasetUseCase(
             MarketDataModuleFactory.Components marketData) {
         return marketData.getDataset();
+    }
+    @Bean SubscribeCandlesUseCase subscribeCandlesUseCase(
+            MarketDataModuleFactory.Components marketData) {
+        return marketData.realtime();
     }
 }

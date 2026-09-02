@@ -12,6 +12,7 @@ import com.cryptostrategy.platform.experiment.api.backtest.StartStandaloneBackte
 import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.port.in.StartStandaloneBacktestUseCase;
+import com.cryptostrategy.platform.experiment.api.port.in.GetStandaloneBacktestUseCase;
 import com.cryptostrategy.platform.experiment.api.port.out.StandaloneBacktestStore;
 import java.time.Clock;
 import java.time.Duration;
@@ -21,7 +22,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 /** Builds and atomically accepts one immutable single-run Experiment graph. */
-public final class StandaloneBacktestService implements StartStandaloneBacktestUseCase {
+public final class StandaloneBacktestService implements StartStandaloneBacktestUseCase, GetStandaloneBacktestUseCase {
     private static final Duration RECEIPT_LIFETIME = Duration.ofHours(24);
 
     private final StandaloneBacktestStore store;
@@ -97,5 +98,14 @@ public final class StandaloneBacktestService implements StartStandaloneBacktestU
                 candidate,
                 job,
                 OutboxEvents.jobQueued(job, now));
+    }
+
+    @Override
+    public java.util.Optional<StandaloneBacktest> getStandaloneBacktest(
+            UUID ownerUserId,
+            com.cryptostrategy.platform.experiment.api.backtest.BacktestId backtestId) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId");
+        Objects.requireNonNull(backtestId, "backtestId");
+        return store.findById(ownerUserId, backtestId);
     }
 }
