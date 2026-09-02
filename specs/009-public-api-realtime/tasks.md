@@ -21,7 +21,7 @@
 **Mục đích**: Hoàn thiện lớp chung bắt buộc trước mọi user story.
 
 - [X] T006 [P] Viết contract test kiểm tra public error envelope, UTC timestamp, correlation header và không có sensitive fields tại `apps/api/src/test/java/com/cryptostrategy/platform/api/error/PublicErrorContractTest.java`.
-- [ ] T007 [P] Viết architecture test cấm API import persistence/internal/provider implementation tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/PublicApiBoundaryTest.java`.
+- [X] T007 [P] Viết architecture test cấm API import persistence/internal/provider implementation tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/PublicApiBoundaryTest.java`.
 - [X] T008 [P] Implement typed `AuthenticatedUserContext` và mapping UUID từ JWT subject tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/AuthenticatedUserContext.java`.
 - [X] T009 Implement one-time WebSocket ticket model/store/issuer với expiry, origin binding và single-use enforcement tại `apps/api/src/main/java/com/cryptostrategy/platform/api/auth/WebSocketTicketService.java`.
 - [X] T010 Implement correlation context/filter/response propagation cho REST và realtime tại `apps/api/src/main/java/com/cryptostrategy/platform/api/observability/CorrelationIdFilter.java` và package `observability/`.
