@@ -13,8 +13,8 @@
 - [X] T001 Cập nhật endpoint inventory, schema và status mapping trong `docs/api/openapi.yaml` theo `specs/009-public-api-realtime/contracts/rest-api-contract.md`.
 - [X] T002 Cập nhật `docs/api/error-catalog.md` và `docs/api/websocket-events.md` cho F-009 operation, ticket, snapshot marker và compatibility rules.
 - [X] T003 [P] Thêm dependency/configuration cần cho native WebSocket và JSON transport trong `apps/api/build.gradle.kts` và `apps/api/src/main/resources/application.yml`.
-- [ ] T004 [P] Tạo package skeleton transport tại `apps/api/src/main/java/com/cryptostrategy/platform/api/market/`, `strategy/`, `experiment/`, `backtest/`, `leaderboard/` và `realtime/`.
-- [ ] T005 [P] Tạo test fixture/support cho authenticated users, opaque IDs, correlation IDs và fake published application ports tại `apps/api/src/test/java/com/cryptostrategy/platform/api/support/`.
+- [X] T004 [P] Tạo package skeleton transport tại `apps/api/src/main/java/com/cryptostrategy/platform/api/market/`, `strategy/`, `experiment/`, `backtest/`, `leaderboard/` và `realtime/`.
+- [X] T005 [P] Tạo test fixture/support cho authenticated users, opaque IDs, correlation IDs và fake published application ports tại `apps/api/src/test/java/com/cryptostrategy/platform/api/support/`.
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
