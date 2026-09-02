@@ -1,6 +1,6 @@
 # ADR-0016: Search Coordinator dùng durable decisions và Worker orchestration
 
-**Status**: Proposed  
+**Status**: Accepted
 **Date**: 2026-09-02  
 **Owners**: Tiến Luật  
 **Extends**: ADR-0006, ADR-0007, ADR-0009, ADR-0010 và ADR-0014
