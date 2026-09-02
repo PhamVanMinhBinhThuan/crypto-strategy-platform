@@ -120,8 +120,10 @@ pipeline downstream và trạng thái public không đổi contract.
 
 ### Functional Requirements
 
-- **FR-001**: Owner MUST có thể khởi chạy Experiment từ frozen Dataset/Strategy, search space,
+- **FR-001**: Owner MUST có thể khởi chạy Experiment từ frozen Dataset và một Strategy version, search space,
   generator identity/version/seed, stop conditions và Top-K hợp lệ.
+- **FR-001a**: MVP chỉ hỗ trợ search trên một frozen Strategy version; Composite Search nằm ngoài
+  phạm vi F-010 và MUST bị từ chối bằng validation ổn định thay vì được xử lý ngầm như Strategy.
 - **FR-002**: Hệ thống MUST xác thực ownership và mọi private input trước khi tạo durable work.
 - **FR-003**: Start/Reproduce MUST idempotent theo owner, operation và canonical request; replay
   giống nhau trả cùng outcome, payload khác cùng key trả conflict.
@@ -139,7 +141,9 @@ pipeline downstream và trạng thái public không đổi contract.
 - **FR-010**: Progress MUST dựa trên durable outcomes; duplicate, stale và out-of-order event
   không được cộng lặp hoặc làm progress quay lùi.
 - **FR-011**: Stop conditions MUST được đánh giá sau mỗi thay đổi liên quan và Experiment MUST
-  vào terminal state đúng một lần.
+  vào terminal state đúng một lần. `deadlineAt` MUST được tính bằng injected UTC clock đúng một lần
+  tại first start, không được kéo dài khi restart/retry; completion/deadline race MUST lock hoặc
+  reload durable state để cho một deterministic terminal decision.
 - **FR-012**: Sau stop, Coordinator MUST không dispatch Candidate mới và MUST chờ mọi active Job
   terminal trước khi Experiment thành `STOPPED`.
 - **FR-013**: Coordinator MUST phục hồi được chỉ từ durable state khi process, queue hoặc cache mất.
@@ -150,16 +154,19 @@ pipeline downstream và trạng thái public không đổi contract.
   xác frozen Manifest cùng Candidate sequence.
 - **FR-017**: Reproduction chỉ nhận source đúng owner, terminal và đủ evidence; lỗi trước commit
   MUST không để partial Experiment/Candidate/Job graph.
-- **FR-018**: Reproduction MUST cung cấp verification cho Trade sequence, metrics và fingerprints,
-  kèm differences an toàn khi mismatch.
+- **FR-018**: Reproduction MUST được chấp nhận bất đồng bộ, lưu durable verification lifecycle
+  `PENDING` trước khi trả response, và chỉ chạy so sánh Trade sequence, metrics/fingerprints sau khi
+  reproduction Experiment terminal; outcome `MATCHED`, `MISMATCHED` hoặc `FAILED` cùng differences
+  an toàn MUST idempotent và phục hồi được sau restart.
 - **FR-019**: Generator MUST có contract chung với identity/version; generator conforming mới
   MUST không yêu cầu đổi Backtest, Evaluation, Leaderboard hoặc public workflow.
 - **FR-020**: Generator/version không tồn tại hoặc không tương thích MUST bị từ chối trước khi
   tạo durable work.
 - **FR-021**: Mutation MUST đi qua application boundary của capability sở hữu; Coordinator MUST
   không ghi trực tiếp dữ liệu của capability khác.
-- **FR-022**: F-009 chỉ được gỡ gate Start/Reproduce sau khi happy path, ownership, idempotency,
-  stop, recovery và reproduction evidence đều pass.
+- **FR-022**: Gate Start của F-009 chỉ được gỡ sau US1 happy path/ownership/idempotency và US2
+  stop/recovery evidence pass. Gate Reproduce được gỡ độc lập, chỉ sau các điều kiện Start chung và
+  US3 immutable-source/async-verification evidence pass.
 - **FR-023**: Feature MUST không đặt lệnh tiền thật, quản lý ví hoặc hứa hẹn lợi nhuận.
 
 ### Key Entities
@@ -184,8 +191,9 @@ pipeline downstream và trạng thái public không đổi contract.
 - **SC-004**: Restart tại mọi dispatch/publication boundary vẫn đưa 100% fixture hữu hạn tới đúng
   terminal state mà không mất Candidate đã chấp nhận.
 - **SC-005**: Duplicate/stale/out-of-order completion không làm progress giảm hoặc vượt durable count.
-- **SC-006**: Sau stop, không Candidate mới được dispatch; active Jobs terminal và Experiment
-  `STOPPED` trong giới hạn vận hành cấu hình.
+- **SC-006**: Sau stop hoặc frozen deadline, không Candidate mới được dispatch; active Jobs terminal
+  và Experiment đạt đúng terminal state trong configured cancellation grace, kể cả qua restart và
+  completion/deadline race.
 - **SC-007**: Reproduction fixture có cùng Trade sequence, bốn metrics và fingerprints, hoặc trả
   mismatch report chính xác thay vì báo thành công sai.
 - **SC-008**: Generator fixture thay thế chạy end-to-end mà không đổi downstream/public contract.
@@ -194,7 +202,7 @@ pipeline downstream và trạng thái public không đổi contract.
 
 ## Assumptions
 
-- F-003/F-004 cung cấp Dataset và Strategy/Composite version bất biến.
+- F-003/F-004 cung cấp Dataset và Strategy version bất biến; Composite Search được hoãn khỏi MVP.
 - F-005 sở hữu Experiment, Manifest, Candidate, Job, Attempt, Outbox và idempotency.
 - F-006 sở hữu Backtest/Evaluation/Leaderboard; F-007 sở hữu reliable Backtest Worker, Ranking
   Handler và stop-completion reconciliation; F-009 sở hữu public transport.

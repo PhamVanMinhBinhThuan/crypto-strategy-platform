@@ -19,19 +19,24 @@ position hoặc dispatch trùng. Nếu Search ghi trực tiếp Experiment table
 
 1. `modules/search` sở hữu pure generator contract/registry/Random generator và durable Search Run
    model/ports. Module không phụ thuộc framework, Experiment, Backtest, Evaluation hay Redis.
-2. `apps/worker` chạy Search Coordinator, compose published Search/Experiment ports và Contracts.
-   Worker không ghi SQL trực tiếp và không sở hữu business state.
+2. `modules/experiment-execution` là application orchestration boundary cho Start/Reproduce,
+   allocation, progress và async verification; nó chỉ compose published Search/Experiment ports.
+   `apps/worker` host delivery/scheduling và gọi public orchestration ports, không sở hữu state.
 3. PostgreSQL giữ Search Run, versioned generator state và coordination decision; Redis Streams chỉ
    delivery và có thể rebuild từ Outbox/reconciliation.
-4. Allocation transaction atomically ghi next generator state, Candidate, logical Backtest Job,
-   decision và Outbox. Database version/fencing là correctness boundary; không dùng Redis lock.
+4. `experiment-execution` định nghĩa composite transaction gateway; `modules/persistence` implement
+   adapter atomically ghi next generator state, Candidate, logical Backtest Job, decision và Outbox.
+   Đây không phải quyền cho Worker hoặc capability khác truy cập owner tables trực tiếp. Database
+   version/fencing là correctness boundary; không dùng Redis lock.
 5. Coordinator dùng consumer group riêng trên `candidate.evaluated.v1`; Ranking Handler tiếp tục
    group riêng vì một group Redis không fan-out cho nhiều capability.
 6. Scheduling dùng bounded in-flight window. Không giữ DB transaction trong lúc chạy Backtest,
    chờ Redis hoặc thực thi generator ngoài proposal/revalidation boundary.
-7. Reproduction reuse exact frozen Candidate sequence từ source, không phụ thuộc việc chạy lại
-   generator implementation cũ; existing verification so Trade/metrics/fingerprints.
-8. F-009 chỉ gỡ readiness gate sau PostgreSQL/Redis/restart/ownership/idempotency evidence.
+7. Reproduction reuse exact frozen Candidate sequence, tạo durable `PENDING` verification và trả
+   async; terminal handler/reconciler so Trade/metrics/fingerprints rồi persist outcome idempotently.
+8. F-009 gỡ Start gate sau US1 + US2 evidence; Reproduce gate độc lập chỉ gỡ thêm sau US3 evidence.
+9. Dependency arrows chỉ cho phép `experiment-execution -> search`, `persistence -> search` và
+   `worker -> search`; `search` không phụ thuộc ngược lại các module này.
 
 ## Alternatives Considered
 
@@ -80,3 +85,9 @@ position hoặc dispatch trùng. Nếu Search ghi trực tiếp Experiment table
 
 - Supersedes: None
 - Superseded by: None
+
+## Amendment history
+
+- 2026-09-02: Trước implementation, consistency analysis làm rõ orchestration thuộc
+  `modules/experiment-execution`, persistence implement composite gateway, async verification và
+  hai readiness gate độc lập. Không có code đã merge phụ thuộc wording cũ.

@@ -2,11 +2,13 @@
 
 ## R1 — Vị trí của generator và Coordinator
 
-**Decision**: Generator contract/algorithm/state thuộc `modules/search`; runtime orchestration
-thuộc `apps/worker` và chỉ gọi published ports của Search/Experiment.
+**Decision**: Generator contract/algorithm/state thuộc `modules/search`; cross-capability application
+orchestration thuộc `modules/experiment-execution`; `apps/worker` chỉ host runtime và gọi published
+execution/Search ports.
 
 **Rationale**: Dependency matrix hiện cho Search phụ thuộc Domain/Strategy, phù hợp generator
-thuần. Coordinator cần Contracts, Experiment và Redis nhưng đó là composition concern của Worker.
+thuần. Execution module là boundary đã được ADR-0014 cho phép để compose owner contracts; Worker
+chỉ xử lý delivery/scheduling và không trở thành business owner.
 
 **Alternatives considered**:
 
@@ -31,8 +33,9 @@ phải commit cùng allocation decision trước publication.
 
 ## R3 — Đơn vị atomic allocation
 
-**Decision**: Một allocation transaction tạo Candidate, persist next generator state, tạo/reuse
-logical Backtest Job và ghi Outbox. Unique constraints bảo vệ `(experiment, generation_index)`,
+**Decision**: `experiment-execution` định nghĩa composite allocation gateway và persistence adapter
+implement một transaction tạo Candidate, persist next generator state, tạo/reuse logical Backtest
+Job và ghi Outbox. Unique constraints bảo vệ `(experiment, generation_index)`,
 `(experiment, candidate_fingerprint)` và một Backtest Job mỗi Candidate.
 
 **Rationale**: Đây là ranh giới nhỏ nhất loại partial graph và cho phép safe retry sau crash.
@@ -86,9 +89,10 @@ và không tranh ownership transition đã có.
 
 ## R7 — Reproduction mode
 
-**Decision**: Reproduction không chạy generator để “tình cờ” sinh lại; nó copy ordered frozen
-Candidate Definitions từ source trong atomic initialization, dispatch đúng sequence, rồi dùng
-existing execution verification để so Trade/metrics/fingerprints.
+**Decision**: Reproduction không chạy generator để “tình cờ” sinh lại; initialization copy ordered
+frozen Candidate Definitions và tạo durable verification `PENDING` rồi trả async. Khi reproduction
+terminal, execution handler/reconciler claim/fence và so Trade/metrics/fingerprints, persist terminal
+outcome idempotently.
 
 **Rationale**: Reuse exact evidence mạnh hơn phụ thuộc vào implementation generator còn tồn tại.
 Generator metadata vẫn được bảo toàn để audit.
@@ -114,9 +118,9 @@ exhaustion/no-progress limit.
 
 ## R9 — Public readiness
 
-**Decision**: Start/Reproduce endpoint giữ gate cho tới khi API wiring, Worker consumer,
-PostgreSQL transaction/recovery và Redis contract evidence pass; sau đó dùng published command port
-và giữ nguyên F-009 schemas/status codes.
+**Decision**: Start và Reproduce dùng gate độc lập. Start chỉ mở sau US1 plus stop/recovery US2;
+Reproduce chỉ mở sau các điều kiện Start chung plus immutable-source và async verification US3.
+Hai endpoint dùng published execution ports và giữ nguyên F-009 schemas/status codes.
 
 **Rationale**: Tránh endpoint trông hoạt động nhưng không có runtime consumer.
 

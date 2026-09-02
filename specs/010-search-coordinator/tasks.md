@@ -10,12 +10,12 @@
 
 **Mục đích**: Chuẩn bị module dependencies, versioned contracts và configuration surface.
 
-- [ ] T001 Cập nhật dependency `modules/search` trên Domain và Strategy API trong `modules/search/build.gradle.kts`
+- [ ] T001 Cập nhật dependency edges: Search chỉ dùng Domain/Strategy, còn Experiment Execution và Persistence dùng public Search API trong `modules/search/build.gradle.kts`, `modules/experiment-execution/build.gradle.kts` và `modules/persistence/build.gradle.kts`
 - [ ] T002 Cập nhật Worker dependency trên Search module trong `apps/worker/build.gradle.kts`
 - [ ] T003 [P] Bổ sung Search Coordinator stream/group/concurrency/recovery properties trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/config/WorkerProperties.java` và `apps/worker/src/main/resources/application.yml`
 - [ ] T004 [P] Nâng reserved Search Request contract thành active backward-compatible v1 trong `specs/007-worker-reliable-job-processing/contracts/search-requests-reservation.md` và `modules/contracts/src/main/java/com/cryptostrategy/platform/contracts/api/SearchRequestPayload.java`
 - [ ] T005 [P] Cập nhật event topology documentation theo `specs/010-search-coordinator/contracts/search-events.md` trong `docs/architecture/data-flows.md`
-- [ ] T006 Thêm Search module/persistence dependency edges được phép vào `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/ModuleBoundaryTest.java` chỉ khi khớp ADR-0016
+- [ ] T006 Khóa dependency matrix chỉ cho phép `experiment-execution -> search`, `persistence -> search`, `worker -> search` và cấm mọi chiều `search -> persistence|experiment|experiment-execution|worker` trong `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/ModuleBoundaryTest.java` theo ADR-0016
 
 ## Phase 2: Foundational
 
@@ -29,7 +29,7 @@
 - [ ] T012 [P] Tạo Search Run và Coordination Decision models với invariant/state transitions trong `modules/search/src/main/java/com/cryptostrategy/platform/search/api/model/`
 - [ ] T013 Tạo published generator registry/generation input ports trong `modules/search/src/main/java/com/cryptostrategy/platform/search/api/port/in/`
 - [ ] T014 Tạo Search Run state/claim/fence/recovery output ports trong `modules/search/src/main/java/com/cryptostrategy/platform/search/api/port/out/`
-- [ ] T015 Tạo forward-only Search Run/Decision schema, unique constraints và recovery indexes trong `supabase/migrations/20260903000100_f010_search_coordinator.sql`
+- [ ] T015 Tạo forward-only Search Run/Decision/Reproduction Verification schema, unique constraints và recovery indexes trong `supabase/migrations/20260903000100_f010_search_coordinator.sql`
 - [ ] T016 Tạo JDBC row/SQL mapping cho Search-owned state trong `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/internal/search/`
 - [ ] T017 Expose Search persistence adapter qua `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/api/SearchPersistenceFactory.java`
 - [ ] T018 Tạo Search module factory cho registry/generator/state application components trong `modules/search/src/main/java/com/cryptostrategy/platform/search/api/SearchModuleFactory.java`
@@ -53,7 +53,7 @@ progress và Leaderboard terminal; replay 100 lần không tạo logical outcome
 - [ ] T024 [P] [US1] Viết concurrent Candidate allocation/fencing/unique-index tests tại `modules/persistence/src/experimentIntegrationTest/java/com/cryptostrategy/platform/persistence/internal/search/SearchAllocationConcurrencyIntegrationTest.java`
 - [ ] T025 [P] [US1] Viết Search Request envelope/group/ACK contract tests tại `apps/worker/src/test/java/com/cryptostrategy/platform/worker/search/SearchRequestConsumerTest.java`
 - [ ] T026 [P] [US1] Viết bounded fill-window và authoritative progress tests tại `apps/worker/src/test/java/com/cryptostrategy/platform/worker/search/SearchCoordinatorTest.java`
-- [ ] T027 [P] [US1] Viết public Start 202/Location/idempotency/ownership tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/StartExperimentIntegrationTest.java`
+- [ ] T027 [P] [US1] Viết Start orchestration acceptance/idempotency/ownership tests và xác nhận public gate vẫn trả readiness 503 trước US2 tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/StartExperimentReadinessIntegrationTest.java`
 
 ### Implementation
 
@@ -61,17 +61,17 @@ progress và Leaderboard terminal; replay 100 lần không tạo logical outcome
 - [ ] T029 [P] [US1] Implement versioned deterministic PRNG state và Random generator trong `modules/search/src/main/java/com/cryptostrategy/platform/search/internal/RandomStrategyGenerator.java`
 - [ ] T030 [US1] Implement generator registry exact lookup/no fallback trong `modules/search/src/main/java/com/cryptostrategy/platform/search/internal/StrategyGeneratorRegistry.java`
 - [ ] T031 [US1] Implement bounded duplicate/no-progress/output validation guard trong `modules/search/src/main/java/com/cryptostrategy/platform/search/internal/SearchGenerationService.java`
-- [ ] T032 [US1] Thêm atomic Start Experiment command/acceptance published port trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api/port/in/StartSearchExperimentUseCase.java`
-- [ ] T033 [US1] Implement frozen manifest + Experiment + SEARCH Job + Search Run + Outbox + idempotency transaction trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/internal/SearchExperimentApplicationService.java`
-- [ ] T034 [US1] Thêm atomic allocation published port và ownership/lineage result trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api/port/in/AllocateSearchCandidateUseCase.java`
-- [ ] T035 [US1] Implement Candidate + Backtest Job + generator state/decision + Outbox transaction trong `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/internal/experiment/JdbcSearchExperimentStore.java`
+- [ ] T032 [US1] Thêm public Start orchestration port trong `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/api/port/in/StartSearchExperimentUseCase.java`
+- [ ] T033 [US1] Implement Start orchestration qua public owner policies và composite gateway trong `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/internal/SearchExperimentOrchestrationService.java`
+- [ ] T034 [US1] Thêm public allocation orchestration port và composite transaction gateway trong `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/api/port/`
+- [ ] T035 [US1] Implement composite Start/allocation transaction adapter cho Experiment-owned graph + Search-owned state trong `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/internal/execution/JdbcSearchExperimentTransaction.java`
 - [ ] T036 [US1] Extend Outbox publisher mapping SEARCH Job thành `SEARCH_REQUEST` trên `search.requests.v1` trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/engine/OutboxPublisherEngine.java`
 - [ ] T037 [US1] Implement separate-group Search Request consumer/reclaim/ACK behavior trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/consumer/SearchRequestConsumer.java`
 - [ ] T038 [US1] Implement bounded Search coordination/fill decisions qua published ports trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchCoordinator.java`
 - [ ] T039 [US1] Wire Search factory, persistence, Coordinator và schedules trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/config/SearchWorkerConfiguration.java`
-- [ ] T040 [US1] Wire Start Search application port trong `apps/api/src/main/java/com/cryptostrategy/platform/api/config/ExperimentApiConfiguration.java`
-- [ ] T041 [US1] Thay Start Experiment readiness gate bằng validated/idempotent published command trong `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentController.java`
-- [ ] T042 [US1] Hoàn thiện Start request mapping frozen Dataset/Strategy/generator/search config trong `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentRequestMapper.java`
+- [ ] T040 [US1] Wire dormant Start Search execution port sau readiness switch trong `apps/api/src/main/java/com/cryptostrategy/platform/api/config/ExperimentApiConfiguration.java`
+- [ ] T041 [US1] Giữ Start Experiment readiness gate đóng và route chỉ qua switch được kiểm soát trong `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentController.java`
+- [ ] T042 [US1] Hoàn thiện Start request mapping frozen Dataset/single-Strategy/generator/search config và stable Composite Search rejection trong `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentRequestMapper.java`
 - [ ] T043 [US1] Chạy finite Experiment integration và ghi evidence theo `specs/010-search-coordinator/quickstart.md`
 
 **Checkpoint**: US1 tự chạy Start → Candidates → Jobs → Evaluations/Leaderboard → terminal.
@@ -90,19 +90,23 @@ không Candidate mới sau stop, progress đúng và run hữu hạn tới termi
 - [ ] T046 [P] [US2] Viết kill-point restart/reclaim tests tại `apps/worker/src/test/java/com/cryptostrategy/platform/worker/search/SearchCrashRecoveryTest.java`
 - [ ] T047 [P] [US2] Viết queue-loss/outbox repair/reconciliation tests tại `apps/worker/src/test/java/com/cryptostrategy/platform/worker/search/SearchReconciliationTest.java`
 - [ ] T048 [P] [US2] Viết bounded retry/dead-letter/redaction tests tại `apps/worker/src/test/java/com/cryptostrategy/platform/worker/search/SearchFailurePolicyTest.java`
+- [ ] T049 [P] [US2] Viết injected UTC clock, frozen deadline qua restart và completion/deadline race tests tại `modules/persistence/src/experimentIntegrationTest/java/com/cryptostrategy/platform/persistence/internal/search/SearchDeadlineIntegrationTest.java`
 
 ### Implementation
 
-- [ ] T049 [US2] Thêm trusted authoritative completion/reconciliation ports trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api/port/in/TrustedSearchCoordinationUseCase.java`
-- [ ] T050 [US2] Implement idempotent Search Job progress và terminal decision rules trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/internal/TrustedSearchCoordinationService.java`
-- [ ] T051 [US2] Implement separate-group Candidate Evaluated handler cho Search trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/consumer/SearchCompletionConsumer.java`
-- [ ] T052 [US2] Implement durable status/version reload trước fill/stop/complete trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchCoordinator.java`
-- [ ] T053 [US2] Implement bounded non-terminal recovery query/adapter trong `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/internal/search/JdbcSearchRunStore.java`
-- [ ] T054 [US2] Implement scheduled Search reconciliation và missing-intent repair trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/reconciliation/SearchReconciler.java`
-- [ ] T055 [US2] Tích hợp finite retry/dead-letter/lifecycle failure publication trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchFailureHandler.java`
-- [ ] T056 [US2] Tích hợp stop gate với existing cancel/stop-completion ports trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchCoordinator.java`
-- [ ] T057 [US2] Thêm metrics/log correlation redaction cho Coordinator trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchObservability.java`
-- [ ] T058 [US2] Chạy Redis restart/queue-loss/stop acceptance và ghi evidence theo `specs/010-search-coordinator/quickstart.md`
+- [ ] T050 [US2] Thêm trusted authoritative completion/reconciliation orchestration ports trong `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/api/port/in/TrustedSearchCoordinationUseCase.java`
+- [ ] T051 [US2] Implement idempotent Search Job progress, frozen deadline và terminal decision orchestration trong `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/internal/TrustedSearchCoordinationService.java`
+- [ ] T052 [US2] Implement separate-group Candidate Evaluated handler cho Search trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/consumer/SearchCompletionConsumer.java`
+- [ ] T053 [US2] Implement durable status/version reload trước fill/stop/complete trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchCoordinator.java`
+- [ ] T054 [US2] Implement bounded non-terminal recovery query/adapter trong `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/internal/search/JdbcSearchRunStore.java`
+- [ ] T055 [US2] Implement scheduled Search reconciliation và missing-intent repair trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/reconciliation/SearchReconciler.java`
+- [ ] T056 [US2] Tích hợp finite retry/dead-letter/lifecycle failure publication trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchFailureHandler.java`
+- [ ] T057 [US2] Tích hợp stop gate với existing cancel/stop-completion ports trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchCoordinator.java`
+- [ ] T058 [US2] Thêm metrics/log correlation redaction cho Coordinator trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchObservability.java`
+- [ ] T059 [US2] Chạy Redis restart/queue-loss/stop acceptance và ghi evidence theo `specs/010-search-coordinator/quickstart.md`
+- [ ] T060 [US2] Viết public Start 202/Location/idempotency/ownership tests qua dormant readiness switch tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/StartExperimentIntegrationTest.java`
+- [ ] T061 [US2] Ghi Start gate evidence độc lập và quyết định giữ Reproduce gate đóng trong `specs/010-search-coordinator/checklists/implementation-readiness.md`
+- [ ] T062 [US2] Gỡ riêng Start readiness gate bằng published execution command và chạy post-activation smoke trong `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentController.java`
 
 **Checkpoint**: US2 chứng minh recovery và stop correctness không phụ thuộc Redis lock/cache.
 
@@ -115,20 +119,20 @@ giống nhau và verification trả match hoặc differences chính xác.
 
 ### Tests
 
-- [ ] T059 [P] [US3] Viết source owner/terminal/evidence validation tests tại `modules/experiment/src/test/java/com/cryptostrategy/platform/experiment/internal/SearchReproductionValidationTest.java`
-- [ ] T060 [P] [US3] Viết atomic reproduction graph/candidate-copy/rollback integration tests tại `modules/persistence/src/experimentIntegrationTest/java/com/cryptostrategy/platform/persistence/internal/experiment/SearchReproductionIntegrationTest.java`
-- [ ] T061 [P] [US3] Viết reproduce replay/conflict/202/Location public tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/ReproduceExperimentIntegrationTest.java`
-- [ ] T062 [P] [US3] Viết semantic Trade/metrics/fingerprint match/mismatch tests tại `modules/experiment-execution/src/test/java/com/cryptostrategy/platform/execution/internal/SearchReproductionExecutionTest.java`
+- [ ] T063 [P] [US3] Viết source owner/terminal/evidence validation tests tại `modules/experiment-execution/src/test/java/com/cryptostrategy/platform/execution/internal/SearchReproductionValidationTest.java`
+- [ ] T064 [P] [US3] Viết atomic reproduction graph/candidate-copy/rollback integration tests tại `modules/persistence/src/experimentIntegrationTest/java/com/cryptostrategy/platform/persistence/internal/experiment/SearchReproductionIntegrationTest.java`
+- [ ] T065 [P] [US3] Viết reproduce replay/conflict/202/Location public tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/ReproduceExperimentIntegrationTest.java`
+- [ ] T066 [P] [US3] Viết terminal trigger, duplicate/restart và semantic Trade/metrics/fingerprint lifecycle tests tại `modules/experiment-execution/src/test/java/com/cryptostrategy/platform/execution/internal/SearchReproductionVerificationTest.java`
 
 ### Implementation
 
-- [ ] T063 [US3] Tạo atomic Reproduce Search command published port trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api/port/in/StartSearchReproductionUseCase.java`
-- [ ] T064 [US3] Implement owner/terminal/provenance validation và immutable source Candidate copy trong `modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/internal/SearchReproductionApplicationService.java`
-- [ ] T065 [US3] Implement atomic reproduction Experiment/Manifest/Candidates/Search Job/Run/Outbox/receipt trong `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/internal/experiment/JdbcSearchExperimentStore.java`
-- [ ] T066 [US3] Implement reproduction-mode dispatch theo frozen sequence trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchCoordinator.java`
-- [ ] T067 [US3] Wire existing reproduction evidence verification/storage qua published execution port trong `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/api/ExperimentExecutionModuleFactory.java`
-- [ ] T068 [US3] Thay Reproduce readiness gate bằng idempotent published command trong `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentController.java`
-- [ ] T069 [US3] Chạy end-to-end reproduction và ghi evidence theo `specs/010-search-coordinator/quickstart.md`
+- [ ] T067 [US3] Tạo async Reproduce Search orchestration port trong `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/api/port/in/StartSearchReproductionUseCase.java`
+- [ ] T068 [US3] Implement owner/terminal/provenance validation và immutable source Candidate copy orchestration trong `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/internal/SearchReproductionApplicationService.java`
+- [ ] T069 [US3] Implement atomic reproduction graph + `PENDING` verification composite adapter trong `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/internal/execution/JdbcSearchExperimentTransaction.java`
+- [ ] T070 [US3] Implement reproduction-mode dispatch theo frozen sequence trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchCoordinator.java`
+- [ ] T071 [US3] Implement durable terminal-trigger/reconciler verification lifecycle qua published comparator/store ports trong `modules/experiment-execution/src/main/java/com/cryptostrategy/platform/execution/internal/SearchReproductionVerificationCoordinator.java`
+- [ ] T072 [US3] Chạy end-to-end async reproduction với gate còn đóng và ghi immutable-source/verification evidence theo `specs/010-search-coordinator/quickstart.md`
+- [ ] T073 [US3] Gỡ riêng Reproduce readiness gate bằng published execution command và chạy post-activation smoke trong `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentController.java`
 
 **Checkpoint**: US3 mở public Reproduce mà không sửa source hoặc phụ thuộc generator artifact cũ.
 
@@ -141,29 +145,29 @@ không thay Backtest/Evaluation/Leaderboard/public contracts.
 
 ### Tests
 
-- [ ] T070 [P] [US4] Tạo deterministic fixture generator trong `modules/search/src/test/java/com/cryptostrategy/platform/search/fixtures/FixtureStrategyGenerator.java`
-- [ ] T071 [P] [US4] Viết replaceability/change-scope proof tại `modules/search/src/test/java/com/cryptostrategy/platform/search/internal/GeneratorReplaceabilityTest.java`
-- [ ] T072 [P] [US4] Viết downstream contract regression test tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/SearchGeneratorReplaceabilityTest.java`
+- [ ] T074 [P] [US4] Tạo deterministic fixture generator trong `modules/search/src/test/java/com/cryptostrategy/platform/search/fixtures/FixtureStrategyGenerator.java`
+- [ ] T075 [P] [US4] Viết replaceability/change-scope proof tại `modules/search/src/test/java/com/cryptostrategy/platform/search/internal/GeneratorReplaceabilityTest.java`
+- [ ] T076 [P] [US4] Viết downstream contract regression test tại `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/SearchGeneratorReplaceabilityTest.java`
 
 ### Implementation
 
-- [ ] T073 [US4] Hoàn thiện public descriptor/registry factory extension point trong `modules/search/src/main/java/com/cryptostrategy/platform/search/api/SearchModuleFactory.java`
-- [ ] T074 [US4] Bảo đảm Coordinator lookup generator hoàn toàn qua registry contract trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchCoordinator.java`
-- [ ] T075 [US4] Ghi replaceability diff/evidence vào `docs/architecture/architecture-evidence.md`
+- [ ] T077 [US4] Hoàn thiện public descriptor/registry factory extension point trong `modules/search/src/main/java/com/cryptostrategy/platform/search/api/SearchModuleFactory.java`
+- [ ] T078 [US4] Bảo đảm Coordinator lookup generator hoàn toàn qua registry contract trong `apps/worker/src/main/java/com/cryptostrategy/platform/worker/search/coordination/SearchCoordinator.java`
+- [ ] T079 [US4] Ghi replaceability diff/evidence vào `docs/architecture/architecture-evidence.md`
 
 **Checkpoint**: US4 pass mà không sửa downstream business code hoặc message/public schema.
 
 ## Phase 7: Polish & Cross-Cutting
 
-- [ ] T076 [P] Đồng bộ OpenAPI/error/examples từ gated sang ready trong `docs/api/openapi.yaml`, `docs/api/error-catalog.md` và `docs/api/examples.md`
-- [ ] T077 [P] Cập nhật Worker/Search event operations trong `docs/api/websocket-events.md` và `docs/architecture/data-flows.md`
-- [ ] T078 [P] Thêm F-010 contract/document parity tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/contract/SearchDocumentationParityTest.java`
-- [ ] T079 [P] Thêm performance smoke cho Start acceptance và bounded fill trong `apps/api/src/test/java/com/cryptostrategy/platform/api/performance/SearchCoordinatorPerformanceTest.java`
-- [ ] T080 Review ADR-0016, migration, owner boundary, error redaction và release gates trong `specs/010-search-coordinator/checklists/implementation-readiness.md`
-- [ ] T081 Chạy full `JAVA_HOME=<JDK21> ./gradlew test` và sửa mọi F-010 failure/warning
-- [ ] T082 Chạy PostgreSQL/Supabase + Redis integration suite và ghi commit/environment/config thật trong `specs/010-search-coordinator/quickstart.md`
-- [ ] T083 Cập nhật F-009 tasks/readiness evidence, đóng T034/T036/T039/T074 khi có bằng chứng thật trong `specs/009-public-api-realtime/tasks.md` và `specs/009-public-api-realtime/quickstart.md`
-- [ ] T084 Chuyển quality scenarios liên quan từ Planned sang Verified chỉ theo evidence thật trong `docs/architecture/architecture-evidence.md`
+- [ ] T080 [P] Đồng bộ OpenAPI/error/examples từ gated sang ready trong `docs/api/openapi.yaml`, `docs/api/error-catalog.md` và `docs/api/examples.md`
+- [ ] T081 [P] Cập nhật Worker/Search event operations trong `docs/api/websocket-events.md` và `docs/architecture/data-flows.md`
+- [ ] T082 [P] Thêm F-010 contract/document parity tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/contract/SearchDocumentationParityTest.java`
+- [ ] T083 [P] Thêm performance smoke cho Start acceptance và bounded fill trong `apps/api/src/test/java/com/cryptostrategy/platform/api/performance/SearchCoordinatorPerformanceTest.java`
+- [ ] T084 Thêm `SearchScopeBoundaryTest` chứng minh không có live-trading/wallet/financial-advice endpoint/dependency và review ADR-0016, migration, owner boundary, redaction, release gates trong `architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/SearchScopeBoundaryTest.java` cùng `specs/010-search-coordinator/checklists/implementation-readiness.md`
+- [ ] T085 Chạy full `JAVA_HOME=<JDK21> ./gradlew test` và sửa mọi F-010 failure/warning
+- [ ] T086 Chạy PostgreSQL/Supabase + Redis integration suite và ghi commit/environment/config thật trong `specs/010-search-coordinator/quickstart.md`
+- [ ] T087 Cập nhật F-009 tasks/readiness evidence, đóng T034/T036/T039/T074 khi có bằng chứng thật trong `specs/009-public-api-realtime/tasks.md` và `specs/009-public-api-realtime/quickstart.md`
+- [ ] T088 Chuyển quality scenarios liên quan từ Planned sang Verified chỉ theo evidence thật trong `docs/architecture/architecture-evidence.md`
 
 ## Dependencies & Execution Order
 
@@ -191,9 +195,9 @@ Setup -> Foundation -> US1 Start/Search
 - Phase 1: T003–T005.
 - Foundation: T007–T012 trước T013–T018.
 - US1 tests: T020–T027; implementation T028/T029 song song trước registry/service.
-- US2 tests: T044–T048; persistence recovery T053 song song consumer T051 sau ports.
-- US3 tests: T059–T062; verification wiring T067 song song persistence implementation.
-- US4 tests T070–T072 và polish docs T076–T079 ở các file tách biệt.
+- US2 tests: T044–T049; persistence recovery T054 song song consumer T052 sau ports.
+- US3 tests: T063–T066; verification wiring T071 song song persistence implementation.
+- US4 tests T074–T076 và polish docs T080–T083 ở các file tách biệt.
 
 ## Implementation Strategy
 

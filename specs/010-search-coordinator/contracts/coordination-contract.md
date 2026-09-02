@@ -1,6 +1,12 @@
 # Contract: Search Coordination v1
 
-## Published application commands
+## Ownership và published application commands
+
+`modules/experiment-execution` sở hữu các orchestration input ports dưới đây và compose public
+Search/Experiment owner contracts. Nó định nghĩa composite transaction output gateway;
+`modules/persistence` implement gateway để ghi atomically hai owner schemas. API/Worker không gọi
+owner internals hoặc SQL. Search chỉ phụ thuộc Domain/Strategy; dependency hợp lệ là
+`experiment-execution -> search`, `persistence -> search` và `worker -> search`, không có chiều ngược.
 
 ### Start Experiment
 
@@ -19,7 +25,8 @@ Outcome:
 
 Input gồm owner UUID, source Experiment ID, optional name, idempotency key/hash và correlation.
 Source phải terminal, đúng owner và đủ evidence. Accepted outcome giống Start nhưng new Experiment
-có `reproducesExperimentId` trỏ source và Candidate sequence được copy bất biến.
+có `reproducesExperimentId` trỏ source, Candidate sequence được copy bất biến và durable
+verification bắt đầu ở `PENDING`. Command trả ngay sau commit, không chạy execution/verification.
 
 ### Allocate Next Candidate
 
@@ -44,6 +51,8 @@ fill slots, wait, complete, stop hoặc fail.
 - Database fencing/version quyết định correctness; Redis/cache key chỉ tối ưu.
 - Hai allocators cùng expected version: tối đa một commit; bên còn lại reload/reconcile.
 - Stop và allocate race: lock order bảo đảm nếu stop đã commit thì không Candidate mới được commit.
+- `deadlineAt` được tính một lần bằng injected UTC clock khi first start và reload sau restart;
+  completion/deadline race dùng cùng fence/reload để commit một terminal decision deterministic.
 - Không giữ transaction/row lock trong lúc chạy generator chậm, chờ broker hay chạy Backtest;
   generate proposal ngoài lock, revalidate/fence khi commit.
 
@@ -51,3 +60,7 @@ fill slots, wait, complete, stop hoặc fail.
 
 Reconciler scan bounded non-terminal runs, so sánh durable counts/state và tạo lại publication intent
 hoặc fill decision còn thiếu. Nó không suy luận “không có cache/message = chưa xử lý”.
+
+Reproduction terminal handler/reconciler scan `PENDING/RUNNING` verification, claim bằng version,
+gọi published evidence comparator ngoài transaction, sau đó revalidate và persist đúng một trong
+`MATCHED`, `MISMATCHED`, `FAILED`. Duplicate terminal notifications và restart là idempotent.

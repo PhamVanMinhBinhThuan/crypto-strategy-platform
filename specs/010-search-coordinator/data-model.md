@@ -41,7 +41,10 @@ Một durable coordination state cho đúng một SEARCH Job.
 - `nextGenerationIndex` không giảm; state/index/fingerprint đổi cùng transaction allocation.
 - Terminal Search Run bất biến ngoài idempotent replay.
 - `active = allocated - terminal`; quyết định fill dùng authoritative count, không dùng event count.
-- Deadline được đóng băng khi bắt đầu và không kéo dài bởi restart/retry.
+- `deadlineAt` được tính đúng một lần từ `startedAt + maximumDuration` bằng injected UTC clock khi
+  first start; restart/retry chỉ reload giá trị đã lưu, tuyệt đối không kéo dài deadline.
+- Completion/deadline race dùng cùng lock/fence và authoritative reload; terminal transition đầu
+  tiên commit thắng, mọi replay sau đó trả idempotent existing outcome.
 
 ### State transitions
 
@@ -112,7 +115,7 @@ logical model phải rõ.
   - `bestScore = max eligible evaluated score`.
 - Atomic allocation phải ghi Candidate + Backtest Job + JobQueued Outbox + Search next state/decision.
 
-## 6. Reproduction initialization
+## 6. Reproduction initialization và verification
 
 Reproduction Run dùng Search Run mode `REPRODUCTION` (hoặc frozen mode trong config), gồm:
 
@@ -123,6 +126,23 @@ Reproduction Run dùng Search Run mode `REPRODUCTION` (hoặc frozen mode trong 
 - original entities không bị update.
 
 Source phải đúng owner, terminal và đầy đủ Manifest/Candidate/Result provenance trước atomic create.
+
+Mỗi reproduction tạo một durable **Reproduction Verification** cùng transaction initialization:
+
+| Field | Rules |
+| --- | --- |
+| `verificationId` | typed ULID, immutable |
+| `sourceExperimentId`, `reproductionExperimentId` | Unique lineage pair, đúng owner |
+| `status` | `PENDING`, `RUNNING`, `MATCHED`, `MISMATCHED`, `FAILED` |
+| `expectedVersion` | Optimistic fencing/idempotent terminal trigger |
+| `trade/metrics/fingerprint outcome` | Chỉ set ở terminal verification |
+| `safeDifferences` | Bounded/redacted, không chứa secret/provider payload |
+| `startedAt`, `finishedAt` | UTC instants, set đúng một lần |
+
+API chỉ tạo durable graph và `PENDING` verification rồi trả `202`. Khi reproduction Experiment
+terminal, handler/reconciler claim verification, gọi published execution verification port và lưu
+terminal outcome. Restart ở bất kỳ bước nào tiếp tục từ durable state, không chạy verifier trong
+request thread.
 
 ## 7. Constraints and indexes
 
@@ -141,6 +161,8 @@ Source phải đúng owner, terminal và đầy đủ Manifest/Candidate/Result 
 3. **Completion reconcile**: authoritative child state → progress + stop/fill/terminal decision.
 4. **Stop**: Experiment `STOP_REQUESTED` chặn allocation; no long-running lock while cancelling work.
 5. **Reproduce initialization**: new linked Experiment + copied frozen evidence + Search Run/Job/Outbox
-   hoặc không gì.
+   + `PENDING` Reproduction Verification hoặc không gì.
+6. **Reproduction verification**: terminal trigger claim/fence verification, compare ngoài DB lock,
+   rồi revalidate và commit đúng một terminal verification outcome.
 
 Không transaction nào được giữ mở trong thời gian Backtest/Evaluation chạy hoặc lúc chờ Redis.

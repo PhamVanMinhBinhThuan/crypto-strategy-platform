@@ -1,6 +1,6 @@
 # Contract: Search Events v1
 
-Mọi message dùng envelope hiện có với `messageId`, `eventType`, `eventVersion`, `occurredAt`,
+Mọi message dùng envelope hiện có với `messageId`, `messageType`, `messageVersion`, `occurredAt`,
 `correlationId` và payload. Unknown optional payload fields được bỏ qua; breaking change dùng version mới.
 
 ## `search.requests.v1`
@@ -18,7 +18,7 @@ Required payload giữ backward compatibility:
 }
 ```
 
-`eventType = SEARCH_REQUEST`, `eventVersion = 1`. Runtime MUST validate typed ULIDs và positive
+`messageType = SEARCH_REQUEST`, `messageVersion = 1`. Runtime MUST validate typed ULIDs và positive
 bounded hints; durable Manifest/Run mới là authority cho configuration.
 
 ## `candidate.evaluated.v1`

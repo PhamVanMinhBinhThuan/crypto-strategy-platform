@@ -26,7 +26,8 @@ notification trong 5 giây ở môi trường acceptance
 **Constraints**: At-least-once delivery, no cross-module internal import/direct table write,
 typed ULID/UUID, exact decimal, UTC, forward-only migration, deterministic fingerprints  
 **Scale/Scope**: Một Coordinator logical owner mỗi Search Job; nhiều Search Jobs song song;
-Random Search deterministic MVP; không Bayesian/adaptive search hoặc multi-leader consensus
+Random Search deterministic trên một Strategy version trong MVP; không Composite Search,
+Bayesian/adaptive search hoặc multi-leader consensus
 
 ## Constitution Check
 
@@ -36,7 +37,7 @@ Random Search deterministic MVP; không Bayesian/adaptive search hoặc multi-le
 | --- | --- | --- |
 | Spec-first và acceptance measurable | Pass | `spec.md`, checklist quality pass |
 | Một owner cho business concept | Pass | Search sở hữu generator/search state; Experiment sở hữu Experiment/Candidate/Job/Outbox |
-| Không cross-module internal/table write | Pass | Worker orchestration chỉ gọi published ports; persistence adapter triển khai từng owner port |
+| Không cross-module internal/table write | Pass | Execution compose public owner policies; persistence implement ADR-0016 composite gateway; Worker chỉ gọi published ports |
 | Reproducibility và immutable evidence | Pass | Frozen manifest + generator version/seed/state + Candidate fingerprint |
 | Versioned contracts/provider isolation | Pass | Generator contract và Redis envelope có version |
 | Durable truth, duplicate-safe delivery | Pass | PostgreSQL state + Outbox; Redis có thể replay/rebuild |
@@ -53,11 +54,14 @@ Không có Constitution violation cần miễn trừ.
 - `modules/search`: pure generator contract, registry, Random generator, canonical search-space
   validation, deterministic state transition và Search-owned state ports. Chỉ phụ thuộc Domain và
   Strategy theo dependency matrix hiện hành.
-- `modules/experiment`: atomic command/use cases cho Start/Reproduce, Candidate + Backtest Job
-  allocation, Search Job progress/terminal transition và Experiment-owned Outbox. Không chứa
-  generator algorithm.
-- `modules/persistence`: JDBC adapters cho Search state và atomic Experiment graph; forward
-  migration, locking/fencing và recovery queries.
+- `modules/experiment`: sở hữu Experiment/Manifest/Candidate/Job/Outbox models, validation policies
+  và published owner ports. Không chứa generator algorithm hoặc cross-capability transaction.
+- `modules/experiment-execution`: application orchestration boundary cho Start/Reproduce,
+  allocation, progress/terminal transition và async reproduction verification. Nó compose public
+  Search/Experiment ports và định nghĩa composite transaction gateways, không import internal package.
+- `modules/persistence`: implement Search owner stores và composite transaction gateways của
+  `experiment-execution`; JDBC adapter là nơi duy nhất atomically persist records của hai owner,
+  với forward migration, locking/fencing và recovery queries.
 - `apps/worker`: Search request/completion consumers, orchestration, bounded in-flight scheduling,
   retry/reclaim/reconciliation và event publication. Không sở hữu durable business rules.
 - `apps/api`: map validated request sang published Start/Reproduce port; bỏ gate 503 sau khi
@@ -65,8 +69,9 @@ Không có Constitution violation cần miễn trừ.
 
 ### Command and event flow
 
-1. API canonicalize + claim idempotency, validate/freeze inputs, atomically create Experiment và
-   Search Job cùng Outbox `SearchRequested`.
+1. API gọi public `experiment-execution` Start port; orchestration canonicalize/validate owner input
+   rồi composite persistence gateway atomically claim idempotency và tạo Experiment, Search Job,
+   Search Run cùng Outbox `SearchRequested`.
 2. Existing Outbox publisher maps versioned event tới `search.requests.v1`.
 3. Search consumer claims Search Job attempt, loads frozen manifest + durable Search state, then
    fills available in-flight slots bằng deterministic generator transitions.
@@ -76,8 +81,9 @@ Không có Constitution violation cần miễn trừ.
    `candidate.evaluated.v1`, reconciles authoritative counts, checks stop/fill decision.
 6. Stop prevents new allocation; existing F-007 cancellation/reconciler drains active Jobs.
 7. Scheduled Search reconciler scans non-terminal Search Jobs and resumes missing decisions from DB.
-8. Reproduction creates linked run, copies frozen manifest/Candidate sequence, dispatches exactly
-   those Candidates, then existing reproduction verification compares evidence.
+8. Reproduction initialization tạo linked run, copy frozen manifest/Candidate sequence và durable
+   `PENDING` verification rồi trả `202`; khi run terminal, execution handler/reconciler claim/fence,
+   compare evidence và persist `MATCHED`, `MISMATCHED` hoặc `FAILED` idempotently.
 
 ## Project Structure
 
@@ -108,12 +114,17 @@ modules/search/src/main/java/com/cryptostrategy/platform/search/
 └── internal/                  # registry, validation, Random generator
 
 modules/experiment/src/main/java/.../experiment/
-├── api/port/in/               # atomic start/reproduce/allocation/progress ports
-└── internal/                  # Experiment-owned transaction rules
+├── api/port/                  # owner validation/state policies
+└── internal/                  # Experiment-owned rules only
+
+modules/experiment-execution/src/main/java/.../execution/
+├── api/port/in/               # start/reproduce/allocation/progress orchestration
+├── api/port/out/              # composite transaction/verification gateways
+└── internal/                  # cross-capability application orchestration
 
 modules/persistence/src/main/java/.../persistence/internal/
 ├── search/                    # Search state adapter
-└── experiment/                # atomic allocation/start extensions
+└── execution/                 # composite transaction gateway adapters
 
 apps/worker/src/main/java/.../worker/search/
 ├── consumer/                  # SearchRequested + CandidateEvaluated handlers
@@ -151,21 +162,23 @@ Các quyết định và alternatives nằm trong [research.md](research.md). Kh
 
 1. Pure Search tests: determinism, canonical ordering, exact values, duplicate/out-of-space output,
    registry replaceability và no-progress guard.
-2. Experiment transaction tests: start/reproduce replay/conflict, atomic allocation, rollback,
-   ownership, stop race và terminal transition.
+2. Execution/composite transaction tests: start/reproduce replay/conflict, atomic allocation,
+   rollback, ownership, frozen deadline, stop race và terminal transition.
 3. Worker tests: separate consumer group, bounded in-flight, duplicate/stale/out-of-order messages,
    crash boundaries, retry/dead-letter và reconciliation after queue loss.
 4. Architecture tests: dependency matrix, no internal imports, no direct Worker SQL, no framework
    in pure Search module.
-5. API tests: 202/Location/idempotency/ownership và removal of 503 only after runtime wiring.
+5. API tests: Start 202/Location/idempotency/ownership chỉ activate sau US2 evidence; Reproduce 202
+   và gate riêng chỉ activate sau terminal async verification evidence US3.
 6. PostgreSQL/Redis integration: forward migration, concurrent allocation/fencing, outbox delivery,
    restart/reclaim and end-to-end finite Experiment/reproduction.
 
 ## Post-design Constitution Check
 
-Pass. Design giữ Search algorithm thuần trong owner module, durable mutations ở owner application
-ports, versioned messages qua Outbox, F-009 chỉ làm transport, và có evidence plan cho mọi failure
-boundary. ADR-0016 là gate trước implementation; không phát sinh ngoại lệ Constitution.
+Pass. Design giữ Search algorithm thuần trong owner module; cross-capability mutation đi qua public
+`experiment-execution` orchestration và composite persistence gateway, không qua owner internals.
+Messages dùng Outbox, F-009 chỉ làm transport, và evidence plan bao phủ mọi failure boundary.
+ADR-0016 là gate trước implementation; không phát sinh ngoại lệ Constitution.
 
 ## Complexity Tracking
 

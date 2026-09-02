@@ -56,13 +56,19 @@ Chạy cùng frozen fixture với `random-search` và một fixture generator co
 
 ## Public API gate removal
 
-Sau khi các gate trong `contracts/public-readiness-contract.md` pass:
+Sau khi Start conditions trong `contracts/public-readiness-contract.md` pass:
 
 1. `POST /api/v1/experiments` trả `202`, `Location`, Experiment/Job ID và `QUEUED`.
 2. Replay cùng key/body 100 lần trả cùng outcome; body khác trả idempotency conflict.
-3. User B start/reproduce bằng private input/source của User A nhận ownership-safe inaccessible.
-4. `POST /api/v1/experiments/{id}/reproductions` tạo run mới và source không đổi.
-5. WebSocket chỉ báo progress/lifecycle; disconnect vẫn reconcile đúng qua REST snapshot.
+3. User B start bằng private input của User A nhận ownership-safe inaccessible.
+4. WebSocket chỉ báo progress/lifecycle; disconnect vẫn reconcile đúng qua REST snapshot.
+
+Sau đó chỉ gỡ Reproduce gate khi US3 conditions pass:
+
+1. `POST /api/v1/experiments/{id}/reproductions` trả `202`, tạo run mới và source không đổi.
+2. Response hoàn tất trước execution/verification; durable verification bắt đầu ở `PENDING`.
+3. Terminal notification lặp hoặc restart vẫn tạo đúng một `MATCHED|MISMATCHED|FAILED` outcome.
+4. User B reproduce source của User A nhận ownership-safe inaccessible.
 
 ## Evidence record
 
