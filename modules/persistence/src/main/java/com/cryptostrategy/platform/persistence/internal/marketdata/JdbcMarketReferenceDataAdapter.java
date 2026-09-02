@@ -27,6 +27,9 @@ public final class JdbcMarketReferenceDataAdapter implements MarketReferenceData
                 .orElseThrow(() -> new MarketDataException(MarketDataErrorCode.MARKET_DATA_INTEGRITY_CONFLICT, "Trading Pair conflict"));
     }
     @Override public Optional<TradingPair> findTradingPair(TradingPairId tradingPairId) { return jdbc.query(MarketDataSql.FIND_PAIR_BY_ID, (rs, row) -> MarketDataRows.pair(rs), tradingPairId.value()).stream().findFirst(); }
+    @Override public Optional<TradingPair> findTradingPair(AssetSymbol baseAsset, AssetSymbol quoteAsset) {
+        return jdbc.query(MarketDataSql.FIND_PAIR_BY_SYMBOLS, (rs, row) -> MarketDataRows.pair(rs), baseAsset.value(), quoteAsset.value()).stream().findFirst();
+    }
     @Override public Optional<Asset> findAsset(AssetSymbol symbol) {
         return jdbc.query(MarketDataSql.FIND_ASSET, (rs, row) -> new Asset(new AssetId(rs.getString("asset_id")), new AssetSymbol(rs.getString("symbol")), Optional.ofNullable(rs.getString("name")), rs.getBoolean("active")), symbol.value()).stream().findFirst();
     }

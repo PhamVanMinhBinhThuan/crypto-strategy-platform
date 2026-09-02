@@ -1,6 +1,10 @@
 package com.cryptostrategy.platform.api.config;
 
 import com.cryptostrategy.platform.marketdata.api.MarketDataModuleFactory;
+import com.cryptostrategy.platform.marketdata.api.port.in.CreateDatasetUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.LoadHistoricalCandlesUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.ResolveTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.out.MarketDataProvider;
 import com.cryptostrategy.platform.persistence.api.MarketDataPersistenceFactory;
 import java.time.Clock;
@@ -34,5 +38,21 @@ public class MarketDataConfiguration {
                 binance.pageSize(), binance.maxPages());
         return MarketDataModuleFactory.create(provider, persistence.candles(), persistence.datasets(),
                 persistence.reader(), Clock.systemUTC(), recovery);
+    }
+    @Bean ResolveTradingPairUseCase resolveTradingPairUseCase(
+            MarketDataPersistenceFactory.Components persistence) {
+        return MarketDataModuleFactory.referenceData(persistence.references());
+    }
+    @Bean LoadHistoricalCandlesUseCase loadHistoricalCandlesUseCase(
+            MarketDataModuleFactory.Components marketData) {
+        return marketData.historical();
+    }
+    @Bean CreateDatasetUseCase createDatasetUseCase(
+            MarketDataModuleFactory.Components marketData) {
+        return marketData.createDataset();
+    }
+    @Bean GetDatasetUseCase getDatasetUseCase(
+            MarketDataModuleFactory.Components marketData) {
+        return marketData.getDataset();
     }
 }

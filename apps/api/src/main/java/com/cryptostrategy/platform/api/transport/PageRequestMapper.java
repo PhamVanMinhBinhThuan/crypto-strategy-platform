@@ -40,7 +40,7 @@ public final class PageRequestMapper {
                 || cursor.isBlank()
                 || cursor.length() > MAX_CURSOR_LENGTH
                 || !OPAQUE_CURSOR.matcher(cursor).matches()) {
-            throw new IllegalArgumentException(fieldName + " is malformed");
+            throw new InvalidCursorException(fieldName + " is malformed");
         }
         return cursor;
     }

@@ -3,16 +3,19 @@ package com.cryptostrategy.platform.marketdata.api;
 import com.cryptostrategy.platform.marketdata.api.port.in.CreateDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.LoadHistoricalCandlesUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.ResolveTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.SubscribeCandlesUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.VerifyDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.out.ClosedCandleStore;
 import com.cryptostrategy.platform.marketdata.api.port.out.DatasetCandleReader;
 import com.cryptostrategy.platform.marketdata.api.port.out.DatasetStore;
 import com.cryptostrategy.platform.marketdata.api.port.out.MarketDataProvider;
+import com.cryptostrategy.platform.marketdata.api.port.out.MarketReferenceDataStore;
 import com.cryptostrategy.platform.marketdata.internal.application.DatasetAssembler;
 import com.cryptostrategy.platform.marketdata.internal.application.DatasetIntegrityVerifier;
 import com.cryptostrategy.platform.marketdata.internal.application.DatasetService;
 import com.cryptostrategy.platform.marketdata.internal.application.HistoricalCandleService;
+import com.cryptostrategy.platform.marketdata.internal.application.MarketReferenceDataQueryService;
 import com.cryptostrategy.platform.marketdata.internal.application.RealtimeSubscriptionService;
 import com.cryptostrategy.platform.marketdata.internal.checksum.CandleV1Checksum;
 import com.cryptostrategy.platform.marketdata.internal.provider.binance.BinanceCandleMapper;
@@ -36,6 +39,9 @@ public final class MarketDataModuleFactory {
     private MarketDataModuleFactory() { }
     public static MarketDataProvider fixtureProvider(List<Candle> candles) {
         return new FixtureMarketDataProvider(List.copyOf(candles));
+    }
+    public static ResolveTradingPairUseCase referenceData(MarketReferenceDataStore references) {
+        return new MarketReferenceDataQueryService(references);
     }
     public static MarketDataProvider binanceProvider(URI restBaseUrl, URI streamBaseUrl,
             Duration connectTimeout, Duration requestTimeout, String normalizationVersion) {

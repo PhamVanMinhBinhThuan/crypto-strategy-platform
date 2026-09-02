@@ -13,5 +13,7 @@ public interface MarketReferenceDataStore {
 
     Optional<TradingPair> findTradingPair(TradingPairId tradingPairId);
 
+    Optional<TradingPair> findTradingPair(AssetSymbol baseAsset, AssetSymbol quoteAsset);
+
     Optional<Asset> findAsset(AssetSymbol symbol);
 }

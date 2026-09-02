@@ -9,6 +9,7 @@ import com.cryptostrategy.platform.marketdata.api.error.MarketDataErrorCode;
 import com.cryptostrategy.platform.marketdata.api.error.MarketDataException;
 import com.cryptostrategy.platform.news.api.error.NewsErrorCode;
 import com.cryptostrategy.platform.news.api.error.NewsException;
+import com.cryptostrategy.platform.api.transport.InvalidCursorException;
 import com.cryptostrategy.platform.strategy.api.error.StrategyErrorCode;
 import com.cryptostrategy.platform.strategy.api.error.StrategyException;
 import java.util.Map;
@@ -21,6 +22,7 @@ import org.springframework.validation.BindException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -34,8 +36,12 @@ public final class PublicErrorMapper {
         if (exception instanceof MethodArgumentTypeMismatchException) {
             return error(HttpStatus.BAD_REQUEST, "INVALID_QUERY_PARAMETER", "A query parameter is invalid.");
         }
+        if (exception instanceof InvalidCursorException) {
+            return error(HttpStatus.BAD_REQUEST, "INVALID_CURSOR", "The pagination cursor is invalid.");
+        }
         if (exception instanceof MethodArgumentNotValidException
                 || exception instanceof BindException
+                || exception instanceof MissingRequestHeaderException
                 || exception instanceof MissingServletRequestParameterException
                 || exception instanceof IllegalArgumentException) {
             return error(HttpStatus.BAD_REQUEST, "REQUEST_VALIDATION_FAILED", "Request validation failed.");

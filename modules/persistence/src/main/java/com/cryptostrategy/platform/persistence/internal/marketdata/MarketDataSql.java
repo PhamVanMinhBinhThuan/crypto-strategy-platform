@@ -6,6 +6,7 @@ public final class MarketDataSql {
     public static final String INSERT_PAIR = "insert into market.trading_pair(trading_pair_id,base_asset_id,quote_asset_id,symbol,active) values (?,?,?,?,?)";
     public static final String FIND_PAIR_BY_ID = pairSelect() + " where tp.trading_pair_id=?";
     public static final String FIND_PAIR_BY_ASSETS = pairSelect() + " where tp.base_asset_id=? and tp.quote_asset_id=?";
+    public static final String FIND_PAIR_BY_SYMBOLS = pairSelect() + " where ba.symbol=? and qa.symbol=?";
     public static final String INSERT_CANDLE = "insert into market.candle(candle_id,provider,trading_pair_id,timeframe,open_time,close_time,open,high,low,close,volume) values (?,?,?,?,?,?,?,?,?,?,?)";
     public static final String FIND_CANDLE_KEY = candleSelect() + " where c.provider=? and c.trading_pair_id=? and c.timeframe=? and c.open_time=?";
     public static final String FIND_CANDLE_RANGE = candleSelect() + " where c.provider=? and c.trading_pair_id=? and c.timeframe=? and c.open_time>=? and c.open_time<? order by c.open_time";
