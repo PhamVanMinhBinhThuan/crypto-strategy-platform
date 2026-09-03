@@ -7,6 +7,8 @@ info:
     Draft public REST contract for the Crypto Strategy Lab MVP.
     Long-running Backtest and Experiment operations are asynchronous.
     WebSocket messages are versioned separately in `websocket-events.md`.
+    Realtime subscription IDs are scoped to a connection. Activation buffers are bounded;
+    a retryable SUBSCRIPTION_FAILED requires resubscription and an authorized REST snapshot.
 
 servers:
   - url: /api/v1

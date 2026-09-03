@@ -549,6 +549,8 @@ Các close code do server phát:
 - Component unmount phải gửi command unsubscribe phù hợp.
 - Khi browser tab đóng hoặc connection timeout, Backend hủy toàn bộ logical subscriptions thuộc connection.
 - Dừng một logical subscription không được dừng upstream stream nếu client khác vẫn sử dụng cùng pair/timeframe.
+- `subscriptionId` chỉ unique trong một connection; hai tab dùng cùng ID vẫn có listener độc lập.
+- Callback từ lần đăng ký cũ bị loại sau unsubscribe/resubscribe, kể cả khi client tái sử dụng ID.
 
 ## 8. Ordering, Deduplication và Delivery
 
@@ -567,7 +569,12 @@ Hệ thống không đảm bảo exactly-once delivery. Client phải xử lý d
 ## 9. Backpressure và hiệu năng
 
 - Backend dùng outbound buffer có giới hạn.
+- Buffer chờ activation cũng bị giới hạn bởi `platform.realtime.outbound-buffer-capacity`
+  (mặc định 128 event/subscription). Khi đầy, server hủy activation với
+  `SUBSCRIPTION_ERROR` / `SUBSCRIPTION_FAILED`, `retryable=true`; client backoff,
+  resubscribe rồi đọc snapshot. Các subscription khác tiếp tục hoạt động.
 - Có thể coalesce các update trung gian của cùng một Candle đang mở và chỉ giữ bản mới nhất.
+- Coalescing chỉ áp dụng trong cùng logical subscription và event type; không thay event của chart/tab khác.
 - Không được bỏ Candle close event, connection status, Backtest completion hoặc trạng thái Experiment cuối.
 - Frontend batch chart updates theo animation/render frame, không render lại toàn trang cho từng tick.
 - Không gửi Historical dataset, toàn bộ Trades hoặc Leaderboard history trong WebSocket event.
@@ -588,6 +595,9 @@ Hệ thống không đảm bảo exactly-once delivery. Client phải xử lý d
   `lifecycle.events.v1` và `candidate.evaluated.v1`. Có thể đổi tên bằng
   `platform.realtime.streams.*`; khi stream gián đoạn, REST read vẫn hoạt động và là
   nguồn trạng thái authoritative.
+- Sau lỗi Redis polling, listener tiếp tục thử lại với khoảng nghỉ bằng
+  `platform.realtime.streams.poll-timeout` (mặc định 1 giây). Event bị lỡ trong outage
+  vẫn được phục hồi qua REST snapshot; retry listener không phải durable replay.
 - Search Coordinator consume `SEARCH_REQUEST` (`messageType`/`messageVersion` bằng
   `SEARCH_REQUEST`/`1`) từ `search.requests.v1` qua group riêng `search-coordinators`; completion
   `CANDIDATE_EVALUATED` chỉ là trigger để reload durable progress. Start/Reproduce chỉ nhận qua REST,
