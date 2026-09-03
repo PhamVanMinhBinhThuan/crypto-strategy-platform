@@ -115,7 +115,9 @@ public class SearchAllocationConcurrencyIntegrationTest {
             SearchRun replacement = claim.snapshot().advance(nextState, 1, NOW.plusSeconds(2));
             CoordinationDecision decision = new CoordinationDecision(
                     new CoordinationDecisionId(decisionId), new SearchRunId(RUN), 0,
-                    CoordinationDecisionType.ALLOCATED, candidateId, backtestJobId,
+                    CoordinationDecisionType.ALLOCATED,
+                    new com.cryptostrategy.platform.search.api.model.SearchCandidateId(candidateId),
+                    new com.cryptostrategy.platform.search.api.model.SearchJobId(backtestJobId),
                     candidate.fingerprint(), claim.snapshot().generatorState().fingerprint(),
                     nextState.fingerprint(), "CANDIDATE_ALLOCATED", NOW.plusSeconds(2));
             OutboxEvent outbox = new OutboxEvent(
@@ -132,7 +134,8 @@ public class SearchAllocationConcurrencyIntegrationTest {
                 new GeneratorId("random-search"), GeneratorVersion.parse("1.0.0"),
                 "random-state-v1", Set.of(ParameterType.INTEGER), "descriptor-fingerprint");
         return SearchRun.pending(
-                new SearchRunId(RUN), EXPERIMENT, SEARCH_JOB, SearchRunMode.GENERATION, null,
+                new SearchRunId(RUN), new com.cryptostrategy.platform.search.api.model.SearchExperimentId(EXPERIMENT),
+                new com.cryptostrategy.platform.search.api.model.SearchJobId(SEARCH_JOB), SearchRunMode.GENERATION, null,
                 descriptor, 42, "space-fingerprint",
                 RandomStrategyGenerator.initialState(42),
                 new SearchStopConditions(2, Duration.ofMinutes(10)), 1, NOW);

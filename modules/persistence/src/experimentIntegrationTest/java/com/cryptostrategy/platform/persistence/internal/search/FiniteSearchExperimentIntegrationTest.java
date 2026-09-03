@@ -43,10 +43,12 @@ public class FiniteSearchExperimentIntegrationTest {
             var allocator = new SearchCandidateAllocationService(runStore, search.generation(),
                     new JdbcSearchAllocationContextGateway(jdbc),
                     new JdbcSearchExperimentTransaction(dataSource),
-                    Clock.fixed(SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(2), ZoneOffset.UTC));
+                    Clock.fixed(SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(2), ZoneOffset.UTC),
+                    new com.fasterxml.jackson.databind.ObjectMapper());
             var allocated = allocator.fillAvailableSlots(new SearchCoordinationCommand(
-                    SearchAllocationConcurrencyIntegrationTest.SEARCH_JOB,
-                    SearchAllocationConcurrencyIntegrationTest.EXPERIMENT, 1, 1, "finite-f010"));
+                    new com.cryptostrategy.platform.experiment.api.job.JobId(SearchAllocationConcurrencyIntegrationTest.SEARCH_JOB),
+                    new com.cryptostrategy.platform.experiment.api.ExperimentId(SearchAllocationConcurrencyIntegrationTest.EXPERIMENT),
+                    1, 1, "finite-f010"));
 
             assertThat(allocated.allocatedWork()).isEqualTo(1);
             String candidate = jdbc.queryForObject("select candidate_id from experiment.candidate_definition where experiment_id=?",
@@ -58,8 +60,11 @@ public class FiniteSearchExperimentIntegrationTest {
             var trusted = new TrustedSearchCoordinationService(
                     new JdbcTrustedSearchCoordinationGateway(dataSource), Clock.systemUTC());
             var outcome = trusted.reconcileCompletion(new TrustedSearchCoordinationUseCase.CompletionTrigger(
-                    "62000000000000000000000079", SearchAllocationConcurrencyIntegrationTest.EXPERIMENT,
-                    candidate, job, SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(5), "finite-f010"));
+                    "62000000000000000000000079",
+                    new com.cryptostrategy.platform.experiment.api.ExperimentId(SearchAllocationConcurrencyIntegrationTest.EXPERIMENT),
+                    new com.cryptostrategy.platform.experiment.api.CandidateId(candidate),
+                    new com.cryptostrategy.platform.experiment.api.job.JobId(job),
+                    SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(5), "finite-f010"));
 
             assertThat(outcome.status()).isEqualTo(SearchRunStatus.COMPLETED);
             assertThat(jdbc.queryForObject("select count(*) from experiment.leaderboard_entry le join experiment.leaderboard_revision lr using(leaderboard_revision_id) where lr.experiment_id=?",

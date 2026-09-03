@@ -30,6 +30,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
 public class ExperimentApiConfiguration {
+    @Bean("searchApiClock")
+    Clock searchApiClock() {
+        return Clock.systemUTC();
+    }
+
     @Bean
     SearchStartCommandFactory searchStartCommandFactory(
             GetDatasetUseCase datasets,

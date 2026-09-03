@@ -126,7 +126,7 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 """, command.experimentId().value(), command.name(), timestamp(command.requestedAt()),
                 command.sourceExperimentId().value(), command.ownerUserId());
         if (experiment != 1) throw new IllegalArgumentException("Source Experiment is inaccessible or non-terminal");
-        jdbc.update("""
+        requireCopied("Experiment Manifest", jdbc.update("""
                 insert into experiment.experiment_manifest(experiment_id,manifest_version,dataset_version_id,
                     strategy_kind,strategy_ref_id,strategy_version,strategy_parameters,backtest_config,search_config,
                     evaluation_config,sentiment_config,software_version,git_commit,fingerprint,created_at,
@@ -137,7 +137,7 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                     dataset_provenance,strategy_provenance
                 from experiment.experiment_manifest where experiment_id=?
                 """, command.experimentId().value(), timestamp(command.requestedAt()),
-                command.sourceExperimentId().value());
+                command.sourceExperimentId().value()));
         jdbc.update("""
                 insert into experiment.job(job_id,experiment_id,job_type,status,correlation_id,total_work,
                     completed_work,failed_work,queued_at,created_at,updated_at)
@@ -145,7 +145,7 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 """, command.searchJobId().value(), command.experimentId().value(), command.correlationId(),
                 Math.max(1, command.candidates().size()), timestamp(command.requestedAt()),
                 timestamp(command.requestedAt()), timestamp(command.requestedAt()));
-        jdbc.update("""
+        requireCopied("Search Run", jdbc.update("""
                 insert into search.search_run(search_run_id,experiment_id,search_job_id,mode,source_experiment_id,
                     generator_id,generator_version,seed,search_space_fingerprint,generator_state_contract_version,
                     generator_state,generator_state_fingerprint,next_generation_index,maximum_candidates,
@@ -154,32 +154,36 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                     sr.search_space_fingerprint,sr.generator_state_contract_version,sr.generator_state,
                     sr.generator_state_fingerprint,?,greatest(1,?),sr.maximum_duration_ms,sr.max_in_flight,
                     'PENDING',0,?,? from search.search_run sr where sr.experiment_id=?
-                """, command.searchRunId(), command.experimentId().value(), command.searchJobId().value(),
+                """, command.searchRunId().value(), command.experimentId().value(), command.searchJobId().value(),
                 command.candidates().size(), command.candidates().size(), timestamp(command.requestedAt()),
-                timestamp(command.requestedAt()), command.sourceExperimentId().value());
+                timestamp(command.requestedAt()), command.sourceExperimentId().value()));
         for (var copy : command.candidates()) {
-            jdbc.update("""
+            requireCopied("Candidate " + copy.sourceCandidateId().value(), jdbc.update("""
                     insert into experiment.candidate_definition(candidate_id,experiment_id,generation_index,
                         definition,generator_state,fingerprint,created_at)
                     select ?,?,generation_index,definition,generator_state,fingerprint,?
                     from experiment.candidate_definition where candidate_id=? and experiment_id=?
-                    """, copy.candidateId(), command.experimentId().value(), timestamp(command.requestedAt()),
-                    copy.sourceCandidateId(), command.sourceExperimentId().value());
+                    """, copy.candidateId().value(), command.experimentId().value(), timestamp(command.requestedAt()),
+                    copy.sourceCandidateId().value(), command.sourceExperimentId().value()));
             jdbc.update("""
                     insert into experiment.job(job_id,experiment_id,candidate_id,job_type,status,correlation_id,
                         total_work,completed_work,failed_work,queued_at,created_at,updated_at)
                     values (?,?,?,'BACKTEST','QUEUED',?,1,0,0,?,?,?)
-                    """, copy.backtestJobId(), command.experimentId().value(), copy.candidateId(),
+                    """, copy.backtestJobId().value(), command.experimentId().value(), copy.candidateId().value(),
                     command.correlationId(), timestamp(command.requestedAt()), timestamp(command.requestedAt()),
                     timestamp(command.requestedAt()));
-            String payload = "{\"messageId\":\"" + copy.messageId() + "\",\"messageVersion\":1,"
-                    + "\"messageType\":\"BACKTEST_JOB\",\"occurredAt\":\"" + command.requestedAt() + "\","
-                    + "\"correlationId\":\"" + command.correlationId().replace("\"", "") + "\","
-                    + "\"payload\":{\"experimentId\":\"" + command.experimentId().value() + "\","
-                    + "\"jobId\":\"" + copy.backtestJobId() + "\",\"candidateId\":\""
-                    + copy.candidateId() + "\"}}";
+            String payload = json.writeJson(Map.of(
+                    "messageId", copy.messageId(),
+                    "messageVersion", 1,
+                    "messageType", "BACKTEST_JOB",
+                    "occurredAt", command.requestedAt().toString(),
+                    "correlationId", command.correlationId(),
+                    "payload", Map.of(
+                            "experimentId", command.experimentId().value(),
+                            "jobId", copy.backtestJobId().value(),
+                            "candidateId", copy.candidateId().value())));
             jdbc.update(ExperimentSql.INSERT_OUTBOX_EVENT, copy.outboxEventId(), copy.messageId(), "JOB",
-                    copy.backtestJobId(), "BACKTEST_JOB", "1", payload,
+                    copy.backtestJobId().value(), "BACKTEST_JOB", "1", payload,
                     json.writeJson(Map.of("correlationId", command.correlationId())),
                     timestamp(command.requestedAt()), timestamp(command.requestedAt()));
         }
@@ -187,13 +191,19 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 insert into search.reproduction_verification(verification_id,source_experiment_id,
                     reproduction_experiment_id,status,version,created_at,updated_at)
                 values (?,?,?,'PENDING',0,?,?)
-                """, command.verificationId(), command.sourceExperimentId().value(),
+                """, command.verificationId().value(), command.sourceExperimentId().value(),
                 command.experimentId().value(), timestamp(command.requestedAt()), timestamp(command.requestedAt()));
         String body = json.writeJson(Map.of("experimentId", command.experimentId().value(),
                 "jobId", command.searchJobId().value()));
         jdbc.update(ExperimentSql.COMPLETE_IDEMPOTENCY_RECORD, 202, body, command.ownerUserId(),
                 "REPRODUCE_SEARCH", command.idempotencyKey());
         return new Result(Result.Status.CREATED, command.experimentId(), command.searchJobId());
+    }
+
+    private static void requireCopied(String entity, int affectedRows) {
+        if (affectedRows != 1) {
+            throw new IllegalStateException(entity + " source graph is incomplete");
+        }
     }
 
     private Result replayReproduction(CreateCommand command) {

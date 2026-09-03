@@ -61,7 +61,7 @@ public final class JdbcSearchReproductionVerificationGateway
                 int updated = jdbc.update("""
                         update search.reproduction_verification set status='RUNNING',version=version+1,
                             started_at=?,updated_at=? where verification_id=? and version=? and status='PENDING'
-                        """, Timestamp.from(now), Timestamp.from(now), new ReproductionVerificationId(row.id()), row.version());
+                        """, Timestamp.from(now), Timestamp.from(now), row.id(), row.version());
                 if (updated != 1) return Optional.empty();
                 claimedVersion++;
             }
@@ -79,7 +79,7 @@ public final class JdbcSearchReproductionVerificationGateway
                             failure_code=?,failure_message=?,finished_at=?,updated_at=?
                         where verification_id=? and version=? and status='RUNNING'
                         """, value.failureCode(), value.failureMessage(), Timestamp.from(value.finishedAt()),
-                        Timestamp.from(value.finishedAt()), value.verificationId(), value.expectedVersion()) == 1;
+                        Timestamp.from(value.finishedAt()), value.verificationId().value(), value.expectedVersion()) == 1;
             }
             return jdbc.update("""
                     update search.reproduction_verification set status=?,version=version+1,
@@ -90,7 +90,7 @@ public final class JdbcSearchReproductionVerificationGateway
                     """, value.status(), value.tradesMatched(), value.metricsMatched(), value.fingerprintsMatched(),
                     value.sourceFingerprint(), value.reproductionFingerprint(),
                     json.writeValueAsString(value.safeDifferences()), value.failureCode(), value.failureMessage(),
-                    Timestamp.from(value.finishedAt()), Timestamp.from(value.finishedAt()), value.verificationId(),
+                    Timestamp.from(value.finishedAt()), Timestamp.from(value.finishedAt()), value.verificationId().value(),
                     value.expectedVersion()) == 1;
         } catch (Exception failure) {
             throw new IllegalStateException("Cannot persist reproduction verification", failure);

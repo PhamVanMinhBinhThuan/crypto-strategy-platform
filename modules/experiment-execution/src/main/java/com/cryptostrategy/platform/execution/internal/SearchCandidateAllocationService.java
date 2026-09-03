@@ -29,6 +29,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /** Fill bounded window bằng proposal thuần, sau đó revalidate qua composite transaction fence. */
 public final class SearchCandidateAllocationService implements SearchCandidateAllocationUseCase {
@@ -38,18 +40,21 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
     private final SearchAllocationContextGateway contexts;
     private final SearchExperimentTransactionGateway transactions;
     private final Clock clock;
+    private final ObjectMapper json;
 
     public SearchCandidateAllocationService(
             SearchRunStore runs,
             SearchGenerationUseCase generation,
             SearchAllocationContextGateway contexts,
             SearchExperimentTransactionGateway transactions,
-            Clock clock) {
+            Clock clock,
+            ObjectMapper json) {
         this.runs = Objects.requireNonNull(runs, "runs");
         this.generation = Objects.requireNonNull(generation, "generation");
         this.contexts = Objects.requireNonNull(contexts, "contexts");
         this.transactions = Objects.requireNonNull(transactions, "transactions");
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.json = Objects.requireNonNull(json, "json");
     }
 
     @Override
@@ -135,14 +140,21 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
         };
     }
 
-    private static String backtestPayload(String messageId, SearchCoordinationCommand command,
+    private String backtestPayload(String messageId, SearchCoordinationCommand command,
             CandidateId candidateId, JobId jobId, Instant now) {
-        return "{\"messageId\":\"" + messageId + "\",\"messageVersion\":1,"
-                + "\"messageType\":\"BACKTEST_JOB\",\"occurredAt\":\"" + now + "\","
-                + "\"correlationId\":\"" + command.correlationId().replace("\"", "") + "\","
-                + "\"payload\":{\"experimentId\":\"" + command.experimentId().value() + "\","
-                + "\"jobId\":\"" + jobId.value() + "\",\"candidateId\":\""
-                + candidateId.value() + "\"}}";
+        Map<String, Object> envelope = new LinkedHashMap<>();
+        envelope.put("messageId", messageId);
+        envelope.put("messageVersion", 1);
+        envelope.put("messageType", "BACKTEST_JOB");
+        envelope.put("occurredAt", now.toString());
+        envelope.put("correlationId", command.correlationId());
+        envelope.put("payload", Map.of("experimentId", command.experimentId().value(),
+                "jobId", jobId.value(), "candidateId", candidateId.value()));
+        try {
+            return json.writeValueAsString(envelope);
+        } catch (JsonProcessingException failure) {
+            throw new IllegalStateException("Failed to serialize Backtest Job event", failure);
+        }
     }
 
     private static SearchCoordinationResult result(com.cryptostrategy.platform.search.api.model.SearchRun run,

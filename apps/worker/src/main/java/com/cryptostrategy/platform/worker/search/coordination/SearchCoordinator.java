@@ -11,6 +11,7 @@ import com.cryptostrategy.platform.search.api.model.SearchRun;
 import com.cryptostrategy.platform.search.api.SearchModuleFactory;
 import java.util.Objects;
 import java.time.Instant;
+import java.time.Clock;
 
 /** Adapter Worker mỏng; durable application port quyết định allocation và progress. */
 public class SearchCoordinator {
@@ -19,34 +20,26 @@ public class SearchCoordinator {
     private final SearchRunStore runs;
     private final TrustedSearchCoordinationUseCase trusted;
     private final SearchModuleFactory.Components search;
-
-    public SearchCoordinator(
-            SearchCandidateAllocationUseCase allocations,
-            WorkerProperties properties) {
-        this.allocations = Objects.requireNonNull(allocations, "allocations");
-        this.properties = Objects.requireNonNull(properties, "properties");
-        this.runs = null;
-        this.trusted = null;
-        this.search = null;
-    }
+    private final Clock clock;
 
     public SearchCoordinator(
             SearchCandidateAllocationUseCase allocations,
             WorkerProperties properties,
             SearchRunStore runs,
             TrustedSearchCoordinationUseCase trusted,
-            SearchModuleFactory.Components search) {
+            SearchModuleFactory.Components search,
+            Clock clock) {
         this.allocations = Objects.requireNonNull(allocations, "allocations");
         this.properties = Objects.requireNonNull(properties, "properties");
         this.runs = Objects.requireNonNull(runs, "runs");
         this.trusted = Objects.requireNonNull(trusted, "trusted");
         this.search = Objects.requireNonNull(search, "search");
+        this.clock = Objects.requireNonNull(clock, "clock");
     }
 
     public SearchCoordinationResult coordinate(SearchRequestPayload request, String correlationId) {
         Objects.requireNonNull(request, "request");
-        if (runs != null) {
-            SearchRun durable = runs.findBySearchJobId(new com.cryptostrategy.platform.search.api.model.SearchJobId(request.searchJobId().value()))
+        SearchRun durable = runs.findBySearchJobId(new com.cryptostrategy.platform.search.api.model.SearchJobId(request.searchJobId().value()))
                     .orElseThrow(() -> new IllegalArgumentException("Search Run is inaccessible"));
             if (!durable.experimentId().value().equals(request.experimentId().value())) {
                 throw new IllegalArgumentException("Search Run is inaccessible");
@@ -58,7 +51,7 @@ public class SearchCoordinator {
                         durable.status());
             }
             var lifecycle = trusted.reconcileRun(new TrustedSearchCoordinationUseCase.ReconciliationTrigger(
-                    new com.cryptostrategy.platform.experiment.api.ExperimentId(durable.experimentId().value()), Instant.now(), correlationId));
+                    new com.cryptostrategy.platform.experiment.api.ExperimentId(durable.experimentId().value()), clock.instant(), correlationId));
             if (durable.mode() == com.cryptostrategy.platform.search.api.model.SearchRunMode.REPRODUCTION) {
                 return new SearchCoordinationResult(lifecycle.searchRunId(), lifecycle.allocatedWork(),
                         lifecycle.allocatedWork() - lifecycle.completedWork() - lifecycle.failedWork(),
@@ -69,7 +62,6 @@ public class SearchCoordinator {
                         lifecycle.allocatedWork() - lifecycle.completedWork() - lifecycle.failedWork(),
                         lifecycle.completedWork(), lifecycle.failedWork(), lifecycle.status());
             }
-        }
         int boundedWindow = Math.min(
                 request.concurrencyHint(),
                 properties.concurrency().maxInFlightPerExperiment());
@@ -95,13 +87,11 @@ public class SearchCoordinator {
     }
 
     private SearchRun requireDurableRun(String experimentId) {
-        if (runs == null) throw new IllegalStateException("Durable Search Run store is not configured");
         return runs.findByExperimentId(new com.cryptostrategy.platform.search.api.model.SearchExperimentId(experimentId))
                 .orElseThrow(() -> new IllegalArgumentException("Search Run is inaccessible"));
     }
 
     private TrustedSearchCoordinationUseCase requireTrusted() {
-        if (trusted == null) throw new IllegalStateException("Trusted Search coordination is not configured");
         return trusted;
     }
 }

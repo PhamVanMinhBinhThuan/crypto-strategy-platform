@@ -60,13 +60,16 @@ class SearchDeadlineIntegrationTest {
                     gateway, Clock.fixed(completedAt.plusSeconds(1), ZoneOffset.UTC));
             var outcome = service.reconcileCompletion(new TrustedSearchCoordinationUseCase.CompletionTrigger(
                     "6200000000000000000000009A",
-                    SearchAllocationConcurrencyIntegrationTest.EXPERIMENT,
-                    CANDIDATE, BACKTEST_JOB, completedAt.plusSeconds(1), "correlation-f010"));
+                    new com.cryptostrategy.platform.experiment.api.ExperimentId(SearchAllocationConcurrencyIntegrationTest.EXPERIMENT),
+                    new com.cryptostrategy.platform.experiment.api.CandidateId(CANDIDATE),
+                    new com.cryptostrategy.platform.experiment.api.job.JobId(BACKTEST_JOB),
+                    completedAt.plusSeconds(1), "correlation-f010"));
 
             assertThat(outcome.status()).isEqualTo(expectedStatus);
             assertThat(outcome.decision()).isEqualTo(expectedDecision);
             var durable = new JdbcTrustedSearchCoordinationGateway(dataSource)
-                    .load(SearchAllocationConcurrencyIntegrationTest.EXPERIMENT).orElseThrow();
+                    .load(new com.cryptostrategy.platform.experiment.api.ExperimentId(
+                            SearchAllocationConcurrencyIntegrationTest.EXPERIMENT)).orElseThrow();
             assertThat(durable.run().deadlineAt()).isEqualTo(running.deadlineAt());
             assertThat(durable.completedWork()).isEqualTo(1);
             assertThat(jdbc.queryForObject("select completed_work from experiment.job where job_id=?",

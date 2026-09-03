@@ -208,7 +208,7 @@ public final class ExperimentSql {
 
     public static final String UPDATE_JOB_STATUS = """
             UPDATE experiment.job j
-            SET status = ?, started_at = coalesce(started_at, ?), finished_at = ?,
+            SET status = ?, started_at = coalesce(j.started_at, ?), finished_at = ?,
                 next_retry_at = ?, failure_code = ?, failure_message = ?, updated_at = ?
             FROM experiment.experiment e
             WHERE j.experiment_id = e.experiment_id AND j.job_id = ? AND e.owner_user_id = ?
@@ -216,7 +216,7 @@ public final class ExperimentSql {
 
     public static final String UPDATE_JOB_STATUS_GUARDED = """
             UPDATE experiment.job j
-            SET status = ?, started_at = coalesce(started_at, ?), finished_at = ?,
+            SET status = ?, started_at = coalesce(j.started_at, ?), finished_at = ?,
                 next_retry_at = ?, failure_code = ?, failure_message = ?, updated_at = ?
             FROM experiment.experiment e
             WHERE j.experiment_id = e.experiment_id AND j.job_id = ? AND e.owner_user_id = ?

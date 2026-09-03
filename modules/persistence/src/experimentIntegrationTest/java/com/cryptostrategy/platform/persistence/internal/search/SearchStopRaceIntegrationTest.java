@@ -46,7 +46,8 @@ class SearchStopRaceIntegrationTest {
                 assertThat(stopCommitted || allocationResult.status() == SearchAllocationResult.Status.ALLOCATED).isTrue();
             }
 
-            var durable = stopGateway.load(SearchAllocationConcurrencyIntegrationTest.EXPERIMENT).orElseThrow();
+            var durable = stopGateway.load(new com.cryptostrategy.platform.experiment.api.ExperimentId(
+                    SearchAllocationConcurrencyIntegrationTest.EXPERIMENT)).orElseThrow();
             if (!durable.run().status().name().equals("STOPPING")) {
                 assertThat(stopGateway.commit(new TrustedSearchCoordinationGateway.Transition(
                         durable.run().version(), durable.run().requestStop(SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(3)),

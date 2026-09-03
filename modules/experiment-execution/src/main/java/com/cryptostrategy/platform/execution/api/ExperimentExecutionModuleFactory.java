@@ -28,8 +28,9 @@ public final class ExperimentExecutionModuleFactory {
     }
     public static TrustedSearchCoordinationUseCase trustedCoordination(TrustedSearchCoordinationGateway gateway, Clock clock) { return new TrustedSearchCoordinationService(gateway, clock); }
     public static SearchCandidateAllocationUseCase allocation(SearchRunStore runs, SearchGenerationUseCase generation,
-            SearchAllocationContextGateway contexts, SearchExperimentTransactionGateway transactions, Clock clock) {
-        return new SearchCandidateAllocationService(runs, generation, contexts, transactions, clock);
+            SearchAllocationContextGateway contexts, SearchExperimentTransactionGateway transactions, Clock clock,
+            ObjectMapper json) {
+        return new SearchCandidateAllocationService(runs, generation, contexts, transactions, clock, json);
     }
     public static SearchReproductionVerificationUseCase reproductionVerification(SearchReproductionVerificationGateway gateway,
             ExecutionEvidenceReader evidence, Clock clock) { return new SearchReproductionVerificationCoordinator(gateway, evidence, clock)::reconcile; }

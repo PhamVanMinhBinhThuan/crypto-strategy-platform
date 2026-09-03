@@ -169,6 +169,17 @@ khÃ´ng thay Backtest/Evaluation/Leaderboard/public contracts.
 - [x] T087 Cáº­p nháº­t F-009 tasks/readiness evidence, Ä‘Ã³ng T034/T036/T039/T074 khi cÃ³ báº±ng chá»©ng tháº­t trong `specs/009-public-api-realtime/tasks.md` vÃ  `specs/009-public-api-realtime/quickstart.md`
 - [x] T088 Chuyá»ƒn quality scenarios liÃªn quan tá»« Planned sang Verified chá»‰ theo evidence tháº­t trong `docs/architecture/architecture-evidence.md`
 
+## Phase 8: Pre-merge Hardening
+
+- [x] T089 [P] Bổ sung PostgreSQL regression tests cho reproduction source thiếu Manifest, Search Run hoặc Candidate và xác nhận rollback toàn graph tại `modules/persistence/src/experimentIntegrationTest/java/com/cryptostrategy/platform/persistence/internal/experiment/SearchReproductionIntegrationTest.java`
+- [x] T090 Kiểm tra affected-row count của mọi immutable-source copy trong composite reproduction transaction tại `modules/persistence/src/main/java/com/cryptostrategy/platform/persistence/internal/execution/JdbcSearchExperimentTransaction.java`
+- [x] T091 [P] Bổ sung regression tests cho correlation ID server-generated, bounded, deterministic theo injected clock và không rò rỉ `Idempotency-Key` tại API/Worker boundaries
+- [x] T092 Thay correlation derivation từ client input bằng server-generated typed-safe value và serialize event bằng contract serializer trong `apps/api`, `modules/experiment-execution` và `modules/persistence`
+- [x] T093 Xóa non-durable `SearchCoordinator` runtime path, inject UTC `Clock` vào API/Worker composition roots và sửa tests dùng fixed clock/dependencies đầy đủ
+- [x] T094 Xử lý artifact ngoài ownership F-010: giữ pointer feature của main, xác minh checksum F-008 và xóa isolation init script nếu canonical build không dùng
+- [x] T095 Chạy canonical Java 21 unit/architecture gates, dọn `git diff --check` và tạo commit cố định cho evidence
+- [ ] T096 Chạy PostgreSQL/Supabase + Redis recovery suite trên chính commit cố định và cập nhật `quickstart.md` cùng architecture evidence bằng kết quả thật
+
 ## Dependencies & Execution Order
 
 ### Phase dependencies

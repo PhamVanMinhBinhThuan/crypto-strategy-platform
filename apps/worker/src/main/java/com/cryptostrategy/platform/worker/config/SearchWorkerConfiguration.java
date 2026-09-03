@@ -91,9 +91,10 @@ public class SearchWorkerConfiguration {
             SearchRunStore runs,
             SearchModuleFactory.Components search,
             SearchAllocationContextGateway contexts,
-            SearchExperimentTransactionGateway transactions) {
+            SearchExperimentTransactionGateway transactions,
+            ObjectMapper mapper) {
         return ExperimentExecutionModuleFactory.allocation(
-                runs, search.generation(), contexts, transactions, Clock.systemUTC());
+                runs, search.generation(), contexts, transactions, Clock.systemUTC(), mapper);
     }
 
     @Bean
@@ -104,7 +105,7 @@ public class SearchWorkerConfiguration {
             SearchRunStore runs,
             TrustedSearchCoordinationUseCase trusted,
             SearchModuleFactory.Components search) {
-        return new SearchCoordinator(allocations, properties, runs, trusted, search);
+        return new SearchCoordinator(allocations, properties, runs, trusted, search, Clock.systemUTC());
     }
 
     @Bean

@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.argThat;
 
 import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
 import com.cryptostrategy.platform.api.idempotency.IdempotencyCommandExecutor;
@@ -43,7 +44,10 @@ class StartExperimentIntegrationTest {
         assertThat(response.getBody()).isEqualTo(new CommandDtos.ExperimentAcceptedResponse(
                 new ExperimentId("61000000000000000000000001"),
                 new JobId("61000000000000000000000002"), "QUEUED"));
-        verify(fixture.mapper).map(OWNER, "key-1", "request-hash", "start-key-1", request());
+        verify(fixture.mapper).map(org.mockito.ArgumentMatchers.eq(OWNER),
+                org.mockito.ArgumentMatchers.eq("key-1"), org.mockito.ArgumentMatchers.eq("request-hash"),
+                argThat(value -> value.length() == 26 && !value.contains("key-1")),
+                org.mockito.ArgumentMatchers.eq(request()));
     }
 
     @Test
@@ -55,7 +59,25 @@ class StartExperimentIntegrationTest {
 
         assertThat(replay.getBody()).isEqualTo(first.getBody());
         verify(fixture.mapper, org.mockito.Mockito.times(2))
-                .map(OWNER, "same-key", "request-hash", "start-same-key", request());
+                .map(org.mockito.ArgumentMatchers.eq(OWNER), org.mockito.ArgumentMatchers.eq("same-key"),
+                        org.mockito.ArgumentMatchers.eq("request-hash"),
+                        argThat(value -> value.length() == 26 && !value.contains("same-key")),
+                        org.mockito.ArgumentMatchers.eq(request()));
+
+    }
+
+    @Test
+    void hostileIdempotencyKeyNeverBecomesCorrelationData() {
+        Fixture fixture = fixture();
+        String hostile = "secret-\"-\\-line\n\u0001";
+
+        fixture.controller.startExperiment(USER, hostile, request());
+
+        verify(fixture.mapper).map(org.mockito.ArgumentMatchers.eq(OWNER),
+                org.mockito.ArgumentMatchers.eq(hostile), org.mockito.ArgumentMatchers.eq("request-hash"),
+                argThat(value -> value.length() == 26 && !value.contains("secret")
+                        && value.chars().noneMatch(Character::isISOControl)),
+                org.mockito.ArgumentMatchers.eq(request()));
     }
 
     @Test

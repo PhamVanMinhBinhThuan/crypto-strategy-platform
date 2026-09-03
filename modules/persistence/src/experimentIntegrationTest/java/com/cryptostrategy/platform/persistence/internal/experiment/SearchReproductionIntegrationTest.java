@@ -103,6 +103,46 @@ class SearchReproductionIntegrationTest {
                 Integer.class, SearchAllocationConcurrencyIntegrationTest.EXPERIMENT)).isZero();
     }
 
+    @Test
+    void missingManifestRollsBackTheWholeTargetGraph() {
+        assertIncompleteSourceRollsBack(false);
+    }
+
+    @Test
+    void missingSearchRunRollsBackTheWholeTargetGraph() {
+        assertIncompleteSourceRollsBack(true);
+    }
+
+    private static void assertIncompleteSourceRollsBack(boolean removeSearchRun) {
+        var dataSource = SearchAllocationConcurrencyIntegrationTest.dataSource();
+        new TransactionTemplate(new DataSourceTransactionManager(dataSource)).executeWithoutResult(tx -> {
+            tx.setRollbackOnly();
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            seedCompletedSource(jdbc, dataSource);
+            if (removeSearchRun) {
+                jdbc.update("delete from search.coordination_decision where search_run_id in (select search_run_id from search.search_run where experiment_id=?)",
+                        SearchAllocationConcurrencyIntegrationTest.EXPERIMENT);
+                assertThat(jdbc.update("delete from search.search_run where experiment_id=?",
+                        SearchAllocationConcurrencyIntegrationTest.EXPERIMENT)).isEqualTo(1);
+            } else {
+                assertThat(jdbc.update("delete from experiment.experiment_manifest where experiment_id=?",
+                        SearchAllocationConcurrencyIntegrationTest.EXPERIMENT)).isEqualTo(1);
+            }
+            var service = new SearchReproductionApplicationService(new JdbcSearchExperimentTransaction(dataSource));
+
+            assertThatThrownBy(() -> service.start(command("incomplete-key", "incomplete-hash")))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("source graph is incomplete");
+        });
+        JdbcTemplate verify = new JdbcTemplate(dataSource);
+        assertThat(verify.queryForObject(
+                "select count(*) from experiment.experiment where reproduces_experiment_id=?",
+                Integer.class, SearchAllocationConcurrencyIntegrationTest.EXPERIMENT)).isZero();
+        assertThat(verify.queryForObject(
+                "select count(*) from platform.idempotency_record where scope='REPRODUCE_SEARCH' and idempotency_key='incomplete-key'",
+                Integer.class)).isZero();
+    }
+
     private static Source seedCompletedSource(JdbcTemplate jdbc, javax.sql.DataSource dataSource) {
         SearchAllocationConcurrencyIntegrationTest.seed(jdbc);
         FiniteSearchExperimentIntegrationTest.seedManifest(jdbc);

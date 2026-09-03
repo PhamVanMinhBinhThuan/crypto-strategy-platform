@@ -19,9 +19,12 @@ import com.cryptostrategy.platform.experiment.api.port.in.GetJobUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.ListCandidatesUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.StopExperimentUseCase;
 import java.time.Instant;
+import java.time.Clock;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("unchecked")
 class ReproduceExperimentIntegrationTest {
@@ -53,6 +56,21 @@ class ReproduceExperimentIntegrationTest {
                 .isInstanceOf(IdempotencyConflictException.class);
     }
 
+    @Test
+    void usesFixedUtcClockAndDoesNotLeakHostileIdempotencyKeyIntoCorrelation() {
+        Fixture fixture = fixture();
+        String hostile = "secret-\"-\\-line\n\u0001";
+
+        fixture.controller.reproduceExperiment(USER, hostile, SOURCE,
+                new CommandDtos.ReproduceExperimentRequest("copy"));
+
+        ArgumentCaptor<StartSearchReproductionUseCase.Command> command =
+                ArgumentCaptor.forClass(StartSearchReproductionUseCase.Command.class);
+        org.mockito.Mockito.verify(fixture.reproduce).start(command.capture());
+        assertThat(command.getValue().requestedAt()).isEqualTo(Instant.parse("2026-09-03T03:30:00Z"));
+        assertThat(command.getValue().correlationId()).hasSize(26).doesNotContain("secret");
+    }
+
     private static Fixture fixture() {
         IdempotencyCommandExecutor idempotency = mock(IdempotencyCommandExecutor.class);
         StartSearchReproductionUseCase reproduce = mock(StartSearchReproductionUseCase.class);
@@ -65,9 +83,10 @@ class ReproduceExperimentIntegrationTest {
         var controller = new ExperimentController(idempotency, mock(GetExperimentUseCase.class),
                 mock(GetJobUseCase.class), mock(ListCandidatesUseCase.class),
                 mock(StopExperimentUseCase.class), new PageRequestMapper(), null, null, true,
-                reproduce, true);
-        return new Fixture(controller, idempotency);
+                reproduce, true, Clock.fixed(Instant.parse("2026-09-03T03:30:00Z"), ZoneOffset.UTC));
+        return new Fixture(controller, idempotency, reproduce);
     }
 
-    private record Fixture(ExperimentController controller, IdempotencyCommandExecutor idempotency) {}
+    private record Fixture(ExperimentController controller, IdempotencyCommandExecutor idempotency,
+            StartSearchReproductionUseCase reproduce) {}
 }

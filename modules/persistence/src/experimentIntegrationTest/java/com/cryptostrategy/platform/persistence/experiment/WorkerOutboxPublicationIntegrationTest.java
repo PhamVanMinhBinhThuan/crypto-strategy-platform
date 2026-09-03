@@ -12,7 +12,6 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,15 +37,15 @@ class WorkerOutboxPublicationIntegrationTest {
 
     @Test
     void duplicateTolerantOutboxPublishingAndProcessedMessageIdempotency() {
-        String eventId = UUID.randomUUID().toString();
+        String eventId = com.cryptostrategy.platform.experiment.api.ExperimentId.generate().value();
         String messageId = "01J7K8M9N0P1Q2R3S4T5A6V7W9";
         Instant now = Instant.now();
 
         // 1. Insert an outbox event
         jdbcTemplate.update(
                 "INSERT INTO platform.outbox_event (outbox_event_id, message_id, aggregate_type, aggregate_id, event_type, event_version, payload, occurred_at, created_at) " +
-                "VALUES (?, ?, 'EXPERIMENT', 'exp-1', 'EXPERIMENT_QUEUED', 1, '{}'::jsonb, ?, ?)",
-                eventId, messageId, Timestamp.from(now), Timestamp.from(now)
+                "VALUES (?, ?, 'EXPERIMENT', ?, 'EXPERIMENT_QUEUED', 1, '{}'::jsonb, ?, ?)",
+                eventId, messageId, messageId, Timestamp.from(now), Timestamp.from(now)
         );
 
         // 2. Fetch unpublished batch

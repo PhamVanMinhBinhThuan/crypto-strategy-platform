@@ -127,7 +127,8 @@ class SearchStartTransactionIntegrationTest {
                 new GeneratorId("random-search"), GeneratorVersion.parse("1.0.0"),
                 "random-state-v1", Set.of(ParameterType.INTEGER), "descriptor-fingerprint");
         SearchRun run = SearchRun.pending(
-                new SearchRunId(RUN), EXPERIMENT, JOB, SearchRunMode.GENERATION, null, descriptor,
+                new SearchRunId(RUN), new com.cryptostrategy.platform.search.api.model.SearchExperimentId(EXPERIMENT),
+                new com.cryptostrategy.platform.search.api.model.SearchJobId(JOB), SearchRunMode.GENERATION, null, descriptor,
                 42L, "space-fingerprint",
                 new GeneratorState("random-state-v1", canonicalState, "state-0"),
                 new SearchStopConditions(2, Duration.ofMinutes(10)), 1, NOW);
