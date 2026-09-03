@@ -4,6 +4,8 @@
 
 - Branch `012-market-strategy-news-ui`, Node.js 22 và dependencies từ `apps/web/package-lock.json`.
 - F-011 public foundation interfaces; F-009 OpenAPI/WebSocket documents.
+- Đã đọc `docs/ui/README.md`, `spec-kit-reference.md`, `screen-map.md`, `design-system.md`,
+  `interaction-states.md`, `features/F-012.md` và đối chiếu screenshots/prototype.
 - Test fixtures không chứa credential và production mock mode tắt mặc định.
 
 ## Static và automated gates
@@ -23,7 +25,8 @@ chứa mock business truth, privileged credential, direct provider/business-tabl
 
 ## Market acceptance
 
-1. Mở `/market` với pair/timeframe hợp lệ; xác nhận loading rồi ordered OHLCV chart/summary.
+1. Mở `/market` với một pair và bốn timeframe hợp lệ; xác nhận grid 2x2 desktop/một cột mobile,
+   loading độc lập rồi ordered OHLCV chart/summary cho từng panel.
 2. Phát duplicate, stale, out-of-order và foreign-selection Candle events 100 lần; không duplicate
    identity hoặc rollback selection/latest closed Candle.
 3. Đổi pair/timeframe khi request cũ pending; late response không ghi đè.
@@ -40,13 +43,16 @@ chứa mock business truth, privileged credential, direct provider/business-tabl
 
 ## News acceptance
 
-1. Filter/paginate News; response cursor cũ không ghi đè filter mới, items không trùng.
+1. Filter theo analysis status và paginate News; response cursor cũ không ghi đè filter mới.
 2. Verify ANALYZED label/score và informational disclaimer.
 3. Inject PENDING/ANALYZING/FAILED_RETRYABLE/FAILED; News vẫn đọc được và Market/Strategy unaffected.
 4. Assert browser không gọi internal sentiment audit; external links dùng safe HTTP(S) handling.
+5. Assert không có pair filter, content/summary/provenance hoặc aggregate sentiment/trend/topics/
+   Strategy integration giả lập khi public contract chưa cung cấp.
 
 ## E2E và evidence
 
-Chạy Playwright journeys bằng controllable F-009 adapter rồi, khi môi trường non-production sẵn sàng,
+Chạy Playwright journeys bằng controllable F-009 adapter; đo SC-001 trong browser bằng Performance
+API, không dùng jsdom wall-clock. Khi môi trường non-production sẵn sàng,
 chạy lại với API/WebSocket thật. Ghi commit, timestamp, environment, command và sanitized result.
 Không chuyển evidence sang Verified nếu chỉ có fixture hoặc kết quả chưa chạy thật.

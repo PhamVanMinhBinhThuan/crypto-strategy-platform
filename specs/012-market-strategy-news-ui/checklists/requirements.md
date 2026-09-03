@@ -31,6 +31,8 @@
 
 ## Notes
 
-- Validation passed on the first review iteration; no clarification marker remains.
+- Validation được rà lại sau remediation 10 finding: shared UI authority, realtime observers,
+  contract-limited News, mutation retry semantics, Market catalog, feature-local schemas,
+  browser performance, four-panel layout và transport/provider terminology đã được đồng bộ.
 - F-011 manual evidence commit reference is not independently resolvable from current Git history;
   this does not block specification, but must be reconciled before F-014 verification claims.

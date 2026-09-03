@@ -12,21 +12,21 @@
 
 ### User Story 1 - Theo dõi thị trường (Priority: P1)
 
-Là người dùng đã đăng nhập, tôi muốn chọn cặp giao dịch và khung thời gian để xem Candle lịch sử,
+Là người dùng đã đăng nhập, tôi muốn chọn cặp giao dịch và tối đa bốn khung thời gian để xem Candle lịch sử,
 nhận cập nhật mới và biết trạng thái kết nối, từ đó có thể quan sát thị trường trước khi chọn chiến
 lược hoặc đọc tin liên quan.
 
 **Why this priority**: Market Dashboard là điểm vào chính của sản phẩm và cung cấp bối cảnh chung
 cho Strategy, News và các feature Experiment sau này.
 
-**Independent Test**: Mở Market Dashboard với một pair/timeframe hợp lệ, tải Candle lịch sử, nhận
+**Independent Test**: Mở Market Dashboard với một pair và bốn timeframe hợp lệ, tải Candle lịch sử, nhận
 một cập nhật realtime rồi mô phỏng mất kết nối; biểu đồ và trạng thái phải phản ánh đúng từng bước
 mà không cần Strategy hoặc News hoạt động.
 
 **Acceptance Scenarios**:
 
-1. **Given** người dùng vừa mở Market Dashboard, **When** pair/timeframe mặc định hợp lệ được chọn,
-   **Then** giao diện hiển thị loading rõ ràng rồi render Candle theo đúng thứ tự thời gian.
+1. **Given** người dùng vừa mở Market Dashboard, **When** pair và các timeframe mặc định hợp lệ được chọn,
+   **Then** giao diện hiển thị loading rõ ràng rồi render tối đa bốn panel Candle theo đúng thứ tự thời gian.
 2. **Given** lịch sử đã tải, **When** Candle realtime mới đến, **Then** Candle cùng kỳ được cập nhật
    hoặc Candle kỳ mới được nối vào mà không tạo timestamp trùng.
 3. **Given** kết nối realtime bị gián đoạn, **When** hệ thống reconnect hoặc yêu cầu snapshot mới,
@@ -63,21 +63,21 @@ version cũ không bị thay đổi.
 
 ### User Story 3 - Đọc News và Sentiment trung thực (Priority: P2)
 
-Là người dùng đã đăng nhập, tôi muốn đọc News liên quan đến asset/pair và xem trạng thái phân tích
+Là người dùng đã đăng nhập, tôi muốn đọc News và xem trạng thái phân tích
 Sentiment để bổ sung bối cảnh, nhưng vẫn đọc được tin khi dịch vụ phân tích bị chậm hoặc lỗi.
 
 **Why this priority**: News tăng giá trị quan sát nhưng không được làm gián đoạn Market hoặc đánh
 đồng kết quả mô hình với lời khuyên tài chính.
 
-**Independent Test**: Tải danh sách News, lọc theo pair, mở một item có sentiment hoàn tất rồi mô
+**Independent Test**: Tải danh sách News, lọc theo analysis status, mở một item có sentiment hoàn tất rồi mô
 phỏng trạng thái pending/failed; nội dung tin vẫn dùng được và UI mô tả đúng mức độ sẵn sàng.
 
 **Acceptance Scenarios**:
 
 1. **Given** có nhiều News item, **When** người dùng lọc hoặc tải trang tiếp theo,
    **Then** kết quả giữ thứ tự ổn định, không lặp item và phản ánh đúng filter hiện hành.
-2. **Given** sentiment đã hoàn tất, **When** item được hiển thị, **Then** label/score/provenance công
-   khai được trình bày rõ và không diễn đạt thành khuyến nghị mua bán.
+2. **Given** sentiment đã hoàn tất, **When** item được hiển thị, **Then** label/confidence/polarity
+   công khai được trình bày rõ và không diễn đạt thành khuyến nghị mua bán.
 3. **Given** sentiment pending, unavailable hoặc failed, **When** News tải thành công,
    **Then** nội dung News vẫn hiển thị với degraded state đúng nguyên nhân và hướng retry phù hợp.
 
@@ -110,9 +110,9 @@ session expiry và reconnect; mọi trạng thái vẫn thao tác được bằn
 - Realtime reconnect nhiều lần, message duplicate/out-of-order hoặc snapshot revision cũ.
 - Strategy catalog rỗng; Strategy/version bị archive giữa lúc user đang xem hoặc chỉnh draft.
 - Parameter schema có enum dài, decimal boundary, cross-field constraint hoặc field không còn hỗ trợ.
-- Create/publish/archive được retry sau timeout nhưng server đã commit lần đầu.
-- News item trùng nội dung, thiếu optional summary/source metadata hoặc không còn ở trang hiện tại.
-- Sentiment pending lâu, failed, unavailable hoặc provenance không được public contract cho phép.
+- Create/publish/archive timeout sau khi server có thể đã commit; UI không tự retry mutation.
+- News item trùng identity, thiếu source hoặc không còn ở trang hiện tại.
+- Sentiment pending lâu, failed hoặc unavailable; UI không suy diễn provenance hay aggregate analytics.
 - REST thành công nhưng realtime chậm; realtime đến khi resource tương ứng chưa có trong local view.
 - Mất mạng, session hết hạn hoặc quyền ownership thay đổi trong lúc đang thao tác.
 
@@ -121,17 +121,19 @@ session expiry và reconnect; mọi trạng thái vẫn thao tác được bằn
 ### Functional Requirements
 
 - **FR-001**: F-012 MUST dùng application shell, auth/session lifecycle, navigation và public client
-  contracts do F-011 cung cấp; MUST NOT tạo auth, REST hoặc realtime singleton cạnh tranh.
+  contracts do F-011 cung cấp; MAY mở rộng `RealtimeClient` tương thích ngược bằng event/status
+  observers, nhưng MUST NOT tạo auth, REST hoặc realtime singleton cạnh tranh.
 - **FR-002**: Mọi business data MUST đi qua owner-authorized public F-009 boundary; browser MUST
   NOT gọi trực tiếp business table, Binance hoặc Sentiment Service nội bộ.
-- **FR-003**: Market Dashboard MUST cho phép chọn một supported trading pair và timeframe, đồng thời
-  giữ lựa chọn hiện hành rõ ràng qua loading, success và error state.
+- **FR-003**: Market Dashboard MUST cho phép chọn một supported trading pair và từ một đến bốn
+  timeframe panel độc lập, đồng thời giữ lựa chọn hiện hành rõ ràng qua mọi async state.
 - **FR-004**: Market Dashboard MUST hiển thị Candle lịch sử theo UTC và thứ tự xác định, bảo toàn
   exact price/volume text semantics từ public contract.
-- **FR-005**: Realtime Candle update MUST merge theo canonical Candle identity, không tạo bản ghi
-  trùng và không cho message stale/out-of-order làm state quay lùi.
-- **FR-006**: UI MUST hiển thị connection state tối thiểu gồm connecting, live, reconnecting và
-  unavailable; disconnect không được xóa snapshot đã tải thành công.
+- **FR-005**: Realtime Candle update của mỗi panel MUST merge theo canonical Candle identity, không
+  tạo bản ghi trùng và không cho message stale/out-of-order làm state quay lùi.
+- **FR-006**: UI MUST phân biệt transport state (`connecting`, `connected`, `reconnecting`,
+  `disconnected`) với Market provider state nhận từ public event; presentation `live/unavailable`
+  MUST được dẫn xuất trung thực và disconnect không được xóa snapshot đã tải thành công.
 - **FR-007**: Khi pair/timeframe đổi, late response hoặc event của selection cũ MUST bị bỏ qua.
 - **FR-008**: Strategy screen MUST phân biệt system catalog và owner-scoped private library, với
   trạng thái empty/loading/error độc lập khi một nguồn chưa sẵn sàng.
@@ -145,11 +147,12 @@ session expiry và reconnect; mọi trạng thái vẫn thao tác được bằn
   thay đổi MUST tạo version mới theo public workflow.
 - **FR-013**: Resource missing và foreign-owner inaccessible MUST dùng cùng safe user-facing state,
   không giúp suy đoán sự tồn tại của private Strategy.
-- **FR-014**: News screen MUST hỗ trợ danh sách có pagination/cursor hiện hành và filter public được
-  F-009 hỗ trợ, với stable ordering và deduplication theo News identity.
-- **FR-015**: Mỗi News item MUST hiển thị source, publish time theo timezone dễ hiểu, assets liên
-  quan, nội dung/summary khả dụng và analysis status.
-- **FR-016**: Sentiment hoàn tất MUST hiển thị label/score cùng provenance public; pending, failed
+- **FR-014**: News screen MUST hỗ trợ danh sách có pagination/cursor và filter `analysisStatus`, với
+  stable ordering và deduplication theo News identity; MUST NOT gửi pair filter khi chưa có public
+  mapping từ canonical pair sang opaque `tradingPairId`.
+- **FR-015**: Mỗi News item MUST chỉ hiển thị các field public: title, source, URL an toàn, publish
+  time, related asset IDs và analysis status; không giả lập content hoặc summary.
+- **FR-016**: Sentiment hoàn tất MUST hiển thị label/confidence/polarity public; pending, failed
   hoặc unavailable MUST hiển thị degraded state mà không chặn nội dung News.
 - **FR-017**: Sentiment và market information MUST được mô tả là dữ liệu tham khảo, không phải cam
   kết lợi nhuận, lời khuyên tài chính hoặc tín hiệu đặt lệnh.
@@ -170,14 +173,15 @@ session expiry và reconnect; mọi trạng thái vẫn thao tác được bằn
 
 ### Key Entities
 
-- **Market Selection**: Pair và timeframe hiện hành, cùng trạng thái URL/navigation có thể khôi phục.
+- **Market Selection**: Pair và một đến bốn timeframe panel, cùng URL/navigation có thể khôi phục.
 - **Candle View**: Biểu diễn Candle ordered theo UTC identity và trạng thái snapshot/realtime merge.
-- **Market Connection State**: Trạng thái kết nối, lần cập nhật thành công và hướng phục hồi.
+- **Transport Connection State / Market Provider State**: Hai nguồn trạng thái riêng, lần cập nhật
+  thành công và presentation phục hồi được dẫn xuất.
 - **Strategy Summary/Version**: System hoặc private Strategy, immutable version, status, parameters
   và provenance được phép hiển thị.
 - **Strategy Draft**: Dữ liệu form chưa authoritative, validation issues và mutation state.
-- **News View**: News identity, source, publish time, linked assets, nội dung/summary và pagination.
-- **Sentiment View**: Analysis status, label/score/provenance public hoặc degraded reason an toàn.
+- **News View**: News identity, title, source, URL, publish time, linked assets và pagination.
+- **Sentiment View**: Analysis status, label/confidence/polarity public hoặc degraded reason an toàn.
 
 ## Success Criteria *(mandatory)*
 
@@ -189,8 +193,9 @@ session expiry và reconnect; mọi trạng thái vẫn thao tác được bằn
   để selection hoặc timestamp mới nhất quay lùi.
 - **SC-003**: 100% supported Strategy parameter fixtures hiển thị đúng control/validation và không
   gửi mutation khi còn lỗi đã biết.
-- **SC-004**: Retry cùng create/version/publish/archive scenario 100 lần không khiến UI hiển thị hơn
-  một logical outcome hoặc mất authoritative server state.
+- **SC-004**: Trong 100 lần rapid-click khi mutation đang pending, UI gửi đúng một request; timeout
+  không được hiển thị là success, không auto-retry, và retry do user khởi tạo luôn kết thúc bằng
+  authoritative reload thay vì hứa server-side idempotency không có trong contract.
 - **SC-005**: Với sentiment unavailable trong toàn bộ phiên test, 100% News item còn đọc được và
   Market/Strategy journeys không suy giảm chức năng.
 - **SC-006**: Tất cả loading, empty, inaccessible, retryable và non-retryable fixtures cho ba route
@@ -201,8 +206,8 @@ session expiry và reconnect; mọi trạng thái vẫn thao tác được bằn
   như một fresh authorized snapshot.
 - **SC-009**: Production build chứa zero privileged credential, direct business-table/provider call
   và mock business outcome.
-- **SC-010**: F-012 integration không yêu cầu sửa auth/session, application shell hoặc public client
-  interface của F-011 và không sửa business API contract F-009.
+- **SC-010**: F-012 không sửa auth/session, application shell hoặc business API F-009; thay đổi
+  F-011 realtime chỉ là observer extension tương thích ngược, giữ nguyên toàn bộ method hiện có.
 
 ## Assumptions
 
@@ -211,8 +216,11 @@ session expiry và reconnect; mọi trạng thái vẫn thao tác được bằn
   được hiển thị trung thực thay vì giả lập ở client.
 - Candle chart MVP ưu tiên OHLCV readability, responsive interaction và deterministic updates;
   advanced drawing indicators, annotations và trading controls ngoài phạm vi.
-- Pair/timeframe options đến từ public contract hoặc một versioned frontend mapping đã được kiểm tra
-  parity; UI không tự phát minh provider symbol.
+- Pair/timeframe options đến từ versioned frontend Market catalog đã kiểm tra parity với released
+  contract/docs; UI không tự phát minh provider symbol.
+- News MVP không có pair filter cho tới khi public API cung cấp catalog/mapping `tradingPairId`.
+- Aggregate sentiment, trend, topic và Strategy integration trong prototype là ngoài contract và
+  không được suy diễn từ News page hiện tại.
 - Time được nhận dưới dạng UTC instant và có thể hiển thị theo timezone người dùng với nhãn rõ ràng.
 - News/Sentiment chỉ là thông tin tham khảo; F-012 không đặt lệnh, quản lý ví hoặc đưa lời khuyên.
 - F-010 Search Coordinator và F-013 Experiment UI có thể phát triển song song, không chặn ba journey

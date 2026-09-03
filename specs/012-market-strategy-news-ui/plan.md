@@ -9,7 +9,8 @@
 Thay ba protected placeholder route F-011 bằng Market Dashboard, Strategy library/editor và News
 Sentiment screens. Feature tái sử dụng duy nhất F-011 auth/application shell/REST/realtime clients,
 map contract F-009 sang feature-local typed view models, giữ REST snapshot authoritative và dùng
-realtime như notification/merge layer. Candle chart MVP dùng accessible responsive SVG nội bộ;
+realtime như notification/merge layer qua observer extension tương thích ngược. Thiết kế phản ánh
+`docs/ui` nhưng chỉ dùng public field/behavior; Candle chart dùng tối đa bốn SVG panel responsive;
 không thêm chart runtime dependency, backend contract, provider call hoặc persistence mới.
 
 ## Technical Context
@@ -27,7 +28,7 @@ Candle window và linear merge/render; không rerender toàn shell theo mỗi ev
 **Constraints**: Exact decimals giữ dạng string tới presentation conversion; UTC at boundary;
 REST authoritative; duplicate/out-of-order safe; no secret/direct Supabase business/provider call;
 keyboard/accessibility; production mocks off  
-**Scale/Scope**: Ba protected routes; một active Candle subscription trên Market route; cursor pages
+**Scale/Scope**: Ba protected routes; tối đa bốn active Candle subscriptions trên Market route; cursor pages
 bounded; system/private Strategy including SINGLE/COMPOSITE; public News sentiment only
 
 ## Constitution Check
@@ -46,6 +47,7 @@ bounded; system/private Strategy including SINGLE/COMPOSITE; public News sentime
 | Exact value/UTC semantics | Pass | Decimal string giữ nguyên; UTC parse/format tại presentation boundary |
 | Evidence | Pass | Contract, reducer, component, accessibility, E2E, build và secret/mock tests planned |
 | MVP safety boundary | Pass | Read-only market/news context, không trading/wallet/financial advice |
+| Shared UI reference | Pass | Đã đọc README, spec-kit reference, screen map, design system, interaction states, F-012 reference và screenshots/prototype; contract authority thắng mock behavior |
 
 Không có Constitution violation hoặc exemption.
 
@@ -53,20 +55,20 @@ Không có Constitution violation hoặc exemption.
 
 ### Feature boundaries
 
-- `features/market`: contract schemas, selection URL state, Candle reducer, SVG chart, connection
+- `features/market`: feature-local contract schemas, selection URL state, Candle reducer, SVG chart grid, connection
   status và Market page composition.
 - `features/strategy`: system/private adapters, typed parameter schema, draft validator, immutable
   version workflow và Strategy page composition.
 - `features/news`: cursor/filter reducer, public sentiment view mapping, degraded states và News page.
-- `src/foundation`: chỉ được import qua published auth/HTTP/realtime/UI boundaries; F-012 không tạo
-  client singleton, session provider hoặc application shell khác.
+- `src/foundation`: thêm `onEvent`/`onStatus` observer tương thích ngược vào RealtimeClient hiện có;
+  F-012 không tạo client singleton, session provider hoặc application shell khác.
 - `app/(protected)/*/page.tsx`: server/client composition mỏng, không chứa contract parsing hoặc
   business transition logic.
 
 ### Market flow
 
-1. Parse và canonicalize `pair`, `timeframe`, optional range từ URL; invalid value về safe default.
-2. Subscribe Candle bằng stable route subscription ID; chờ confirmation boundary.
+1. Parse một `pair` và 1–4 `timeframe` từ versioned Market catalog; invalid value về safe default.
+2. Subscribe mỗi panel bằng stable subscription ID; chờ confirmation boundary.
 3. Load `/api/v1/candles` snapshot qua F-011 `ApiClient` và validate response ở adapter.
 4. Buffer event sau confirmation trong lúc snapshot tải; merge theo `(pair,timeframe,openTime)`.
 5. Reject event khác selection, duplicate/stale identity; on reconnect/gap reload snapshot.
@@ -83,10 +85,18 @@ Không có Constitution violation hoặc exemption.
 
 ### News flow
 
-1. URL giữ supported `tradingPairId` và `analysisStatus`; request cursor không được ghi đè filter mới.
+1. URL chỉ giữ supported `analysisStatus`; không có pair filter khi thiếu public ID mapping.
 2. Load `/api/v1/news-items`, validate/dedupe by `newsId`, append theo server stable order.
 3. Map `ANALYZED` + sentiment sang completed view; pending/analyzing/failures sang safe degraded view.
 4. Browser chỉ mở public article URL an toàn; không gọi `/internal/news-items/.../sentiment`.
+5. Không render/suy diễn aggregate sentiment, trend, topic, summary/content hay Strategy integration
+   chỉ xuất hiện trong prototype nhưng không có ở public contract.
+
+### F-011 realtime extension
+
+`RealtimeClient` giữ nguyên methods hiện có và bổ sung `onEvent(listener)` cùng `onStatus(listener)`,
+mỗi method trả cleanup callback. Client phát envelope/status cho nhiều observer; feature adapter tự
+validate typed payload. Đây là extension additive, không tạo transport/client hoặc breaking change.
 
 ## Project Structure
 
@@ -102,7 +112,8 @@ specs/012-market-strategy-news-ui/
 ├── contracts/
 │   ├── market-ui-contract.md
 │   ├── strategy-ui-contract.md
-│   └── news-ui-contract.md
+│   ├── news-ui-contract.md
+│   └── foundation-realtime-extension.md
 └── tasks.md
 ```
 
@@ -118,6 +129,7 @@ apps/web/
 │   ├── market/{api,model,state,components}/
 │   ├── strategy/{api,model,state,components}/
 │   └── news/{api,model,state,components}/
+├── src/foundation/realtime/{contracts.ts,realtime-client.ts}
 └── tests/
     ├── market/
     ├── strategy/
@@ -143,6 +155,7 @@ Các quyết định và alternatives được ghi trong [research.md](research.
 - Market snapshot/realtime rules: [contracts/market-ui-contract.md](contracts/market-ui-contract.md)
 - Strategy form/version workflow: [contracts/strategy-ui-contract.md](contracts/strategy-ui-contract.md)
 - News/sentiment degraded behavior: [contracts/news-ui-contract.md](contracts/news-ui-contract.md)
+- F-011 realtime observer extension: [contracts/foundation-realtime-extension.md](contracts/foundation-realtime-extension.md)
 - Runnable verification: [quickstart.md](quickstart.md)
 
 ## Verification Strategy
@@ -153,12 +166,13 @@ Các quyết định và alternatives được ghi trong [research.md](research.
 4. Architecture/security: one foundation client, no forbidden endpoint/provider/business-table call,
    no production mock/credential and no F-013 scope.
 5. Accessibility/responsive: keyboard, focus, live status, chart equivalent summary at 360/1440.
-6. E2E: Market snapshot/realtime/reconnect; Strategy lifecycle; News sentiment failure isolation.
+6. E2E: Market snapshot/realtime/reconnect; Strategy lifecycle; News sentiment failure isolation;
+   SC-001 được đo trong browser Playwright, không dùng jsdom timing.
 7. Quality gate: format, lint, typecheck, full tests and production build with recorded evidence.
 
 ## Post-design Constitution Check
 
-Pass. Thiết kế không thêm owner, public contract, database, framework hoặc architectural dependency.
+Pass. Thiết kế không thêm owner, business API contract, database, framework hoặc dependency.
 REST remains authoritative, realtime recovery và immutable version behavior có evidence plan; mọi
 browser access đi qua F-011/F-009 authorized boundaries. Không có Complexity Tracking entry.
 

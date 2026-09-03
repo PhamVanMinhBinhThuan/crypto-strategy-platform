@@ -7,7 +7,7 @@ Các model dưới đây là frontend view/state model, không phải durable bu
 | Field | Rules |
 | --- | --- |
 | `pair` | Canonical supported `BASE/QUOTE`; URL-safe encode |
-| `timeframe` | Supported public timeframe code |
+| `panels` | 1–4 panel có stable ID và timeframe trong versioned Market catalog |
 | `startTime`, `endTime` | UTC interval, start inclusive/end exclusive |
 | `generation` | Monotonic local request identity; late generation không commit |
 
@@ -25,12 +25,12 @@ Invalid URL value được canonicalize về default đã công bố và replace
 Reducer dedupe theo identity, kiểm tra selection, giữ newest canonical value và bounded window. Chart
 projection có thể dùng number tạm thời nhưng source string không đổi.
 
-## 3. Market Connection State
+## 3. Transport và Provider State
 
 ```text
-DISCONNECTED -> CONNECTING -> LIVE
-       ^            |           |
-       └── UNAVAILABLE <- RECONNECTING
+Transport: DISCONNECTED -> CONNECTING -> CONNECTED -> RECONNECTING
+Provider:  trạng thái public từ MARKET_CONNECTION_STATUS_CHANGED, độc lập transport
+View:      live/degraded/unavailable được dẫn xuất từ hai state trên
 ```
 
 State giữ `lastSuccessfulEventAt`, subscription confirmation và safe recovery action. Connection
@@ -64,7 +64,7 @@ conflict đều kết thúc bằng authoritative detail/list reload.
 
 ## 5. News Query và Page
 
-`tradingPairId`, selected analysis statuses, cursor và request generation tạo query identity. Page
+Selected analysis statuses, cursor và request generation tạo query identity. Page
 items newest-first với server tie-break; append dedupe `newsId`, response khác query generation bị bỏ.
 
 ## 6. News/Sentiment View
@@ -79,7 +79,8 @@ PENDING/ANALYZING -> ANALYZED
 ```
 
 Chỉ `ANALYZED` kèm payload hợp lệ hiển thị label/confidence/polarity. Các state khác giữ News readable
-và hiện degraded/pending explanation. Không có internal model name/hash trong browser view.
+và hiện degraded/pending explanation. Không có content/summary/provenance hay aggregate analytics
+nếu public DTO không cung cấp; không có internal model name/hash trong browser view.
 
 ## 7. Shared Async State
 
