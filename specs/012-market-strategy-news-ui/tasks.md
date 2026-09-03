@@ -115,20 +115,20 @@ News vẫn đọc được và browser không gọi internal audit.
 
 - [x] T056 [P] [US3] Viết News page/status/sentiment DTO validation tests trong `apps/web/tests/news/news-api.contract.test.ts`
 - [x] T057 [P] [US3] Viết analysis-status/cursor dedupe/stable-order/late-filter-response tests trong `apps/web/tests/news/news-reducer.test.ts`
-- [ ] T058 [P] [US3] Viết ANALYZED/PENDING/ANALYZING/FAILED_RETRYABLE/FAILED mapping tests trong `apps/web/tests/news/sentiment-view.test.tsx`
-- [ ] T059 [P] [US3] Viết safe external-link/internal-audit prohibition tests trong `apps/web/tests/news/news-security.test.tsx`
-- [ ] T060 [P] [US3] Viết loading/empty/degraded/load-more component tests trong `apps/web/tests/news/news-feed.test.tsx`
+- [x] T058 [P] [US3] Viết ANALYZED/PENDING/ANALYZING/FAILED_RETRYABLE/FAILED mapping tests trong `apps/web/tests/news/sentiment-view.test.tsx`
+- [x] T059 [P] [US3] Viết safe external-link/internal-audit prohibition tests trong `apps/web/tests/news/news-security.test.tsx`
+- [x] T060 [P] [US3] Viết loading/empty/degraded/load-more component tests trong `apps/web/tests/news/news-feed.test.tsx`
 
 ### Implementation
 
 - [x] T061 [P] [US3] Implement analysis-status-only News query/page/public-sentiment models trong `apps/web/src/features/news/model/news.ts`
 - [x] T062 [US3] Implement browser-safe public News adapter trong `apps/web/src/features/news/api/news-api.ts`
 - [x] T063 [US3] Implement query-generation/cursor/dedupe reducer trong `apps/web/src/features/news/state/news-reducer.ts`
-- [ ] T064 [P] [US3] Implement URL-backed analysis-status News filter, không pair filter, trong `apps/web/src/features/news/components/NewsFilters.tsx`
-- [ ] T065 [P] [US3] Implement safe Sentiment badge/degraded explanation/disclaimer trong `apps/web/src/features/news/components/SentimentStatus.tsx`
-- [ ] T066 [US3] Implement News cards, safe links và bounded load-more trong `apps/web/src/features/news/components/NewsFeed.tsx`
-- [ ] T067 [US3] Compose News workspace trong `apps/web/src/features/news/components/NewsWorkspace.tsx`
-- [ ] T068 [US3] Thay F-011 News placeholder bằng feature entry point trong `apps/web/app/(protected)/news/page.tsx`
+- [x] T064 [P] [US3] Implement URL-backed analysis-status News filter, không pair filter, trong `apps/web/src/features/news/components/NewsFilters.tsx`
+- [x] T065 [P] [US3] Implement safe Sentiment badge/degraded explanation/disclaimer trong `apps/web/src/features/news/components/SentimentStatus.tsx`
+- [x] T066 [US3] Implement News cards, safe links và bounded load-more trong `apps/web/src/features/news/components/NewsFeed.tsx`
+- [x] T067 [US3] Compose News workspace trong `apps/web/src/features/news/components/NewsWorkspace.tsx`
+- [x] T068 [US3] Thay F-011 News placeholder bằng feature entry point trong `apps/web/app/(protected)/news/page.tsx`
 
 **Checkpoint**: US3 giữ News usable khi Sentiment unavailable và không ảnh hưởng route khác.
 

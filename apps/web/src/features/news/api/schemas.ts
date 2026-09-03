@@ -18,7 +18,7 @@ export const newsItemSchema = z
     newsId: z.string().min(1).max(128),
     title: z.string().min(1),
     source: z.string().min(1),
-    url: z.url(),
+    url: z.url().refine((value) => /^https?:\/\//.test(value), "Must use HTTP(S)"),
     publishedAt: utcInstantSchema,
     analysisStatus: z.enum(["PENDING", "ANALYZING", "ANALYZED", "FAILED_RETRYABLE", "FAILED"]),
     relatedAssetIds: z.array(z.string().min(1).max(128)),
