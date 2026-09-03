@@ -3,6 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 const publicPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/auth/"];
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const bypassToken = process.env.PLAYWRIGHT_AUTH_BYPASS_TOKEN;
+  const playwrightBypass =
+    process.env.NODE_ENV !== "production" &&
+    Boolean(bypassToken) &&
+    request.headers.get("x-playwright-auth-bypass") === bypassToken;
+  if (playwrightBypass) return response;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL,
     key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key)

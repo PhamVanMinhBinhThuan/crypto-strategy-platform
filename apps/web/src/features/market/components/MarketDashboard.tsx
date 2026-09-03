@@ -57,9 +57,13 @@ export function MarketDashboard() {
           : "Không thể tải dữ liệu Market cho lựa chọn hiện tại.";
     });
     setPanels((current) => {
-      for (const panel of selection.panels)
-        if (next[panel.id] && current[panel.id])
-          next[panel.id] = mergeCandles(next[panel.id], current[panel.id].items);
+      for (const panel of selection.panels) {
+        const matchingCurrent = current[panel.id]?.items.filter(
+          (item) => item.pair === selection.pair && item.timeframe === panel.timeframe
+        );
+        if (next[panel.id] && matchingCurrent?.length)
+          next[panel.id] = mergeCandles(next[panel.id], matchingCurrent);
+      }
       return next;
     });
     setError(firstError);

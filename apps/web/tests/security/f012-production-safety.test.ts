@@ -11,4 +11,11 @@ describe("F-012 production safety", () => {
     );
     expect(source).not.toMatch(/\.error\.message/);
   });
+
+  it("keeps the Playwright auth bypass explicitly outside production", () => {
+    const proxy = readFileSync("proxy.ts", "utf8");
+    expect(proxy).toContain('process.env.NODE_ENV !== "production"');
+    expect(proxy).toContain("process.env.PLAYWRIGHT_AUTH_BYPASS_TOKEN");
+    expect(proxy).toContain('request.headers.get("x-playwright-auth-bypass") === bypassToken');
+  });
 });
