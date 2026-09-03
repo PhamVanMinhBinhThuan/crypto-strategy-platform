@@ -125,13 +125,32 @@ hoặc số liệu minh họa.
   chỉ chứa khóa bounded an toàn, không chứa payload/stack/SQL/path.
 
 
-## Full quality gate (2026-09-03)
+## Evidence hardening trước merge (2026-09-03)
 
-- Commit triển khai: `0a065db`; canonical typed-ID repair cuối cùng ở working tree branch
-  `010-search-coordinator`; Java Temurin 21.0.12.
-- Lệnh: `./gradlew --init-script .specify/gradle-f010-isolation.init.gradle --no-daemon test`.
-- Kết quả: `BUILD SUCCESSFUL` trong 1 phút 38 giây; 79 task, gồm API, Worker, module và
-  architecture suites. Canonical identity rule vẫn được giữ nguyên, không nới test.
-- Checksum F-008 được đối chiếu từ chính hai migration đã commit: SHA-256 baseline
-  `a6ade694888cc6d306e3c6e3dce5131ae2ee43353494df3cb2b56de90d31771a` và user/job
-  `b788494c7bcb3c7cfaae98463e3e8786819290cf65ab578d7e5656a23fc59df6`; không sửa migration đã áp dụng.
+- Commit triển khai cố định: `d6a9de33c6385fc24bd912c8de5ec810574e2320` trên branch
+  `010-search-coordinator`. Toàn bộ lệnh dưới đây được chạy khi `HEAD` đúng commit này.
+- Môi trường: Windows, Temurin `21.0.12.1`; Docker Server `29.1.3`; PostgreSQL Bitnami
+  `18.3.0` tại `localhost:55432`, database sạch `crypto_f010_evidence`; Redis
+  `redis:7-alpine` tại `localhost:6379`. Chỉ dùng credential fixture cục bộ.
+- Database được drop/create lại, tạo stub `auth.users` tương thích Supabase local và áp dụng tuần tự
+  toàn bộ migration `20260827000100` đến `20260903000100` với `ON_ERROR_STOP=1`; không sửa migration
+  F-008 đã áp dụng. Contract checksum F-008 băm nội dung canonical LF để độc lập line ending Windows.
+- Canonical Java gate: `gradlew.bat --no-daemon test` — `BUILD SUCCESSFUL`, 70 tasks.
+- Architecture gate: `gradlew.bat --no-daemon :architecture-tests:test` — `BUILD SUCCESSFUL`,
+  37 tasks; không nới dependency, typed-ID, scope hay ADR rule.
+- PostgreSQL gate chạy thật, bỏ qua cache:
+  `gradlew.bat --no-daemon --rerun-tasks :modules:persistence:experimentIntegrationTest` —
+  `BUILD SUCCESSFUL` trong 36 giây, 28/28 tasks executed. Regression reproduction kiểm tra source
+  thiếu Manifest/Search Run/Candidate đều fail và rollback toàn graph; mọi immutable copy yêu cầu
+  affected-row count đúng bằng một.
+- Redis được restart bằng `docker restart crypto-f010-redis`; `redis-cli PING` trả `PONG`.
+  Worker recovery gate:
+  `gradlew.bat --no-daemon --rerun-tasks :apps:worker:test --tests "*SearchCrashRecoveryTest"`
+  `--tests "*SearchReconciliationTest" --tests "*SearchFailurePolicyTest"`
+  `--tests "*SearchRequestConsumerTest"` — `BUILD SUCCESSFUL` trong 1 phút 28 giây,
+  42/42 tasks executed.
+- Public boundary regression xác nhận `Idempotency-Key` chứa dấu nháy, backslash, newline và control
+  character không trở thành correlation data. Correlation ID được sinh phía server và bounded;
+  event envelope dùng serializer với `messageType`/`messageVersion`. API/Worker dùng UTC `Clock`
+  được inject; Coordinator production luôn reload durable state và trusted reconciliation.
+- File init-script cô lập F-010 đã bị xóa; các gate trên là canonical Gradle wrapper commands.

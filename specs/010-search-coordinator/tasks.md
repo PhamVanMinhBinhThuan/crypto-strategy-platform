@@ -178,7 +178,7 @@ khÃ´ng thay Backtest/Evaluation/Leaderboard/public contracts.
 - [x] T093 Xóa non-durable `SearchCoordinator` runtime path, inject UTC `Clock` vào API/Worker composition roots và sửa tests dùng fixed clock/dependencies đầy đủ
 - [x] T094 Xử lý artifact ngoài ownership F-010: giữ pointer feature của main, xác minh checksum F-008 và xóa isolation init script nếu canonical build không dùng
 - [x] T095 Chạy canonical Java 21 unit/architecture gates, dọn `git diff --check` và tạo commit cố định cho evidence
-- [ ] T096 Chạy PostgreSQL/Supabase + Redis recovery suite trên chính commit cố định và cập nhật `quickstart.md` cùng architecture evidence bằng kết quả thật
+- [x] T096 Chạy PostgreSQL/Supabase + Redis recovery suite trên chính commit cố định và cập nhật `quickstart.md` cùng architecture evidence bằng kết quả thật
 
 ## Dependencies & Execution Order
 

@@ -2,8 +2,8 @@
 
 ## F-010 — Bằng chứng thay thế Generator (2026-09-03)
 
-- **Commit triển khai**: `0a065db`; phần sửa canonical typed ID cuối cùng đang ở working tree của branch
-  `010-search-coordinator`, chưa tuyên bố là release artifact.
+- **Commit triển khai đã kiểm chứng**: `d6a9de33c6385fc24bd912c8de5ec810574e2320` trên branch
+  `010-search-coordinator`.
 - `FixtureStrategyGenerator` được đăng ký qua public `SearchModuleFactory.fromGenerators` và
   resolve bằng đúng cặp typed generator ID/version; không có fallback ngầm.
 - `GeneratorReplaceabilityTest` chạy deterministic fixture qua cùng `StrategyGenerator`
@@ -17,6 +17,25 @@
   business implementation của Backtest, Evaluation hay Leaderboard.
 
 **Status**: Partially Verified — Các scenario F-010 có evidence; scenario chưa chạy vẫn giữ Planned
+
+### F-010 — Evidence hardening trước merge
+
+- Canonical Java 21 và architecture gates đều xanh trên commit cố định nêu trên; không dùng init
+  script cô lập và không nới architecture/ADR/typed-ID rule.
+- PostgreSQL Bitnami 18.3 được dựng lại thành database sạch từ toàn bộ Supabase migrations F-001 đến
+  F-010. Suite `experimentIntegrationTest` chạy với `--rerun-tasks`: 28/28 tasks executed và PASS.
+- Composite reproduction transaction kiểm tra affected-row count cho Manifest, Search Run và từng
+  Candidate. Regression source thiếu từng phần chứng minh exception rollback Experiment, Job,
+  Search state, Outbox, verification và idempotency receipt của target graph.
+- Redis `7-alpine` được restart thật và trả `PONG`; Worker crash/reclaim, queue-loss reconciliation,
+  bounded failure policy và Search Request consumer suite chạy lại 42/42 tasks và PASS.
+- Correlation của Start/Reproduce không còn xuất phát từ `Idempotency-Key`; hostile client input không
+  rò sang correlation/event. Event JSON đi qua serializer và giữ envelope `messageType`/
+  `messageVersion`. API/Worker composition roots inject UTC `Clock`; production Coordinator không còn
+  constructor bỏ qua durable reload/trusted reconciliation.
+- Chi tiết environment, commands và thời lượng thực tế được lưu tại
+  `specs/010-search-coordinator/quickstart.md`. Các scenario ngoài phạm vi evidence này, đặc biệt
+  benchmark scale 1-vs-3 Worker, vẫn giữ `Planned`.
 
 **Last Updated**: 2026-09-03
 
