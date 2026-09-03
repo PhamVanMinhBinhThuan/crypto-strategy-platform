@@ -1,0 +1,15 @@
+flowchart LR
+    APP["apps/api + apps/worker"] --> MARKET["Market public API"]
+    APP --> STRATEGY["Strategy public API"]
+    APP --> EXP["Experiment public API"]
+    APP --> NEWS["News public API"]
+    MARKET --> DOMAIN["Stable domain/contracts"]
+    STRATEGY --> DOMAIN
+    EXP --> DOMAIN
+    NEWS --> DOMAIN
+    PERSIST["Persistence adapters"] --> MARKET
+    PERSIST --> STRATEGY
+    PERSIST --> EXP
+    PERSIST --> NEWS
+    INTERNAL["internal implementation"] -. "không import chéo" .- INTERNAL2["module khác"]
+
