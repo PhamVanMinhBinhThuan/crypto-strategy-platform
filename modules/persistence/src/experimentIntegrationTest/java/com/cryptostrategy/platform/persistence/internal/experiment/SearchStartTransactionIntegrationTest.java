@@ -66,10 +66,10 @@ class SearchStartTransactionIntegrationTest {
             assertThat(created.status()).isEqualTo(StartSearchGraphResult.Status.CREATED);
             assertThat(replay).isEqualTo(created.asReplay());
             assertThat(conflict.status()).isEqualTo(StartSearchGraphResult.Status.CONFLICT);
-            assertThat(count(jdbc, "experiment.experiment")).isEqualTo(1);
-            assertThat(count(jdbc, "experiment.job")).isEqualTo(1);
-            assertThat(count(jdbc, "search.search_run")).isEqualTo(1);
-            assertThat(count(jdbc, "platform.outbox_event")).isEqualTo(1);
+            assertThat(countWhere(jdbc, "experiment.experiment", "experiment_id", EXPERIMENT)).isEqualTo(1);
+            assertThat(countWhere(jdbc, "experiment.job", "job_id", JOB)).isEqualTo(1);
+            assertThat(countWhere(jdbc, "search.search_run", "search_run_id", RUN)).isEqualTo(1);
+            assertThat(countWhere(jdbc, "platform.outbox_event", "aggregate_id", JOB)).isEqualTo(1);
         });
     }
 
@@ -88,11 +88,12 @@ class SearchStartTransactionIntegrationTest {
 
         JdbcTemplate jdbc = new JdbcTemplate(dataSource);
         try {
-            assertThat(count(jdbc, "experiment.experiment")).isZero();
-            assertThat(count(jdbc, "experiment.job")).isZero();
-            assertThat(count(jdbc, "search.search_run")).isZero();
-            assertThat(count(jdbc, "platform.outbox_event")).isZero();
-            assertThat(count(jdbc, "platform.idempotency_record")).isZero();
+            assertThat(countWhere(jdbc, "experiment.experiment", "experiment_id", EXPERIMENT)).isZero();
+            assertThat(countWhere(jdbc, "experiment.job", "job_id", JOB)).isZero();
+            assertThat(countWhere(jdbc, "search.search_run", "search_run_id", RUN)).isZero();
+            assertThat(countWhere(jdbc, "platform.outbox_event", "aggregate_id", JOB)).isZero();
+            assertThat(jdbc.queryForObject("select count(*) from platform.idempotency_record "
+                    + "where scope='START_SEARCH' and idempotency_key='idempotency-f010'", Integer.class)).isZero();
         } finally {
             jdbc.update("delete from strategy.strategy_version where strategy_version_id = ?", STRATEGY);
             jdbc.update("delete from market.dataset_version where dataset_version_id = ?", DATASET);
@@ -157,8 +158,9 @@ class SearchStartTransactionIntegrationTest {
                 STRATEGY, "momentum", "strategy-v1:sha256:" + "2".repeat(64));
     }
 
-    private static int count(JdbcTemplate jdbc, String table) {
-        return jdbc.queryForObject("select count(*) from " + table, Integer.class);
+    private static int countWhere(JdbcTemplate jdbc, String table, String column, String value) {
+        return jdbc.queryForObject("select count(*) from " + table + " where " + column + " = ?",
+                Integer.class, value);
     }
 
     private static void withRollback(TestBody body) {
