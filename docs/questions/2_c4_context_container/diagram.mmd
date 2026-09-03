@@ -1,0 +1,11 @@
+flowchart LR
+    USER["User / Trader"] -->|"HTTPS / WSS"| WEB["Web — Next.js"]
+    WEB -->|"REST / WebSocket"| API["API — Spring Boot"]
+    API --> DB[("PostgreSQL / Supabase")]
+    API --> REDIS[("Redis")]
+    WORKER["Worker — Spring Boot"] --> REDIS
+    WORKER --> DB
+    API -->|"REST / WSS"| BINANCE["Binance"]
+    WORKER -->|"HTTP internal"| SENTIMENT["Sentiment — FastAPI"]
+    WORKER --> NEWS["News Providers"]
+

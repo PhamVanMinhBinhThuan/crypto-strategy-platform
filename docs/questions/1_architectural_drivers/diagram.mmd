@@ -1,0 +1,15 @@
+flowchart LR
+    GOAL["Business goal\nNền tảng thử nghiệm strategy"] --> DRIVERS["8 architectural drivers"]
+    DRIVERS --> MOD["Modifiability"]
+    DRIVERS --> SCALE["Scalability"]
+    DRIVERS --> PERF["Performance"]
+    DRIVERS --> RT["Realtime"]
+    DRIVERS --> REL["Reliability"]
+    DRIVERS --> MAIN["Maintainability"]
+    DRIVERS --> OBS["Observability"]
+    DRIVERS --> REP["Reproducibility"]
+    MOD --> DEC["Boundary, ports, plugins"]
+    SCALE --> DEC2["Queue và nhiều Worker"]
+    REL --> DEC3["Recovery và isolation"]
+    REP --> DEC4["Frozen versions và fingerprint"]
+

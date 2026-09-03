@@ -1,0 +1,10 @@
+flowchart LR
+    ENTRY["Leaderboard Entry\nrevision + rank"] --> EVAL["Evaluation Result\nmetrics-v1 + fingerprint"]
+    EVAL --> RESULT["Backtest Result + ordered Trades"]
+    RESULT --> ATTEMPT["Successful Attempt"] --> CAND["Candidate"] --> EXP["Frozen Experiment Manifest"]
+    EXP --> DATA["Dataset Version\nchecksum"]
+    EXP --> STRAT["Strategy version + parameters\nfingerprint"]
+    EXP --> ASSUME["Backtest assumptions version"]
+    EXP --> VERS["metricVersion + rankingVersion"]
+    EXP --> REPRO["Reproduction run"] --> VERIFY["MATCHED / MISMATCHED"]
+

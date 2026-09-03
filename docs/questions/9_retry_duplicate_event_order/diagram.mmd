@@ -1,0 +1,10 @@
+flowchart TD
+    TX["DB transaction"] --> OUTBOX["Outbox event có eventId"]
+    OUTBOX --> Q["Redis Stream\nat-least-once"]
+    Q --> IDEM{"Đã xử lý messageId?"}
+    IDEM -->|"Có"| SKIP["Bỏ qua duplicate"]
+    IDEM -->|"Chưa"| HANDLE["Xử lý + lưu effect idempotent"]
+    HANDLE --> ACK["ACK"]
+    FAIL["Transient failure"] --> RETRY["Bounded retry / reclaim"] --> Q
+    WS["WebSocket event"] --> ORDER["eventId + Candle identity\nrevision/version"] --> UI["Bỏ stale, giữ bản mới"]
+
