@@ -4,7 +4,9 @@
 
 - Non-production Supabase project có site/callback/reset redirect URLs.
 - Chỉ public browser configuration; không dùng service-role/database credential.
-- F-009## Quality Scripts & Production Build Verification (T069)
+- F-009 public API/realtime contract đã sẵn sàng cho các read flow của F-012/F-013.
+
+## Quality Scripts & Production Build Verification (T069)
 ```bash
 npm run format:check
 npm run lint
