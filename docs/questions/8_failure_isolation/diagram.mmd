@@ -1,0 +1,10 @@
+flowchart LR
+    BINANCE["Binance lỗi"] --> MARKET["Market Adapter\nreconnect + backfill"]
+    SENT["Sentiment lỗi"] --> CB["Timeout / circuit breaker\ndegraded"]
+    WORKER["Worker crash"] --> REC["Pending reclaim / retry"]
+    REDIS["Redis tạm mất"] --> OUTBOX["PostgreSQL Outbox\npublish lại"]
+    MARKET --> CHART["Market chart"]
+    CB -. "không chặn" .-> CHART
+    REC --> PIPE["Backtest pipeline"]
+    OUTBOX --> PIPE
+

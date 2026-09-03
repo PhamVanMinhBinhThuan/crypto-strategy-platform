@@ -1,0 +1,8 @@
+flowchart LR
+    CONFIG["generatorId + version + seed"] --> REG["Generator Registry"]
+    REG --> RANDOM["Random Search"]
+    REG --> NEW["Domain-guided / Genetic adapter"]
+    RANDOM --> CAND["Candidate Definition chuẩn"]
+    NEW --> CAND
+    CAND --> JOB["Job / Worker"] --> BT["Backtest"] --> EV["Evaluation"] --> LB["Leaderboard"]
+

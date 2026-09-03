@@ -1,0 +1,11 @@
+flowchart LR
+    API["API: tạo Experiment nhanh"] --> TX["PostgreSQL transaction\nManifest + Job + Outbox"]
+    TX --> PUB["Outbox Publisher"] --> Q["Redis Stream\nbounded backlog"]
+    Q --> W1["Worker 1"]
+    Q --> W2["Worker 2"]
+    Q --> WN["Worker N"]
+    W1 --> DB[("PostgreSQL results")]
+    W2 --> DB
+    WN --> DB
+    DB --> LB["Top-K projection"]
+

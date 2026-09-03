@@ -1,0 +1,10 @@
+flowchart LR
+    BINANCE["Binance payload"] --> BA["Binance Adapter"]
+    OKX["OKX payload"] --> OA["OKX Adapter mới"]
+    FIX["Fixture"] --> FA["Fixture Adapter"]
+    BA --> PORT["Market Data Port"]
+    OA --> PORT
+    FA --> PORT
+    PORT --> MODEL["Canonical Candle / error"]
+    MODEL --> API["Backend REST/WebSocket"] --> WEB["Frontend không đổi"]
+

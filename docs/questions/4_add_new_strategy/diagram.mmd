@@ -1,0 +1,8 @@
+flowchart LR
+    NEW["MACD plugin mới"] -->|"implements"| CONTRACT["StrategyPlugin contract"]
+    NEW --> DESC["Descriptor + parameter schema"]
+    NEW --> TEST["Unit/contract tests"]
+    CONTRACT --> REG["Strategy Registry"]
+    REG --> PIPE["Backtest → Evaluation → Leaderboard"]
+    PIPE -. "không sửa" .-> UI["UI business logic"]
+
