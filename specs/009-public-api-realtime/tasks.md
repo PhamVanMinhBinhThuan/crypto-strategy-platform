@@ -95,9 +95,9 @@
 
 ### Tests for User Story 3
 
-- [ ] T034 [P] [US3] Viết idempotency replay/conflict integration tests cho Backtest và Experiment tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/IdempotencyCommandIntegrationTest.java`.
+- [x] T034 [P] [US3] Viết idempotency replay/conflict integration tests cho Backtest và Experiment tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/IdempotencyCommandIntegrationTest.java`.
 - [X] T035 [P] [US3] Viết command acceptance tests kiểm tra 202, Location, immutable input freeze và owner validation tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/AsyncCommandApiTest.java`.
-- [ ] T036 [P] [US3] Viết stop/cancel/reproduce state-conflict tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/ExperimentCommandStateTest.java`.
+- [x] T036 [P] [US3] Viết stop/cancel/reproduce state-conflict tests tại `apps/api/src/test/java/com/cryptostrategy/platform/api/experiment/ExperimentCommandStateTest.java`.
 
 > Gate còn lại của T034/T036: Backtest replay/conflict và stop/cancel conflict đã verified;
 > start/reproduce Experiment chủ động trả `503 DEPENDENCY_UNAVAILABLE` cho tới khi Search
@@ -107,7 +107,7 @@
 
 - [X] T037 [P] [US3] Tạo Experiment/Backtest/Job command và accepted response DTO tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/CommandDtos.java`.
 - [X] T038 [US3] Implement start Backtest controller gọi F-005/F-006 published use cases tại `apps/api/src/main/java/com/cryptostrategy/platform/api/backtest/BacktestController.java`.
-- [ ] T039 [US3] Implement start/stop/reproduce Experiment controller gọi F-005 application ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentController.java`.
+- [x] T039 [US3] Implement start/stop/reproduce Experiment controller gọi F-005 application ports tại `apps/api/src/main/java/com/cryptostrategy/platform/api/experiment/ExperimentController.java`.
 
 > T039 partial: stop và toàn bộ read path đã hoạt động; start/reproduce được expose dưới
 > readiness gate ổn định thay vì giả lập một operation chưa có Search Coordinator.
@@ -194,7 +194,7 @@
 - [X] T071 [P] Thêm contract drift test cho REST/error/WebSocket docs tại `apps/api/src/test/java/com/cryptostrategy/platform/api/contract/DocumentationParityTest.java`.
 - [X] T072 [P] Thêm security scan tests bảo đảm không log token, body nhạy cảm, provider payload hoặc internal exception; evidence nằm trong `PublicRedactionIntegrationTest`, bao phủ cả response và structured log.
 - [X] T073 [P] Thêm performance smoke test bounded reads, async acceptance và realtime delivery theo SC-003/SC-004 tại `apps/api/src/test/java/com/cryptostrategy/platform/api/performance/PublicApiPerformanceTest.java`.
-- [ ] T074 Chạy database integration tests với Supabase/PostgreSQL và Redis recovery theo `specs/009-public-api-realtime/quickstart.md`, ghi commit/môi trường/evidence.
+- [x] T074 Chạy database integration tests với Supabase/PostgreSQL và Redis recovery theo `specs/009-public-api-realtime/quickstart.md`, ghi commit/môi trường/evidence.
 - [X] T075 Chạy full `JAVA_HOME=<JDK21> ./gradlew test` và Python contract suite; sửa warning/failure liên quan F-009.
 - [X] T076 Review dependency gates F-003/F-008/Search Coordinator, đánh dấu operation readiness đúng evidence và cập nhật `specs/009-public-api-realtime/quickstart.md`.
 - [X] T077 Cập nhật `docs/architecture/architecture-evidence.md` từ Planned sang Verified chỉ cho quality scenarios có evidence thật.

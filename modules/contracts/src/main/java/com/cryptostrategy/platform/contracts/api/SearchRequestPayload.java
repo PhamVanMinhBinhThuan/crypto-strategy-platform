@@ -13,11 +13,20 @@ public record SearchRequestPayload(
         @JsonProperty("concurrencyHint") int concurrencyHint,
         @JsonProperty("topKTarget") int topKTarget
 ) {
+    public static final int DEFAULT_CONCURRENCY_HINT = 1;
+    public static final int MAX_CONCURRENCY_HINT = 64;
+    public static final int DEFAULT_TOP_K_TARGET = 10;
+    public static final int MAX_TOP_K_TARGET = 1_000;
+
     public SearchRequestPayload {
         Objects.requireNonNull(searchJobId, "searchJobId cannot be null");
         Objects.requireNonNull(experimentId, "experimentId cannot be null");
-        if (concurrencyHint < 1) concurrencyHint = 1;
-        if (topKTarget < 1) topKTarget = 10;
+        if (concurrencyHint < 1 || concurrencyHint > MAX_CONCURRENCY_HINT) {
+            throw new IllegalArgumentException("concurrencyHint must be between 1 and " + MAX_CONCURRENCY_HINT);
+        }
+        if (topKTarget < 1 || topKTarget > MAX_TOP_K_TARGET) {
+            throw new IllegalArgumentException("topKTarget must be between 1 and " + MAX_TOP_K_TARGET);
+        }
     }
 
     public SearchRequestPayload(
@@ -38,14 +47,14 @@ public record SearchRequestPayload(
     public static SearchRequestPayload of(
             @JsonProperty("searchJobId") String searchJobId,
             @JsonProperty("experimentId") String experimentId,
-            @JsonProperty("concurrencyHint") int concurrencyHint,
-            @JsonProperty("topKTarget") int topKTarget
+            @JsonProperty("concurrencyHint") Integer concurrencyHint,
+            @JsonProperty("topKTarget") Integer topKTarget
     ) {
         return new SearchRequestPayload(
                 searchJobId,
                 experimentId,
-                concurrencyHint,
-                topKTarget
+                concurrencyHint != null ? concurrencyHint : DEFAULT_CONCURRENCY_HINT,
+                topKTarget != null ? topKTarget : DEFAULT_TOP_K_TARGET
         );
     }
 }

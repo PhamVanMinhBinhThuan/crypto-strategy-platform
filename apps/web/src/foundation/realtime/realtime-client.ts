@@ -93,17 +93,19 @@ export function createRealtimeClient(
       void handleClose(event);
     };
   }
-  async function handleClose(event: CloseEvent) {
-    transition("reconnecting", { closeCode: event.code, closeReason: event.reason });
-    if (event.code === 4001 && !(await recoverAuthentication())) {
+  async function handleClose(event?: CloseEvent) {
+    const closeCode = event?.code ?? 1006;
+    const closeReason = event?.reason ?? "";
+    transition("reconnecting", { closeCode, closeReason });
+    if (closeCode === 4001 && !(await recoverAuthentication())) {
       disconnect();
       return;
     }
     if (attempt >= maxAttempts) {
       transition("disconnected", {
         exhausted: true,
-        closeCode: event.code,
-        closeReason: event.reason
+        closeCode,
+        closeReason
       });
       return;
     }
@@ -123,10 +125,10 @@ export function createRealtimeClient(
     socket = null;
     current?.close();
     registry.clear();
+    transition("disconnected");
     envelopes.clear();
     statuses.clear();
     attempt = 0;
-    state = "disconnected";
   }
   registerPrivateStateCleanup(disconnect);
   return {
@@ -151,6 +153,10 @@ export function createRealtimeClient(
     },
     status: () => state,
     onEnvelope(listener) {
+      envelopes.add(listener);
+      return () => envelopes.delete(listener);
+    },
+    onEvent(listener) {
       envelopes.add(listener);
       return () => envelopes.delete(listener);
     },

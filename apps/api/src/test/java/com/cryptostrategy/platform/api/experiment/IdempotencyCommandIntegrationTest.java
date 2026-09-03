@@ -56,7 +56,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
             "spring.datasource.password=fixture-password",
             "platform.security.jwt.issuer=https://fixture.invalid/auth/v1",
             "platform.security.jwt.jwk-set-uri=https://fixture.invalid/.well-known/jwks.json",
-            "platform.security.jwt.audience=authenticated"
+            "platform.security.jwt.audience=authenticated",
+            "platform.features.search-start-enabled=false",
+            "platform.features.search-reproduce-enabled=false"
         })
 @AutoConfigureMockMvc
 class IdempotencyCommandIntegrationTest {

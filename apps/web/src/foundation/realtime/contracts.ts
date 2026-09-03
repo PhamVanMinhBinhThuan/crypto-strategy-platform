@@ -27,5 +27,6 @@ export interface RealtimeClient {
   unsubscribe(subscriptionId: string): void;
   status(): RealtimeStatus;
   onEnvelope(listener: (value: RealtimeEnvelope) => void): () => void;
+  onEvent(listener: (value: RealtimeEnvelope) => void): () => void;
   onStatus(listener: (value: RealtimeStatusMetadata) => void): () => void;
 }

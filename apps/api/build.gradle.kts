@@ -15,6 +15,7 @@ dependencies {
     implementation(project(":modules:news"))
     implementation(project(":modules:evaluation"))
     implementation(project(":modules:leaderboard"))
+    implementation(project(":modules:experiment-execution"))
     implementation(project(":modules:persistence"))
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")

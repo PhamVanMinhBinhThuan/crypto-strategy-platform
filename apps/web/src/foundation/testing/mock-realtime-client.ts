@@ -21,6 +21,8 @@ export class MockRealtimeClient implements RealtimeClient {
   disconnect() {
     this.transition("disconnected");
     this.subscriptions.clear();
+    this.envelopeListeners.clear();
+    this.statusListeners.clear();
   }
   subscribe(v: LogicalSubscription) {
     this.subscriptions.set(v.subscriptionId, v);
@@ -32,6 +34,10 @@ export class MockRealtimeClient implements RealtimeClient {
     return this.value;
   }
   onEnvelope(listener: (value: RealtimeEnvelope) => void) {
+    this.envelopeListeners.add(listener);
+    return () => this.envelopeListeners.delete(listener);
+  }
+  onEvent(listener: (value: RealtimeEnvelope) => void) {
     this.envelopeListeners.add(listener);
     return () => this.envelopeListeners.delete(listener);
   }

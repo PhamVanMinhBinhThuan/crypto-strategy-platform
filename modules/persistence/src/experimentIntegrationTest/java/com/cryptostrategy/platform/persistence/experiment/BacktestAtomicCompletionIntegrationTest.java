@@ -31,6 +31,7 @@ import com.cryptostrategy.platform.persistence.api.ExperimentPersistenceFactory;
 import com.cryptostrategy.platform.persistence.api.LeaderboardPersistenceFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import java.math.BigDecimal;
@@ -47,6 +48,7 @@ class BacktestAtomicCompletionIntegrationTest {
     private BacktestingPersistenceFactory btFactory;
     private EvaluationPersistenceFactory evalFactory;
     private LeaderboardPersistenceFactory lbFactory;
+    private JdbcTemplate jdbc;
 
     @BeforeEach
     void setUp() {
@@ -60,11 +62,14 @@ class BacktestAtomicCompletionIntegrationTest {
         btFactory = new BacktestingPersistenceFactory(dataSource);
         evalFactory = new EvaluationPersistenceFactory(dataSource);
         lbFactory = new LeaderboardPersistenceFactory(dataSource);
+        jdbc = new JdbcTemplate(dataSource);
     }
 
     @Test
     void atomicCompletionSucceedsAndPersistsLineageAndEvaluation() {
         UUID ownerUserId = UUID.randomUUID();
+        ExperimentIntegrationFixture.seedManifestReferences(
+                jdbc, ownerUserId, "01J7K8M9N0P1Q2R3S4T5A6V7W3");
         ExperimentId experimentId = ExperimentId.generate();
         CandidateId candidateId = CandidateId.generate();
         JobId jobId = JobId.generate();
@@ -75,14 +80,14 @@ class BacktestAtomicCompletionIntegrationTest {
         var attemptStore = expFactory.createExecutionAttemptStore();
         var btResultStore = btFactory.createResultStore();
         var evalResultStore = evalFactory.createStore();
-        var lbStore = lbFactory.createLeaderboardStore();
+        var lbStore = lbFactory.createStore();
 
         // 1. Setup Experiment, Candidate, Job
         Experiment experiment = Experiment.create(experimentId, ownerUserId, "Atomic Test", null, null, now);
         ExperimentManifest manifest = new ExperimentManifest(
-                experimentId, 1,
+                experimentId, "1",
                 new DatasetProvenanceSnapshot(new DatasetVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W3"), "v1", "hash", "binance", "BTCUSDT", "1m", "norm-v1", now.minusSeconds(3600), now, 100),
-                StrategyProvenanceSnapshot.single(new com.cryptostrategy.platform.strategy.api.model.StrategyReference(new com.cryptostrategy.platform.strategy.api.model.StrategyVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W2"), new StrategyPluginId("momentum"), new com.cryptostrategy.platform.strategy.api.model.SemanticVersion(1, 0, 0)), com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.empty(), java.util.Optional.empty(), "fp"),
+                StrategyProvenanceSnapshot.single(new com.cryptostrategy.platform.strategy.api.model.StrategyReference(new com.cryptostrategy.platform.strategy.api.model.StrategyVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W2"), new StrategyPluginId("momentum"), new com.cryptostrategy.platform.strategy.api.model.SemanticVersion(1, 0, 0)), com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.empty(), java.util.Optional.empty(), "strategy-v1:sha256:0000000000000000000000000000000000000000000000000000000000000000"),
                 Map.of("capital", 10000), Map.of(), Map.of(), null, "1.0", "commit-1", "fingerprint-1", now
         );
         experimentStore.insertExperiment(ownerUserId, experiment, manifest);
@@ -127,7 +132,7 @@ class BacktestAtomicCompletionIntegrationTest {
         EvaluationResult eval = new EvaluationResult(
                 evalId, experimentId, resultId, new MetricVersion("metric-v1"), new RankingVersion("ranking-v1"),
                 BigDecimal.valueOf(0.20), BigDecimal.valueOf(0.60), BigDecimal.valueOf(0.05), 10,
-                BigDecimal.valueOf(0.85), true, "eval-fp-1", now
+                BigDecimal.valueOf(0.85), true, "sha256:" + "e".repeat(64), now
         );
         EvaluationResult savedEval = evalResultStore.save(eval);
         assertThat(savedEval.evaluationResultId()).isEqualTo(evalId);

@@ -130,6 +130,7 @@ public record WorkerProperties(
     public record Consumer(
             String backtestGroup,
             String rankingGroup,
+            String searchGroup,
             String consumerName,
             int readBatchSize,
             Duration pollTimeout,
@@ -137,12 +138,13 @@ public record WorkerProperties(
             int pendingBatchSize
     ) {
         public static Consumer defaults() {
-            return new Consumer("backtest-workers", "ranking-workers", "worker-1", 10, Duration.ofSeconds(2), Duration.ofMinutes(1), 10);
+            return new Consumer("backtest-workers", "ranking-workers", "search-coordinators", "worker-1", 10, Duration.ofSeconds(2), Duration.ofMinutes(1), 10);
         }
 
         public Consumer(
                 String backtestGroup,
                 String rankingGroup,
+                String searchGroup,
                 String consumerName,
                 int readBatchSize,
                 Duration pollTimeout,
@@ -151,6 +153,7 @@ public record WorkerProperties(
         ) {
             this.backtestGroup = (backtestGroup != null && !backtestGroup.isBlank()) ? backtestGroup : "backtest-workers";
             this.rankingGroup = (rankingGroup != null && !rankingGroup.isBlank()) ? rankingGroup : "ranking-workers";
+            this.searchGroup = (searchGroup != null && !searchGroup.isBlank()) ? searchGroup : "search-coordinators";
             this.consumerName = (consumerName != null && !consumerName.isBlank()) ? consumerName : "worker-1";
             this.readBatchSize = readBatchSize > 0 ? readBatchSize : 10;
             this.pollTimeout = pollTimeout != null ? pollTimeout : Duration.ofSeconds(2);
@@ -164,16 +167,23 @@ public record WorkerProperties(
     public record Concurrency(
             int backtest,
             int ranking,
-            int maxInFlight
+            int search,
+            int maxInFlight,
+            int maxInFlightPerExperiment
     ) {
         public static Concurrency defaults() {
-            return new Concurrency(4, 2, 20);
+            return new Concurrency(4, 2, 2, 20, 4);
         }
 
-        public Concurrency(int backtest, int ranking, int maxInFlight) {
+        public Concurrency(int backtest, int ranking, int search, int maxInFlight, int maxInFlightPerExperiment) {
             this.backtest = backtest > 0 ? backtest : 4;
             this.ranking = ranking > 0 ? ranking : 2;
+            this.search = search > 0 ? search : 2;
             this.maxInFlight = maxInFlight > 0 ? maxInFlight : 20;
+            this.maxInFlightPerExperiment = maxInFlightPerExperiment > 0 ? maxInFlightPerExperiment : 4;
+            if (this.maxInFlightPerExperiment > this.maxInFlight) {
+                throw new IllegalArgumentException("concurrency.maxInFlightPerExperiment must not exceed maxInFlight");
+            }
         }
     }
 
@@ -230,7 +240,9 @@ public record WorkerProperties(
             Duration staleGracePeriod,
             Duration leaderboardInterval,
             int leaderboardBatchSize,
-            Duration stopCompletionInterval
+            Duration stopCompletionInterval,
+            Duration searchInterval,
+            int searchBatchSize
     ) {
         public static Reconciliation defaults() {
             return new Reconciliation(
@@ -238,7 +250,8 @@ public record WorkerProperties(
                     Duration.ofSeconds(30), Duration.ofMinutes(2),
                     Duration.ofSeconds(30), Duration.ofMinutes(1),
                     Duration.ofSeconds(10), 20,
-                    Duration.ofSeconds(5)
+                    Duration.ofSeconds(5),
+                    Duration.ofSeconds(5), 50
             );
         }
 
@@ -251,7 +264,9 @@ public record WorkerProperties(
                 Duration staleGracePeriod,
                 Duration leaderboardInterval,
                 int leaderboardBatchSize,
-                Duration stopCompletionInterval
+                Duration stopCompletionInterval,
+                Duration searchInterval,
+                int searchBatchSize
         ) {
             this.outboxScanInterval = outboxScanInterval != null ? outboxScanInterval : Duration.ofSeconds(1);
             this.outboxBatchSize = outboxBatchSize > 0 ? outboxBatchSize : 50;
@@ -262,6 +277,8 @@ public record WorkerProperties(
             this.leaderboardInterval = leaderboardInterval != null ? leaderboardInterval : Duration.ofSeconds(10);
             this.leaderboardBatchSize = leaderboardBatchSize > 0 ? leaderboardBatchSize : 20;
             this.stopCompletionInterval = stopCompletionInterval != null ? stopCompletionInterval : Duration.ofSeconds(5);
+            this.searchInterval = searchInterval != null ? searchInterval : Duration.ofSeconds(5);
+            this.searchBatchSize = searchBatchSize > 0 ? searchBatchSize : 50;
 
             positive(this.outboxScanInterval, "reconciliation.outboxScanInterval");
             positive(this.queueInterval, "reconciliation.queueInterval");
@@ -270,6 +287,7 @@ public record WorkerProperties(
             positive(this.staleGracePeriod, "reconciliation.staleGracePeriod");
             positive(this.leaderboardInterval, "reconciliation.leaderboardInterval");
             positive(this.stopCompletionInterval, "reconciliation.stopCompletionInterval");
+            positive(this.searchInterval, "reconciliation.searchInterval");
         }
     }
 

@@ -19,6 +19,7 @@ import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceS
 import com.cryptostrategy.platform.persistence.api.ExperimentPersistenceFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import java.time.Instant;
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class AttemptFinalizationConcurrencyIntegrationTest {
 
     private ExperimentPersistenceFactory factory;
+    private JdbcTemplate jdbc;
 
     @BeforeEach
     void setUp() {
@@ -44,11 +46,14 @@ class AttemptFinalizationConcurrencyIntegrationTest {
         dataSource.setPassword(System.getenv("DATABASE_PASSWORD"));
         dataSource.setDriverClassName("org.postgresql.Driver");
         factory = new ExperimentPersistenceFactory(dataSource);
+        jdbc = new JdbcTemplate(dataSource);
     }
 
     @Test
     void competingTerminalFinalizationsEnsureExactlyOneWinner() throws Exception {
         UUID ownerUserId = UUID.randomUUID();
+        ExperimentIntegrationFixture.seedManifestReferences(
+                jdbc, ownerUserId, "01J7K8M9N0P1Q2R3S4T5A6V7W1");
         ExperimentId experimentId = ExperimentId.generate();
         CandidateId candidateId = CandidateId.generate();
         JobId jobId = JobId.generate();
@@ -61,9 +66,9 @@ class AttemptFinalizationConcurrencyIntegrationTest {
         // 1. Setup Experiment, Manifest, Candidate, Job
         Experiment experiment = Experiment.create(experimentId, ownerUserId, "Concurrent Finalization", null, null, now);
         ExperimentManifest manifest = new ExperimentManifest(
-                experimentId, 1,
+                experimentId, "1",
                 new DatasetProvenanceSnapshot(new DatasetVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W1"), "v1", "hash", "binance", "BTCUSDT", "1m", "norm-v1", now.minusSeconds(3600), now, 100),
-                StrategyProvenanceSnapshot.single(new com.cryptostrategy.platform.strategy.api.model.StrategyReference(new com.cryptostrategy.platform.strategy.api.model.StrategyVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W2"), new StrategyPluginId("momentum"), new com.cryptostrategy.platform.strategy.api.model.SemanticVersion(1, 0, 0)), com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.empty(), java.util.Optional.empty(), "fp"),
+                StrategyProvenanceSnapshot.single(new com.cryptostrategy.platform.strategy.api.model.StrategyReference(new com.cryptostrategy.platform.strategy.api.model.StrategyVersionId("01J7K8M9N0P1Q2R3S4T5A6V7W2"), new StrategyPluginId("momentum"), new com.cryptostrategy.platform.strategy.api.model.SemanticVersion(1, 0, 0)), com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.empty(), java.util.Optional.empty(), "strategy-v1:sha256:0000000000000000000000000000000000000000000000000000000000000000"),
                 Map.of("capital", 10000), Map.of(), Map.of(), null, "1.0", "commit-1", "fingerprint-1", now
         );
         experimentStore.insertExperiment(ownerUserId, experiment, manifest);
