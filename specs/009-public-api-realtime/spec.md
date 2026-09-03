@@ -1,6 +1,6 @@
 # Feature Specification: Public API and Realtime Delivery
 
-**Feature Branch**: `009-public-api-realtime`
+**Feature Branch**: `feature/009-public-api-real-time`
 
 **Feature ID**: `F-009`
 

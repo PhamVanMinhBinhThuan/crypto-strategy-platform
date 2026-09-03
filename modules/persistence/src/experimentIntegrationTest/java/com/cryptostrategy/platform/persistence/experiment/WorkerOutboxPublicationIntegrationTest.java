@@ -5,9 +5,11 @@ import com.cryptostrategy.platform.persistence.api.worker.OutboxPublicationPort;
 import com.cryptostrategy.platform.persistence.api.worker.OutboxRecord;
 import com.cryptostrategy.platform.persistence.api.worker.ProcessedMessageStore;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.RepeatedTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -20,6 +22,7 @@ class WorkerOutboxPublicationIntegrationTest {
     private JdbcTemplate jdbcTemplate;
     private OutboxPublicationPort outboxPort;
     private ProcessedMessageStore processedStore;
+    private TransactionTemplate transaction;
 
     @BeforeEach
     void setUp() {
@@ -33,12 +36,24 @@ class WorkerOutboxPublicationIntegrationTest {
         outboxPort = factory.createOutboxPublicationPort();
         processedStore = factory.createProcessedMessageStore();
         jdbcTemplate = new JdbcTemplate(dataSource);
+        transaction = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
     }
 
-    @Test
+    @RepeatedTest(2)
     void duplicateTolerantOutboxPublishingAndProcessedMessageIdempotency() {
         String eventId = com.cryptostrategy.platform.experiment.api.ExperimentId.generate().value();
-        String messageId = "01J7K8M9N0P1Q2R3S4T5A6V7W9";
+        String messageId = com.cryptostrategy.platform.domain.api.identity.Ulids.generate();
+        transaction.executeWithoutResult(status -> {
+            status.setRollbackOnly();
+            verifyPublicationAndIdempotency(eventId, messageId);
+        });
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM platform.outbox_event WHERE outbox_event_id = ?",
+                Integer.class, eventId)).isZero();
+        assertThat(processedStore.isProcessed("worker-group-1", messageId)).isFalse();
+    }
+
+    private void verifyPublicationAndIdempotency(String eventId, String messageId) {
         Instant now = Instant.now();
 
         // 1. Insert an outbox event

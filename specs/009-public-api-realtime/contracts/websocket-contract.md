@@ -32,6 +32,12 @@ không cam kết exactly-once.
 Update Candle đang mở có thể coalesce; Candle close, connection status, completion, terminal
 state và latest Leaderboard revision phải recoverable.
 
+Subscription ID scoped theo connection; callback của registration cũ không được đi vào
+registration mới khi tái sử dụng ID. Coalescing chỉ thay event cùng subscription/type/key.
+Confirmation và pending events phải vào outbound queue trước live events. Buffer pending
+giới hạn mặc định 128 event theo `platform.realtime.outbound-buffer-capacity`; overflow
+trả `SUBSCRIPTION_FAILED` retryable trước confirmation, yêu cầu resubscribe và snapshot recovery.
+
 ## Limits
 
 Mặc định bốn Candle subscriptions, bốn workload subscriptions, 64 KiB/message,

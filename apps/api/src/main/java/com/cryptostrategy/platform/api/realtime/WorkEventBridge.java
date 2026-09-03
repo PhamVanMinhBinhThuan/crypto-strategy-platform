@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
 
@@ -19,12 +20,13 @@ public final class WorkEventBridge {
             String correlationId,
             String subscriptionId,
             Consumer<RealtimeMessageMapper.ServerEvent> delivery) {
-        Key key = new Key(kind, experimentId, subscriptionId);
+        // Client subscription IDs are scoped to a connection, not to this shared bridge.
+        Key key = new Key(UUID.randomUUID(), kind, experimentId, subscriptionId);
         subscribers.put(key, delivery);
         return () -> remove(key, delivery);
     }
 
-    public synchronized void publishProgress(
+    public void publishProgress(
             String experimentId,
             String jobId,
             String status,
@@ -48,7 +50,7 @@ public final class WorkEventBridge {
                 correlationId, occurredAt, true, "progress|" + experimentId);
     }
 
-    public synchronized void publishLifecycle(
+    public void publishLifecycle(
             String experimentId,
             String jobId,
             String status,
@@ -65,7 +67,7 @@ public final class WorkEventBridge {
                 correlationId, occurredAt, false, null);
     }
 
-    public synchronized void publishCompletion(
+    public void publishCompletion(
             String experimentId,
             String candidateId,
             String backtestResultId,
@@ -80,7 +82,7 @@ public final class WorkEventBridge {
                 correlationId, occurredAt, false, null);
     }
 
-    public synchronized void publishLeaderboard(
+    public void publishLeaderboard(
             String experimentId,
             String revisionId,
             long revision,
@@ -103,7 +105,12 @@ public final class WorkEventBridge {
             Instant occurredAt,
             boolean coalescible,
             String coalescingKey) {
-        subscribers.forEach((key, delivery) -> {
+        Map<Key, Consumer<RealtimeMessageMapper.ServerEvent>> current;
+        synchronized (this) {
+            current = Map.copyOf(subscribers);
+        }
+        // Never invoke callbacks while holding the bridge lock: cleanup can unsubscribe.
+        current.forEach((key, delivery) -> {
             if (key.kind == kind && key.experimentKey.equals(experimentId)) {
                 delivery.accept(new RealtimeMessageMapper.ServerEvent(
                         type,
@@ -124,7 +131,7 @@ public final class WorkEventBridge {
 
     public enum Kind { EXPERIMENT, LEADERBOARD }
 
-    private record Key(Kind kind, String experimentKey, String subscriptionKey) {
+    private record Key(UUID registrationId, Kind kind, String experimentKey, String subscriptionKey) {
         private Key {
             Objects.requireNonNull(kind, "kind");
             Objects.requireNonNull(experimentKey, "experimentId");

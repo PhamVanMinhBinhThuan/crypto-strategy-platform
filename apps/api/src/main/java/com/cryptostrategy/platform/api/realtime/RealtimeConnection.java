@@ -197,7 +197,7 @@ public final class RealtimeConnection extends TextWebSocketHandler {
         requireOnly(command.payload(), Set.of("pair", "timeframe"));
         String pair = requiredPayloadText(command.payload(), "pair");
         String timeframe = requiredPayloadText(command.payload(), "timeframe");
-        subscriptions.reserve(
+        var registration = subscriptions.reserve(
                 session.getId(),
                 command.subscriptionId(),
                 SubscriptionRegistry.Type.CANDLES,
@@ -210,15 +210,15 @@ public final class RealtimeConnection extends TextWebSocketHandler {
                     command.correlationId(),
                     command.subscriptionId(),
                     event -> subscriptions.publish(
-                            session.getId(), command.subscriptionId(), event));
-            confirm(session, command, "CANDLES", "ACTIVE", Map.of(
-                    "syncMarker", snapshots.candleMarker(),
-                    "snapshotUrl", "/api/v1/candles"));
-            subscriptions.activate(session.getId(), command.subscriptionId(), handle)
-                    .forEach(event -> delivery.send(session, event));
+                            session.getId(), command.subscriptionId(), registration, event));
+            subscriptions.attach(session.getId(), command.subscriptionId(), registration, handle);
+            subscriptions.activate(session.getId(), command.subscriptionId(), registration,
+                    () -> confirm(session, command, "CANDLES", "ACTIVE", Map.of(
+                            "syncMarker", snapshots.candleMarker(),
+                            "snapshotUrl", "/api/v1/candles")));
         } catch (RuntimeException exception) {
-            subscriptions.remove(
-                    session.getId(), command.subscriptionId(), SubscriptionRegistry.Type.CANDLES);
+            subscriptions.discard(
+                    session.getId(), command.subscriptionId(), registration);
             throw exception;
         }
     }
@@ -230,7 +230,7 @@ public final class RealtimeConnection extends TextWebSocketHandler {
             SubscriptionRegistry.Type type) {
         requireOnly(command.payload(), Set.of("experimentId"));
         String experimentId = requiredPayloadText(command.payload(), "experimentId");
-        subscriptions.reserve(
+        var registration = subscriptions.reserve(
                 session.getId(),
                 command.subscriptionId(),
                 type,
@@ -246,15 +246,15 @@ public final class RealtimeConnection extends TextWebSocketHandler {
                     command.correlationId(),
                     command.subscriptionId(),
                     event -> subscriptions.publish(
-                            session.getId(), command.subscriptionId(), event));
+                            session.getId(), command.subscriptionId(), registration, event));
+            subscriptions.attach(session.getId(), command.subscriptionId(), registration, handle);
             Map<String, Object> recovery = type == SubscriptionRegistry.Type.EXPERIMENT
                     ? snapshots.authorizeExperiment(state.user.userId(), experimentId)
                     : snapshots.authorizeLeaderboard(state.user.userId(), experimentId);
-            confirm(session, command, type.name(), "ACTIVE", recovery);
-            subscriptions.activate(session.getId(), command.subscriptionId(), handle)
-                    .forEach(event -> delivery.send(session, event));
+            subscriptions.activate(session.getId(), command.subscriptionId(), registration,
+                    () -> confirm(session, command, type.name(), "ACTIVE", recovery));
         } catch (RuntimeException exception) {
-            subscriptions.remove(session.getId(), command.subscriptionId(), type);
+            subscriptions.discard(session.getId(), command.subscriptionId(), registration);
             throw exception;
         }
     }

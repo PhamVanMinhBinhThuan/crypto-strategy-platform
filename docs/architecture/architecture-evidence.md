@@ -120,3 +120,17 @@ Tài liệu này nối yêu cầu với view, quyết định và cách kiểm c
   F-010 đã chạy xanh trên Java 21; cấu hình và lệnh có thể xem lại trong quickstart F-010.
 - **Dependency gate**: Experiment start được mở sau US1+US2; Reproduce được mở độc lập sau
   durable async verification của US3. Read/stop và Job cancel tiếp tục dùng boundary hiện hữu.
+
+### F-009 — Regression hardening (2026-09-03)
+
+- Baseline `f310b383b77c376bffc18ff88ffa7e65040ef6d9` cộng working tree trên
+  `feature/009-public-api-real-time`; lệnh, môi trường và giới hạn bằng chứng ở
+  [quickstart F-009](../../specs/009-public-api-realtime/quickstart.md).
+- **Verified**: 507 Java tests (151 API, 32 architecture), 29 PostgreSQL integration tests,
+  10 Python contract tests. Không có failure/error/skip trong các kết quả cuối.
+- **Realtime isolation/recovery**: listener độc lập giữa connection, cleanup khi authorization
+  thất bại/close race, callback cũ sau resubscribe, activation buffer bounded và coalescing
+  theo subscription. Redis smoke dùng service local thật với injected connection-acquisition
+  outage; listener nhận lại lifecycle sau phục hồi với retry interval.
+- Đây là evidence test local, không phải benchmark production hay chứng nhận server-outage
+  end-to-end. ADR-0015 vẫn `Proposed`, cần `Accepted` trước merge.

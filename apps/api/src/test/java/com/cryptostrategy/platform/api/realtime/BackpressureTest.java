@@ -18,6 +18,37 @@ import org.springframework.web.socket.WebSocketSession;
 
 class BackpressureTest {
     @Test
+    void coalescingDoesNotReplaceAnotherLogicalSubscriptionsUpdate() throws Exception {
+        List<Runnable> scheduled = new ArrayList<>();
+        WebSocketSession session = session("independent-subscriptions");
+        var delivery = new RealtimeDeliveryService(
+                new RealtimeMessageMapper(new ObjectMapper().findAndRegisterModules()), scheduler(scheduled), 8);
+        delivery.open(session);
+        delivery.send(session, new RealtimeMessageMapper.ServerEvent(
+                "LEADERBOARD_UPDATED", Instant.EPOCH, "corr", "first", Map.of("revision", 1), true, "same-resource"));
+        delivery.send(session, new RealtimeMessageMapper.ServerEvent(
+                "LEADERBOARD_UPDATED", Instant.EPOCH, "corr", "second", Map.of("revision", 1), true, "same-resource"));
+        for (int index = 0; index < 6; index++) {
+            delivery.send(session, event("BACKTEST_COMPLETED", false, null));
+        }
+        delivery.send(session, new RealtimeMessageMapper.ServerEvent(
+                "LEADERBOARD_UPDATED", Instant.EPOCH, "corr", "second", Map.of("revision", 2), true, "same-resource"));
+        scheduled.getFirst().run();
+
+        var sent = org.mockito.ArgumentCaptor.forClass(org.springframework.web.socket.TextMessage.class);
+        verify(session, org.mockito.Mockito.times(8)).sendMessage(sent.capture());
+        var json = new ObjectMapper();
+        var revisions = new java.util.HashMap<String, Integer>();
+        for (var message : sent.getAllValues()) {
+            var node = json.readTree(message.getPayload());
+            if (node.path("eventType").asText().equals("LEADERBOARD_UPDATED")) {
+                revisions.put(node.path("subscriptionId").asText(), node.path("payload").path("revision").asInt());
+            }
+        }
+        assertThat(revisions).containsExactlyInAnyOrderEntriesOf(Map.of("first", 1, "second", 2));
+    }
+
+    @Test
     void retainsTerminalEventByEvictingAnIntermediateUpdate() throws Exception {
         List<Runnable> scheduled = new ArrayList<>();
         TaskScheduler scheduler = scheduler(scheduled);

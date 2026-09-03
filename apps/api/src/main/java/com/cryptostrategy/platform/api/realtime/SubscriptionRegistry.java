@@ -2,10 +2,10 @@ package com.cryptostrategy.platform.api.realtime;
 
 import java.util.ArrayDeque;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -14,16 +14,24 @@ import org.springframework.stereotype.Component;
 public final class SubscriptionRegistry {
     private final int maximumCandles;
     private final int maximumWorkloads;
+    private final int pendingCapacity;
     private final Map<String, Map<String, Entry>> sessions = new HashMap<>();
 
+    public SubscriptionRegistry(int maximumCandles, int maximumWorkloads) {
+        this(maximumCandles, maximumWorkloads, 128);
+    }
+
+    @Autowired
     public SubscriptionRegistry(
             @Value("${platform.realtime.max-candle-subscriptions:4}") int maximumCandles,
-            @Value("${platform.realtime.max-workload-subscriptions:4}") int maximumWorkloads) {
-        if (maximumCandles < 1 || maximumWorkloads < 1) {
+            @Value("${platform.realtime.max-workload-subscriptions:4}") int maximumWorkloads,
+            @Value("${platform.realtime.outbound-buffer-capacity:128}") int pendingCapacity) {
+        if (maximumCandles < 1 || maximumWorkloads < 1 || pendingCapacity < 1) {
             throw new IllegalArgumentException("Realtime subscription limits must be positive");
         }
         this.maximumCandles = maximumCandles;
         this.maximumWorkloads = maximumWorkloads;
+        this.pendingCapacity = pendingCapacity;
     }
 
     synchronized Entry reserve(
@@ -52,28 +60,61 @@ public final class SubscriptionRegistry {
         return entry;
     }
 
-    synchronized List<RealtimeMessageMapper.ServerEvent> activate(
-            String sessionId, String subscriptionId, AutoCloseable handle) {
-        Entry entry = require(sessionId, subscriptionId);
-        entry.handle = handle == null ? () -> {} : handle;
+    synchronized void activate(
+            String sessionId, String subscriptionId, Entry expected, Runnable confirmation) {
+        Entry entry = require(sessionId, subscriptionId, expected);
+        if (entry.overflowed) {
+            throw new RealtimeProtocolException("SUBSCRIPTION_FAILED",
+                    "Subscription synchronization overflowed; resubscribe and refresh the snapshot", false, true);
+        }
+        // Confirmation and buffered events enter the outbound queue before live callbacks.
+        confirmation.run();
+        require(sessionId, subscriptionId, expected);
+        while (!entry.pending.isEmpty()) {
+            entry.delivery.accept(entry.pending.removeFirst());
+            require(sessionId, subscriptionId, expected);
+        }
         entry.active = true;
-        List<RealtimeMessageMapper.ServerEvent> pending = List.copyOf(entry.pending);
-        entry.pending.clear();
-        return pending;
+    }
+
+    synchronized void attach(String sessionId, String subscriptionId, Entry expected, AutoCloseable handle) {
+        Entry entry;
+        try {
+            entry = require(sessionId, subscriptionId, expected);
+        } catch (RealtimeProtocolException exception) {
+            // The connection may have closed while the upstream subscription was opening.
+            closeHandle(handle);
+            throw exception;
+        }
+        entry.handle = handle == null ? () -> {} : handle;
+    }
+
+    synchronized void discard(String sessionId, String subscriptionId, Entry expected) {
+        Map<String, Entry> entries = sessions.get(sessionId);
+        Entry entry = entries == null ? null : entries.get(subscriptionId);
+        if (entry == expected) {
+            remove(sessionId, subscriptionId, entry.type);
+        }
     }
 
     synchronized void publish(
             String sessionId,
             String subscriptionId,
+            Entry expected,
             RealtimeMessageMapper.ServerEvent event) {
         Map<String, Entry> entries = sessions.get(sessionId);
         Entry entry = entries == null ? null : entries.get(subscriptionId);
         // Provider callbacks can race a successful unsubscribe. A late transient event is
         // discarded because the authorized REST snapshot remains the recovery boundary.
-        if (entry == null) {
+        if (entry == null || entry != expected || entry.overflowed) {
             return;
         }
         if (!entry.active) {
+            if (entry.pending.size() >= pendingCapacity) {
+                entry.pending.clear();
+                entry.overflowed = true;
+                return;
+            }
             entry.pending.addLast(event);
             return;
         }
@@ -102,10 +143,10 @@ public final class SubscriptionRegistry {
         }
     }
 
-    private Entry require(String sessionId, String subscriptionId) {
+    private Entry require(String sessionId, String subscriptionId, Entry expected) {
         Map<String, Entry> entries = sessions.get(sessionId);
         Entry entry = entries == null ? null : entries.get(subscriptionId);
-        if (entry == null) {
+        if (entry == null || entry != expected) {
             throw new RealtimeProtocolException(
                     "SUBSCRIPTION_NOT_FOUND", "Subscription is not active", false);
         }
@@ -113,8 +154,16 @@ public final class SubscriptionRegistry {
     }
 
     private static void close(Entry entry) {
+        entry.pending.clear();
+        closeHandle(entry.handle);
+    }
+
+    private static void closeHandle(AutoCloseable handle) {
+        if (handle == null) {
+            return;
+        }
         try {
-            entry.handle.close();
+            handle.close();
         } catch (Exception ignored) {
             // Cleanup is best effort; no provider detail crosses the public boundary.
         }
@@ -141,6 +190,7 @@ public final class SubscriptionRegistry {
         private final ArrayDeque<RealtimeMessageMapper.ServerEvent> pending = new ArrayDeque<>();
         private AutoCloseable handle = () -> {};
         private boolean active;
+        private boolean overflowed;
 
         private Entry(
                 Type type,
