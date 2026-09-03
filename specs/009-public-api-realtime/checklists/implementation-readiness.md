@@ -22,6 +22,9 @@
 - [x] Job state fixtures bao phủ queued/running/retry/cancelled/failed/succeeded.
 - [x] Full Gradle suite và Python contract suite được chạy.
 - [x] ADR standalone Backtest và architecture evidence được review.
-- [ ] PostgreSQL/Supabase integration chạy với schema thật (thiếu database environment).
-- [ ] Redis runtime recovery smoke chạy với service thật (thiếu Redis environment).
-- [ ] Experiment start/reproduce được mở gate (chờ Search Coordinator runtime boundary).
+- [x] PostgreSQL/Supabase integration chạy với schema thật: 29 tests pass, gồm fixture Outbox chạy hai lần và tự rollback; evidence trong `quickstart.md`.
+- [x] Redis runtime recovery smoke chạy với Redis local thật; inject lỗi lấy connection rồi kiểm tra event sau phục hồi (`RealtimeRedisRecoveryIntegrationTest`).
+- [x] Experiment start/reproduce được mở gate qua published F-010 boundary; có public acceptance/replay/ownership tests.
+
+**Điều kiện trước merge**: ADR-0015 vẫn `Proposed`; cần được review/chuyển sang
+`Accepted` theo governance. Việc hoàn tất implementation/test không thay thế phê duyệt ADR.

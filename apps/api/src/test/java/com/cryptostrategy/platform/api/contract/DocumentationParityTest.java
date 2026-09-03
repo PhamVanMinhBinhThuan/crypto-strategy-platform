@@ -87,6 +87,8 @@ class DocumentationParityTest {
                 "4001",
                 "4002",
                 "4008",
+                "SUBSCRIPTION_FAILED",
+                "platform.realtime.outbound-buffer-capacity",
                 "progress.events.v1",
                 "candidate.evaluated.v1");
         assertThat(websocket).doesNotContain("\ndụng nó sau reconnect.");
@@ -95,6 +97,7 @@ class DocumentationParityTest {
                 "IDEMPOTENCY_KEY_CONFLICT",
                 "INVALID_STATE_TRANSITION",
                 "DEPENDENCY_UNAVAILABLE",
+                "SUBSCRIPTION_FAILED",
                 "REPRODUCE_EXPERIMENT");
         assertThat(examples)
                 .contains(

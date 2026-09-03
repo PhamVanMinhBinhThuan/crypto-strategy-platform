@@ -305,6 +305,9 @@ Quy tắc:
 - Lỗi của một subscription phải gắn đúng `subscriptionId` và không đóng toàn connection nếu có thể cô lập.
 - Chỉ đóng connection khi protocol/security violation nghiêm trọng.
 - WebSocket error code nên tái sử dụng mã REST khi cùng một nguyên nhân.
+- `SUBSCRIPTION_FAILED` với `retryable=true` khi buffer chờ activation đầy: server không
+  xác nhận `ACTIVE`; client backoff, đăng ký lại và đọc authoritative snapshot. Lỗi này
+  được cô lập ở subscription, không làm mất durable state.
 - Reconnect không được giả định exactly-once; client vẫn deduplicate event.
 
 ## 14. Retry rules

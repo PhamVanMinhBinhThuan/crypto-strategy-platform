@@ -1,6 +1,6 @@
 # Kế hoạch triển khai: Public API và Realtime Delivery
 
-**Branch**: `009-public-api-realtime` | **Date**: 2026-09-01 | **Spec**: [spec.md](spec.md)
+**Branch**: `feature/009-public-api-real-time` | **Date**: 2026-09-01 | **Spec**: [spec.md](spec.md)
 
 **Input**: Đặc tả F-009 tại `specs/009-public-api-realtime/spec.md`
 

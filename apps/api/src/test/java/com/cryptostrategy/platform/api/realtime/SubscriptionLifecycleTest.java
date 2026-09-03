@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
@@ -15,6 +16,20 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class SubscriptionLifecycleTest {
+    @Test
+    void connectionCloseDuringUpstreamRegistrationReleasesTheLateHandle() throws Exception {
+        var registry = new SubscriptionRegistry(4, 4);
+        var registration = registry.reserve("session", "chart", SubscriptionRegistry.Type.CANDLES,
+                "BTC/USDT|5m", ignored -> {});
+        registry.closeSession("session");
+        var handle = mock(AutoCloseable.class);
+
+        assertThatThrownBy(() -> registry.attach("session", "chart", registration, handle))
+                .isInstanceOf(RealtimeProtocolException.class);
+        verify(handle).close();
+        registry.discard("session", "chart", registration);
+    }
+
     @Test
     void enforcesDuplicateAndFamilyLimitsWithoutAffectingOtherSubscriptions() {
         var registry = new SubscriptionRegistry(4, 4);

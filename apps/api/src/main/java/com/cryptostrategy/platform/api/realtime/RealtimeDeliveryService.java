@@ -127,6 +127,8 @@ public final class RealtimeDeliveryService {
         while (iterator.hasNext()) {
             var current = iterator.next();
             if (current.coalescible()
+                    && replacement.subscriptionId().equals(current.subscriptionId())
+                    && replacement.eventType().equals(current.eventType())
                     && replacement.coalescingKey().equals(current.coalescingKey())) {
                 iterator.remove();
                 queue.addLast(replacement);

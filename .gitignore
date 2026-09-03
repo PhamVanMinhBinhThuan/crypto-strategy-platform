@@ -36,6 +36,8 @@ __pycache__/
 venv/
 dist/
 *.egg-info/
+.pytest_cache/
+node_modules/
 
 # Ignore every local environment file except the committed placeholder template.
 .env*

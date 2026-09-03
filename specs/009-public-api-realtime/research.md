@@ -82,8 +82,11 @@ business effect.
 phụ thuộc đã sẵn sàng; endpoint không được trả success giả cho Search/Candle/Sentiment
 operation chưa có owner implementation.
 
-**Lý do**: F-003 còn work chưa hoàn tất, F-008 còn hardening và module Search đang trống;
+**Lý do tại thời điểm lập kế hoạch**: F-003 còn work chưa hoàn tất, F-008 còn hardening và module Search đang trống;
 giữ spec đầy đủ nhưng không che khuất dependency gate.
+
+**Cập nhật 2026-09-03**: F-010 đã công bố runtime Start/Reproduce và evidence tương ứng;
+readiness hiện tại được ghi trong `quickstart.md`. Quy tắc không trả thành công giả vẫn giữ nguyên.
 
 **Phương án khác**: trả fixture/mock như production result. Không chọn vì vi phạm evidence
 governance và reproducibility.

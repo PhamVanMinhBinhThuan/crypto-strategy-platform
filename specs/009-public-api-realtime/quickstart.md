@@ -80,7 +80,7 @@ môi trường và kết quả vào evidence F-009; không đánh dấu `Verifie
 - WebSocket không yêu cầu exactly-once nhưng reconcile được từ snapshot.
 - News/Sentiment degraded không làm hỏng Market, Strategy hoặc technical Backtest reads.
 
-## Readiness snapshot (2026-09-02)
+## Readiness snapshot (cập nhật 2026-09-03)
 
 | Capability | Trạng thái | Evidence |
 | --- | --- | --- |
@@ -88,14 +88,14 @@ môi trường và kết quả vào evidence F-009; không đánh dấu `Verifie
 | Market, Dataset, Strategy | Ready | Contract, ownership và conflict tests |
 | Standalone Backtest start/read | Ready | Atomic aggregate + API/result tests |
 | Experiment read/stop, Job read/cancel | Ready | Command/read/state tests |
-| Experiment start/reproduce | Gated | Trả `503 DEPENDENCY_UNAVAILABLE` đến khi Search Coordinator có runtime boundary |
-| Realtime Candle/workload/leaderboard | Code-ready | Protocol, lifecycle, backpressure, recovery và Redis consumer tests; production Redis smoke chưa chạy |
+| Experiment start/reproduce | Ready | Published F-010 runtime boundary; public acceptance/replay/ownership và PostgreSQL evidence; vẫn trả `503` nếu tắt feature flag |
+| Realtime Candle/workload/leaderboard | Ready trong test local | Protocol, lifecycle, backpressure, recovery và Redis thật với injected connection outage; chưa benchmark production |
 | Public News và protected audit | Ready | Public/degraded/security tests; audit giữ route `/internal/news-items/**` |
 
 Redis workload streams mặc định bật trong runtime bằng
 `platform.realtime.streams.enabled=true`; Gradle unit test tắt listener để không phụ thuộc
-dịch vụ ngoài. Các stream là `work.progress`, `work.lifecycle` và
-`work.candidate-evaluated`.
+dịch vụ ngoài. Các stream là `progress.events.v1`, `lifecycle.events.v1` và
+`candidate.evaluated.v1`.
 
 ### Evidence đã chạy
 
@@ -115,3 +115,65 @@ dịch vụ ngoài. Các stream là `work.progress`, `work.lifecycle` và
 - Public Start và Reproduce integration tests xanh; các gate được mở theo evidence độc lập.
 - Evidence này đóng phần PostgreSQL/Redis runtime của T074, nhưng không tuyên bố latency production
   hoặc benchmark throughput nhiều Worker ngoài phạm vi các test đã ghi.
+
+### Regression hardening F-009 (2026-09-03)
+
+- Branch `feature/009-public-api-real-time`, baseline `f310b383b77c376bffc18ff88ffa7e65040ef6d9`
+  cộng working tree hardening của lần implement này; thay đổi chưa commit.
+- Windows, Temurin `21.0.12.1`; Python `3.12.13` trong `.venv/f009` (phù hợp
+  `requires-python >=3.11,<3.13`); Redis `redis:7-alpine` tại `localhost:6379`.
+- Bốn regression ban đầu tái hiện lỗi listener giữa hai connection, cleanup khi authorization
+  thất bại, listener tự đóng trong callback và coalescing sai subscription. Sau sửa, bộ realtime
+  kiểm chứng thêm late callback sau resubscribe, close race và overflow buffer activation.
+- Redis smoke dùng stream ngẫu nhiên `f009-smoke-<UUID>:*`, đọc/ghi Redis thật và inject
+  `RedisConnectionFailureException` ở bước lấy connection của riêng listener. Sau lỗi trên cả
+  ba stream, listener nhận lại lifecycle `COMPLETED`. Test xóa các stream của chính nó;
+  không restart server hoặc sửa stream của workload khác. Đây là consumer recovery evidence,
+  không phải benchmark hoặc bài test mất toàn bộ Redis server.
+- Test Redis mặc định skip khi không có `F009_REDIS_SMOKE=true`; bật riêng bằng PowerShell:
+
+```powershell
+$env:F009_REDIS_SMOKE = 'true'
+.\gradlew.bat --no-daemon --max-workers=2 :apps:api:test --tests '*RealtimeRedisRecoveryIntegrationTest'
+```
+
+- Kết quả targeted Redis smoke: `BUILD SUCCESSFUL`; regression trước sửa không nhận
+  event terminal sau khi kết nối phục hồi vì listener bị cancel.
+- Python: `.venv/f009/Scripts/python.exe -m pytest apps/sentiment/tests -q -p no:cacheprovider`
+  — `10 passed`; một deprecation warning từ Starlette/AnyIO, không có failure.
+- OpenAPI YAML parse: pass (`3.1.0`, 23 paths). `git diff --check`: pass.
+
+### Gate tổng sau hardening (2026-09-03)
+
+- Cùng baseline/working tree và môi trường nêu trên. PostgreSQL fixture:
+  `crypto-f010-postgres-hardening`, database `crypto_f010_evidence`, cổng `55432`;
+  dùng schema F-010 đã có, không sửa hoặc áp dụng migration trong lượt này.
+- Bật `F009_REDIS_SMOKE=true`, cấu hình `DATABASE_URL`, `DATABASE_USERNAME`,
+  `DATABASE_PASSWORD` bằng credential fixture local (không ghi credential vào artifact), rồi chạy:
+
+```powershell
+.\gradlew.bat --no-daemon --no-configuration-cache --no-parallel --max-workers=1 --rerun-tasks test :modules:persistence:experimentIntegrationTest
+```
+
+- Toàn bộ Java `test` tasks được thực thi lại: **507 tests, 0 failures/errors/skips**,
+  gồm **151 API tests** (Redis smoke thực sự chạy) và **32 architecture tests**.
+- Lệnh tổng ban đầu fail riêng ở PostgreSQL fixture Outbox dùng message ID cố định từ
+  lần chạy trước. Đã sửa fixture dùng ID mới, transaction rollback và `@RepeatedTest(2)`;
+  assertion xác nhận không còn Outbox/processed-message do test tạo sau rollback.
+- Chạy lại toàn bộ PostgreSQL suite sau sửa (test task thực thi, không lấy kết quả cache):
+
+```powershell
+.\gradlew.bat --no-daemon --no-configuration-cache --no-parallel --max-workers=1 :modules:persistence:experimentIntegrationTest
+```
+
+- **BUILD SUCCESSFUL**, **29 tests, 0 failures/errors/skips**. Chỉ test fixture thay đổi
+  sau lượt 507 Java tests; production code giữ nguyên.
+- Gradle configuration cache từng tham chiếu generated Kotlin source không còn tồn tại;
+  chạy tuần tự, tắt configuration cache đã vượt qua lỗi này. Kotlin daemon fallback và
+  warning serial/unchecked có sẵn trong các module cũ vẫn xuất hiện; không có warning
+  biên dịch mới từ các file F-009 được sửa.
+- `.specify/extensions.yml` không tồn tại: không có before/after-implement hook cần chạy.
+
+**Merge gate**: ADR-0015 vẫn `Proposed`. Phải có phê duyệt `Accepted` trước merge;
+evidence trên branch không tự thay đổi trạng thái ADR. Các con số latency/30 phút demo
+production không được suy ra từ unit tests hoặc smoke này.
