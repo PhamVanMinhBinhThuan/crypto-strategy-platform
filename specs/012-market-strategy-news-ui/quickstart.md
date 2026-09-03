@@ -23,6 +23,18 @@ npm run build
 Kỳ vọng: contract/reducer/component/accessibility/architecture suites pass; production build không
 chứa mock business truth, privileged credential, direct provider/business-table/internal endpoint.
 
+### Baseline implementation evidence
+
+- Ngày chạy: 2026-09-03 (Asia/Ho_Chi_Minh).
+- Baseline commit: `f2d1dc8`.
+- Runtime: Node.js `22.23.2`; dependencies cài bằng `npm ci` từ committed lockfile.
+- UI authority: đã đối chiếu shared policy/screen map/design system/interaction states, F-012
+  mapping, ba screenshot và ba prototype page. Chỉ giữ visual hierarchy; loại mock values,
+  alternate shell/client, AI/Search/Backtest actions và News aggregate không có public contract.
+- `format:check`, `lint`, `typecheck`: pass; Vitest: 19 files/45 tests pass.
+- Production build: pass với sanitized public placeholders, fixture mode `false`; lần chạy không có
+  env thất bại fail-fast đúng thiết kế và không được tính là build evidence.
+
 ## Market acceptance
 
 1. Mở `/market` với một pair và bốn timeframe hợp lệ; xác nhận grid 2x2 desktop/một cột mobile,

@@ -11,31 +11,31 @@ của từng slice để mỗi story có thể kiểm chứng độc lập.
 
 **Mục đích**: Khóa baseline F-011/F-009, feature boundaries và fixture surface trước khi làm UI.
 
-- [ ] T001 Xác nhận baseline/F-011 handoff và đọc bắt buộc `docs/ui/README.md`, `docs/ui/spec-kit-reference.md`, `docs/ui/screen-map.md`, `docs/ui/design-system.md`, `docs/ui/interaction-states.md`, `docs/ui/features/F-012.md`, screenshots/prototype; ghi authority decisions vào `specs/012-market-strategy-news-ui/quickstart.md`
-- [ ] T002 [P] Tạo Market feature-first directory/barrel boundaries trong `apps/web/src/features/market/`
-- [ ] T003 [P] Tạo Strategy feature-first directory/barrel boundaries trong `apps/web/src/features/strategy/`
-- [ ] T004 [P] Tạo News feature-first directory/barrel boundaries trong `apps/web/src/features/news/`
-- [ ] T005 [P] Tạo shared F-012 sanitized REST/realtime fixtures trong `apps/web/tests/fixtures/f012/`
-- [ ] T006 [P] Thêm route ownership và feature import rules vào `apps/web/tests/architecture/f012-feature-boundaries.test.ts`
-- [ ] T007 Thêm F-012 test discovery/coverage paths nếu cần mà không đổi runtime dependency trong `apps/web/vitest.config.ts`
-- [ ] T008 Chạy baseline `npm run check` và ghi command/commit/result thật vào `specs/012-market-strategy-news-ui/quickstart.md`
+- [x] T001 Xác nhận baseline/F-011 handoff và đọc bắt buộc `docs/ui/README.md`, `docs/ui/spec-kit-reference.md`, `docs/ui/screen-map.md`, `docs/ui/design-system.md`, `docs/ui/interaction-states.md`, `docs/ui/features/F-012.md`, screenshots/prototype; ghi authority decisions vào `specs/012-market-strategy-news-ui/quickstart.md`
+- [x] T002 [P] Tạo Market feature-first directory/barrel boundaries trong `apps/web/src/features/market/`
+- [x] T003 [P] Tạo Strategy feature-first directory/barrel boundaries trong `apps/web/src/features/strategy/`
+- [x] T004 [P] Tạo News feature-first directory/barrel boundaries trong `apps/web/src/features/news/`
+- [x] T005 [P] Tạo shared F-012 sanitized REST/realtime fixtures trong `apps/web/tests/fixtures/f012/`
+- [x] T006 [P] Thêm route ownership và feature import rules vào `apps/web/tests/architecture/f012-feature-boundaries.test.ts`
+- [x] T007 Thêm F-012 test discovery/coverage paths nếu cần mà không đổi runtime dependency trong `apps/web/vitest.config.ts`
+- [x] T008 Chạy baseline `npm run check` và ghi command/commit/result thật vào `specs/012-market-strategy-news-ui/quickstart.md`
 
 ## Phase 2: Foundational
 
 **Mục đích**: Tạo typed adapter/state primitives và safety gates dùng chung cho cả ba route.
 
-- [ ] T009 Viết failing compatibility, multi-listener, event và status transition tests cho observer extension trong `apps/web/tests/contracts/realtime-observer.contract.test.ts`
-- [ ] T010 Implement additive `onEvent`/`onStatus` observers, cleanup và dispatch trong `apps/web/src/foundation/realtime/contracts.ts` và `apps/web/src/foundation/realtime/realtime-client.ts`
-- [ ] T011 Tạo versioned canonical pair/timeframe catalog và released-doc parity tests trong `apps/web/src/features/market/model/market-catalog.ts` và `apps/web/tests/market/market-catalog.test.ts`
-- [ ] T012 [P] Viết F-009 OpenAPI DTO parity tests cho Candle/Strategy/News trong `apps/web/tests/contracts/f012-openapi-parity.test.ts`
-- [ ] T013 [P] Viết WebSocket Candle subscription/event parity tests trong `apps/web/tests/contracts/f012-realtime-parity.test.ts`
-- [ ] T014 [P] Viết forbidden browser boundary tests cho Supabase business table, Binance, internal sentiment và duplicate clients trong `apps/web/tests/architecture/f012-browser-boundaries.test.ts`
-- [ ] T015 [P] Tạo reusable Zod exact-string/UTC/cursor validation primitives trong `apps/web/src/features/shared/public-contract.ts`
-- [ ] T016 [P] Tạo latest-request generation/abort helper chặn stale response trong `apps/web/src/features/shared/latest-request.ts`
-- [ ] T017 [P] Tạo safe URL query canonicalization helper không chứa private payload trong `apps/web/src/features/shared/url-state.ts`
-- [ ] T018 Tạo feature-local public DTO schemas theo F-009 trong `apps/web/src/features/market/api/schemas.ts`, `apps/web/src/features/strategy/api/schemas.ts` và `apps/web/src/features/news/api/schemas.ts`; shared chỉ giữ exact-string/UTC/cursor primitives
-- [ ] T019 Tạo feature-safe API adapter wrapper trên duy nhất F-011 `ApiClient` trong `apps/web/src/features/shared/feature-api.ts`
-- [ ] T020 Viết foundational schema/request/URL helper tests trong `apps/web/tests/foundation/f012-shared-contracts.test.ts`
+- [x] T009 Viết failing compatibility, multi-listener, event và status transition tests cho observer extension trong `apps/web/tests/contracts/realtime-observer.contract.test.ts`
+- [x] T010 Implement additive `onEvent`/`onStatus` observers, cleanup và dispatch trong `apps/web/src/foundation/realtime/contracts.ts` và `apps/web/src/foundation/realtime/realtime-client.ts`
+- [x] T011 Tạo versioned canonical pair/timeframe catalog và released-doc parity tests trong `apps/web/src/features/market/model/market-catalog.ts` và `apps/web/tests/market/market-catalog.test.ts`
+- [x] T012 [P] Viết F-009 OpenAPI DTO parity tests cho Candle/Strategy/News trong `apps/web/tests/contracts/f012-openapi-parity.test.ts`
+- [x] T013 [P] Viết WebSocket Candle subscription/event parity tests trong `apps/web/tests/contracts/f012-realtime-parity.test.ts`
+- [x] T014 [P] Viết forbidden browser boundary tests cho Supabase business table, Binance, internal sentiment và duplicate clients trong `apps/web/tests/architecture/f012-browser-boundaries.test.ts`
+- [x] T015 [P] Tạo reusable Zod exact-string/UTC/cursor validation primitives trong `apps/web/src/features/shared/public-contract.ts`
+- [x] T016 [P] Tạo latest-request generation/abort helper chặn stale response trong `apps/web/src/features/shared/latest-request.ts`
+- [x] T017 [P] Tạo safe URL query canonicalization helper không chứa private payload trong `apps/web/src/features/shared/url-state.ts`
+- [x] T018 Tạo feature-local public DTO schemas theo F-009 trong `apps/web/src/features/market/api/schemas.ts`, `apps/web/src/features/strategy/api/schemas.ts` và `apps/web/src/features/news/api/schemas.ts`; shared chỉ giữ exact-string/UTC/cursor primitives
+- [x] T019 Tạo feature-safe API adapter wrapper trên duy nhất F-011 `ApiClient` trong `apps/web/src/features/shared/feature-api.ts`
+- [x] T020 Viết foundational schema/request/URL helper tests trong `apps/web/tests/foundation/f012-shared-contracts.test.ts`
 
 **Checkpoint**: Contract parsing, request ownership, URL state và browser safety boundary sẵn sàng.
 
