@@ -10,6 +10,7 @@ import { listCandles } from "../api/market-api";
 import { emptyCandleState, mergeCandles, type CandleState } from "../state/candle-reducer";
 import { observeMarket, type ProviderStatus } from "../state/market-realtime-controller";
 import { LatestRequest } from "../../shared/latest-request";
+import { AsyncStatus } from "../../shared/AsyncStatus";
 import { MarketControls } from "./MarketControls";
 import { CandleChart } from "./CandleChart";
 import { MarketConnectionStatus } from "./MarketConnectionStatus";
@@ -50,7 +51,10 @@ export function MarketDashboard() {
     let firstError: string | undefined;
     results.forEach(({ panel, result }) => {
       if (result.ok) next[panel.id] = mergeCandles(emptyCandleState, result.data.items);
-      else firstError ??= result.error.message;
+      else
+        firstError ??= result.error.retryable
+          ? "Market đang tạm gián đoạn. Vui lòng thử lại."
+          : "Không thể tải dữ liệu Market cho lựa chọn hiện tại.";
     });
     setPanels((current) => {
       for (const panel of selection.panels)
@@ -90,6 +94,16 @@ export function MarketDashboard() {
   const frames = selection.panels.map((p) => p.timeframe);
   return (
     <main className="market-workspace">
+      <AsyncStatus
+        message={
+          loading
+            ? "Đang tải dữ liệu Market"
+            : error
+              ? "Market đang gián đoạn"
+              : "Market đã sẵn sàng"
+        }
+        urgent={Boolean(error)}
+      />
       <header className="market-heading">
         <div>
           <p className="eyebrow">F-012 · Market</p>

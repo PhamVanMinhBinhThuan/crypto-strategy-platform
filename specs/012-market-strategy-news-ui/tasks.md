@@ -141,19 +141,19 @@ keyboard; focus/status/retry đúng và không lộ internal detail.
 
 ### Tests
 
-- [ ] T069 [P] [US4] Viết cross-route loading/empty/error/retry consistency tests trong `apps/web/tests/ui/f012-shared-states.test.tsx`
-- [ ] T070 [P] [US4] Viết session-expiry/logout cleanup/no-retry-loop tests trong `apps/web/tests/auth/f012-session-recovery.test.tsx`
-- [ ] T071 [P] [US4] Viết keyboard/focus/live-region accessibility tests trong `apps/web/tests/accessibility/f012-accessibility.test.tsx`
-- [ ] T072 [P] [US4] Viết 360px/1440px overflow/navigation component tests trong `apps/web/tests/accessibility/f012-responsive.test.tsx`
-- [ ] T073 [P] [US4] Viết production mock/secret/error-redaction scope tests trong `apps/web/tests/security/f012-production-safety.test.ts`
+- [x] T069 [P] [US4] Viết cross-route loading/empty/error/retry consistency tests trong `apps/web/tests/ui/f012-shared-states.test.tsx`
+- [x] T070 [P] [US4] Viết session-expiry/logout cleanup/no-retry-loop tests trong `apps/web/tests/auth/f012-session-recovery.test.tsx`
+- [x] T071 [P] [US4] Viết keyboard/focus/live-region accessibility tests trong `apps/web/tests/accessibility/f012-accessibility.test.tsx`
+- [x] T072 [P] [US4] Viết 360px/1440px overflow/navigation component tests trong `apps/web/tests/accessibility/f012-responsive.test.tsx`
+- [x] T073 [P] [US4] Viết production mock/secret/error-redaction scope tests trong `apps/web/tests/security/f012-production-safety.test.ts`
 
 ### Implementation
 
-- [ ] T074 [P] [US4] Chuẩn hóa feature loading/empty/error/degraded composition trên F-011 states trong `apps/web/src/features/shared/FeatureState.tsx`
-- [ ] T075 [P] [US4] Thêm bounded accessible async status announcer trong `apps/web/src/features/shared/AsyncStatus.tsx`
-- [ ] T076 [US4] Đồng bộ responsive layouts/focus styles cho F-012 trong `apps/web/app/globals.css`
-- [ ] T077 [US4] Tích hợp shared recovery/session behavior vào ba feature entry points trong `apps/web/src/features/`
-- [ ] T078 [US4] Chạy cross-route responsive/accessibility/session acceptance theo `specs/012-market-strategy-news-ui/quickstart.md`
+- [x] T074 [P] [US4] Chuẩn hóa feature loading/empty/error/degraded composition trên F-011 states trong `apps/web/src/features/shared/FeatureState.tsx`
+- [x] T075 [P] [US4] Thêm bounded accessible async status announcer trong `apps/web/src/features/shared/AsyncStatus.tsx`
+- [x] T076 [US4] Đồng bộ responsive layouts/focus styles cho F-012 trong `apps/web/app/globals.css`
+- [x] T077 [US4] Tích hợp shared recovery/session behavior vào ba feature entry points trong `apps/web/src/features/`
+- [x] T078 [US4] Chạy cross-route responsive/accessibility/session acceptance theo `specs/012-market-strategy-news-ui/quickstart.md`
 
 **Checkpoint**: US4 chứng minh ba route nhất quán và không fork foundation F-011.
 

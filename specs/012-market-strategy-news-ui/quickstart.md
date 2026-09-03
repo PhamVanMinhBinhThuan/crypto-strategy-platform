@@ -69,6 +69,17 @@ API, không dùng jsdom wall-clock. Khi môi trường non-production sẵn sàn
 chạy lại với API/WebSocket thật. Ghi commit, timestamp, environment, command và sanitized result.
 Không chuyển evidence sang Verified nếu chỉ có fixture hoặc kết quả chưa chạy thật.
 
+## Cross-route recovery acceptance
+
+- Ngày chạy: 2026-09-03 (Asia/Ho_Chi_Minh), Node.js `22.23.2`.
+- Vitest component/fixture: 5 file, 7 test pass cho loading/empty/error/retry/degraded,
+  session-expiry/logout cleanup không lặp, keyboard/live-region, CSS breakpoint 360px/1440px và
+  production safety scan.
+- `lint` và `typecheck`: pass sau khi ba workspace dùng chung bounded async announcement; thông báo
+  lỗi hiển thị đã được ánh xạ sang nội dung an toàn thay vì đưa raw transport detail lên UI.
+- Đây là component/static evidence. Browser viewport, focus traversal thực và môi trường shared vẫn
+  thuộc các gate T085/T086; chưa được ghi là Verified tại đây.
+
 ## Strategy integration evidence
 
 - 2026-09-03: automated owner-safe missing/foreign parity, SINGLE/COMPOSITE form, immutable

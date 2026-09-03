@@ -1,4 +1,6 @@
 import type { NewsItem } from "../model/news";
+import type { AsyncState } from "@/src/foundation/ui/async-state";
+import { FeatureState } from "../../shared/FeatureState";
 import { SentimentStatus } from "./SentimentStatus";
 export function NewsFeed({
   items,
@@ -15,20 +17,24 @@ export function NewsFeed({
   onRetry: () => void;
   onLoadMore: () => void;
 }) {
-  if (loading && !items.length)
+  const initialState: AsyncState<readonly NewsItem[]> = loading
+    ? { kind: "loading" }
+    : error
+      ? { kind: "error", message: error, retryable: true }
+      : items.length
+        ? { kind: "success", data: items }
+        : { kind: "empty" };
+
+  if (!items.length)
     return (
-      <div className="news-state" role="status">
-        Đang tải News…
-      </div>
+      <FeatureState
+        state={initialState}
+        emptyTitle="Không có News phù hợp bộ lọc."
+        onRetry={onRetry}
+      >
+        {() => null}
+      </FeatureState>
     );
-  if (error && !items.length)
-    return (
-      <div className="news-state" role="alert">
-        <p>{error}</p>
-        <button onClick={onRetry}>Thử lại</button>
-      </div>
-    );
-  if (!items.length) return <div className="news-state">Không có News phù hợp bộ lọc.</div>;
   return (
     <section className="news-feed" aria-busy={loading}>
       {error && (

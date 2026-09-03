@@ -17,6 +17,8 @@ import { StrategyCatalog } from "./StrategyCatalog";
 import { StrategyDetail } from "./StrategyDetail";
 import { StrategyForm } from "./StrategyForm";
 import { StrategyActions } from "./StrategyActions";
+import { AsyncStatus } from "../../shared/AsyncStatus";
+
 type MutationOutcome = { ok: boolean; error?: { code: string } };
 export function StrategyWorkspace() {
   const { api } = useClients();
@@ -34,13 +36,23 @@ export function StrategyWorkspace() {
   const loadSystem = useCallback(async () => {
     const result = await listSystemStrategies(api);
     if (result.ok) setSystem(result.data.items);
-    else setSystemError(result.error.message);
+    else
+      setSystemError(
+        result.error.retryable
+          ? "Danh mục Strategy hệ thống đang tạm gián đoạn. Vui lòng thử lại."
+          : "Không thể tải danh mục Strategy hệ thống."
+      );
     setSystemLoading(false);
   }, [api]);
   const loadOwned = useCallback(async () => {
     const result = await listUserStrategies(api);
     if (result.ok) setOwned(result.data.items);
-    else setOwnedError(result.error.message);
+    else
+      setOwnedError(
+        result.error.retryable
+          ? "Strategy cá nhân đang tạm gián đoạn. Vui lòng thử lại."
+          : "Không thể tải Strategy cá nhân."
+      );
     setOwnedLoading(false);
   }, [api]);
   useEffect(() => {
@@ -82,6 +94,7 @@ export function StrategyWorkspace() {
   };
   return (
     <main className="strategy-workspace">
+      <AsyncStatus message={pending ? "Đang cập nhật Strategy" : feedback} />
       <header>
         <p className="eyebrow">F-012 · Strategy</p>
         <h1>Strategy Composer</h1>

@@ -7,6 +7,7 @@ import { listNewsItems } from "../api/news-api";
 import { newsReducer, type NewsState } from "../state/news-reducer";
 import { NEWS_STATUSES, NewsFilters } from "./NewsFilters";
 import { NewsFeed } from "./NewsFeed";
+import { AsyncStatus } from "../../shared/AsyncStatus";
 const parseStatuses = (params: URLSearchParams) =>
   [...new Set(params.getAll("analysisStatus"))].filter((value): value is NewsAnalysisStatus =>
     NEWS_STATUSES.some((item) => item === value)
@@ -77,6 +78,10 @@ export function NewsWorkspace() {
   };
   return (
     <main className="news-workspace">
+      <AsyncStatus
+        message={state.loading ? "Đang tải News" : (state.error ?? "News đã sẵn sàng")}
+        urgent={Boolean(state.error)}
+      />
       <header>
         <div>
           <p className="eyebrow">F-012 · News</p>
