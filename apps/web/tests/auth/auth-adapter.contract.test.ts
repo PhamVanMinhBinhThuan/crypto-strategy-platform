@@ -8,6 +8,7 @@ const mockUpdateUser = vi.fn();
 const mockSignOut = vi.fn();
 const mockGetSession = vi.fn();
 const mockOnAuthStateChange = vi.fn();
+const mockRefreshSession = vi.fn();
 
 vi.mock("@/src/foundation/auth/supabase-browser", () => ({
   createSupabaseBrowserClient: () => ({
@@ -18,7 +19,8 @@ vi.mock("@/src/foundation/auth/supabase-browser", () => ({
       updateUser: mockUpdateUser,
       signOut: mockSignOut,
       getSession: mockGetSession,
-      onAuthStateChange: mockOnAuthStateChange
+      onAuthStateChange: mockOnAuthStateChange,
+      refreshSession: mockRefreshSession
     }
   })
 }));
@@ -35,6 +37,30 @@ describe("SupabaseAuthAdapter", () => {
     mockSignUp.mockResolvedValueOnce({ data: {}, error: null });
     const result = await adapter.signUp("test@example.com", "password", "http://localhost");
     expect(result).toEqual({ ok: true, next: "verify-email" });
+  });
+
+  it("maps refresh success and failure to the public session contract", async () => {
+    mockRefreshSession.mockResolvedValueOnce({
+      data: {
+        session: {
+          user: { id: "u", email: "u@example.test" },
+          access_token: "token",
+          expires_at: 42
+        }
+      },
+      error: null
+    });
+    await expect(adapter.refreshSession?.()).resolves.toEqual({
+      userId: "u",
+      email: "u@example.test",
+      accessToken: "token",
+      expiresAt: 42
+    });
+    mockRefreshSession.mockResolvedValueOnce({
+      data: { session: null },
+      error: { message: "internal" }
+    });
+    await expect(adapter.refreshSession?.()).resolves.toBeNull();
   });
 
   it("handles failed sign up securely", async () => {

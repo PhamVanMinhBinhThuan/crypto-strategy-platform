@@ -1,4 +1,11 @@
 export type RealtimeStatus = "disconnected" | "connecting" | "connected" | "reconnecting";
+export type RealtimeStatusMetadata = Readonly<{
+  status: RealtimeStatus;
+  attempt: number;
+  exhausted?: boolean;
+  closeCode?: number;
+  closeReason?: string;
+}>;
 export type RealtimeEnvelope<T = unknown> = Readonly<{
   eventType: string;
   eventVersion: number;
@@ -19,4 +26,6 @@ export interface RealtimeClient {
   subscribe(value: LogicalSubscription): void;
   unsubscribe(subscriptionId: string): void;
   status(): RealtimeStatus;
+  onEnvelope(listener: (value: RealtimeEnvelope) => void): () => void;
+  onStatus(listener: (value: RealtimeStatusMetadata) => void): () => void;
 }

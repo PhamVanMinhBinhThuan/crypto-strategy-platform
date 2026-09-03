@@ -23,6 +23,10 @@ export function createSupabaseAuthClient(): AuthClient {
     async session() {
       return sessionOf((await client.auth.getSession()).data.session);
     },
+    async refreshSession() {
+      const { data, error } = await client.auth.refreshSession();
+      return error ? null : sessionOf(data.session);
+    },
     async signUp(email, password, redirectTo) {
       const { error } = await client.auth.signUp({
         email,
