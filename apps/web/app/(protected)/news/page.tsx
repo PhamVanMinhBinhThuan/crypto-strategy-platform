@@ -1,10 +1,15 @@
-import { RoutePlaceholder } from "@/src/components/states/RoutePlaceholder";
+import { Suspense } from "react";
+import { NewsWorkspace } from "@/src/features/news/components/NewsWorkspace";
 export default function Page() {
   return (
-    <RoutePlaceholder
-      eyebrow="F-012"
-      title="News Sentiment"
-      description="News and degraded sentiment experiences will be implemented in F-012."
-    />
+    <Suspense
+      fallback={
+        <div className="news-state" role="status">
+          Đang tải News…
+        </div>
+      }
+    >
+      <NewsWorkspace />
+    </Suspense>
   );
 }

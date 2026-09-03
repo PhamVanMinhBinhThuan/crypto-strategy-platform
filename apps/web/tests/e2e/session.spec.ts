@@ -18,7 +18,9 @@ test.describe("Session Management", () => {
   // A fake token will be rejected, resulting in a redirect back to /login.
   // This logic is thoroughly covered by `tests/auth/route-protection.test.ts` using vitest mocks.
 
-  test("Logout clears session and Back navigation does not expose private content", async ({ page }) => {
+  test("Logout clears session and Back navigation does not expose private content", async ({
+    page
+  }) => {
     // First, login
     await page.goto("/login");
     await page.waitForLoadState("networkidle");
@@ -43,7 +45,7 @@ test.describe("Session Management", () => {
     await page.getByRole("button", { name: "Welcome back" }).click();
 
     // Since proxy.ts will reject the mock token if we do a full page navigation to /market,
-    // the user is effectively bounced back to login by the server. 
+    // the user is effectively bounced back to login by the server.
     await page.waitForURL(/.*login/);
     await expect(page).toHaveURL(/.*login/);
 
