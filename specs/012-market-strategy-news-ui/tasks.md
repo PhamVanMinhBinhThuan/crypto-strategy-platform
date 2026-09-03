@@ -48,25 +48,25 @@ không duplicate/stale overwrite, snapshot vẫn đọc được khi realtime m�
 
 ### Tests
 
-- [ ] T021 [P] [US1] Viết Candle DTO/exact-decimal/UTC validation tests trong `apps/web/tests/market/market-api.contract.test.ts`
-- [ ] T022 [P] [US1] Viết duplicate/stale/out-of-order/closed-Candle merge tests trong `apps/web/tests/market/candle-reducer.test.ts`
-- [ ] T023 [P] [US1] Viết one-pair/1–4-panel URL/default/back-forward và late-response tests trong `apps/web/tests/market/market-selection.test.tsx`
-- [ ] T024 [P] [US1] Viết observer-based per-panel subscribe/confirm/buffer/snapshot/reconnect/gap tests trong `apps/web/tests/market/market-realtime.test.tsx`
-- [ ] T025 [P] [US1] Viết chart geometry/bounded-window/OHLCV equivalent-summary tests trong `apps/web/tests/market/candle-chart.test.tsx`
-- [ ] T026 [P] [US1] Viết loading/empty/error/rate-limit/connection-state component tests trong `apps/web/tests/market/market-dashboard.test.tsx`
+- [x] T021 [P] [US1] Viết Candle DTO/exact-decimal/UTC validation tests trong `apps/web/tests/market/market-api.contract.test.ts`
+- [x] T022 [P] [US1] Viết duplicate/stale/out-of-order/closed-Candle merge tests trong `apps/web/tests/market/candle-reducer.test.ts`
+- [x] T023 [P] [US1] Viết one-pair/1–4-panel URL/default/back-forward và late-response tests trong `apps/web/tests/market/market-selection.test.tsx`
+- [x] T024 [P] [US1] Viết observer-based per-panel subscribe/confirm/buffer/snapshot/reconnect/gap tests trong `apps/web/tests/market/market-realtime.test.tsx`
+- [x] T025 [P] [US1] Viết chart geometry/bounded-window/OHLCV equivalent-summary tests trong `apps/web/tests/market/candle-chart.test.tsx`
+- [x] T026 [P] [US1] Viết loading/empty/error/rate-limit/connection-state component tests trong `apps/web/tests/market/market-dashboard.test.tsx`
 
 ### Implementation
 
-- [ ] T027 [P] [US1] Implement one-pair/1–4-panel selection/range/query view models trong `apps/web/src/features/market/model/market-selection.ts`
-- [ ] T028 [P] [US1] Implement Candle exact-string view model và validation mapping trong `apps/web/src/features/market/model/candle.ts`
-- [ ] T029 [US1] Implement historical Candle adapter qua F-011 client trong `apps/web/src/features/market/api/market-api.ts`
-- [ ] T030 [US1] Implement deterministic bounded Candle reducer trong `apps/web/src/features/market/state/candle-reducer.ts`
-- [ ] T031 [US1] Implement observer-based per-panel subscribe/confirmation/buffer/reconcile controller trong `apps/web/src/features/market/state/market-realtime-controller.ts`
-- [ ] T032 [P] [US1] Implement pair/timeframe controls đồng bộ URL trong `apps/web/src/features/market/components/MarketControls.tsx`
-- [ ] T033 [P] [US1] Implement accessible responsive SVG Candle chart và OHLCV summary trong `apps/web/src/features/market/components/CandleChart.tsx`
-- [ ] T034 [P] [US1] Implement separate transport/provider state và honest derived status trong `apps/web/src/features/market/components/MarketConnectionStatus.tsx`
-- [ ] T035 [US1] Compose async/retry/realtime 2x2 desktop/one-column mobile chart grid trong `apps/web/src/features/market/components/MarketDashboard.tsx`
-- [ ] T036 [US1] Thay F-011 Market placeholder bằng feature entry point trong `apps/web/app/(protected)/market/page.tsx`
+- [x] T027 [P] [US1] Implement one-pair/1–4-panel selection/range/query view models trong `apps/web/src/features/market/model/market-selection.ts`
+- [x] T028 [P] [US1] Implement Candle exact-string view model và validation mapping trong `apps/web/src/features/market/model/candle.ts`
+- [x] T029 [US1] Implement historical Candle adapter qua F-011 client trong `apps/web/src/features/market/api/market-api.ts`
+- [x] T030 [US1] Implement deterministic bounded Candle reducer trong `apps/web/src/features/market/state/candle-reducer.ts`
+- [x] T031 [US1] Implement observer-based per-panel subscribe/confirmation/buffer/reconcile controller trong `apps/web/src/features/market/state/market-realtime-controller.ts`
+- [x] T032 [P] [US1] Implement pair/timeframe controls đồng bộ URL trong `apps/web/src/features/market/components/MarketControls.tsx`
+- [x] T033 [P] [US1] Implement accessible responsive SVG Candle chart và OHLCV summary trong `apps/web/src/features/market/components/CandleChart.tsx`
+- [x] T034 [P] [US1] Implement separate transport/provider state và honest derived status trong `apps/web/src/features/market/components/MarketConnectionStatus.tsx`
+- [x] T035 [US1] Compose async/retry/realtime 2x2 desktop/one-column mobile chart grid trong `apps/web/src/features/market/components/MarketDashboard.tsx`
+- [x] T036 [US1] Thay F-011 Market placeholder bằng feature entry point trong `apps/web/app/(protected)/market/page.tsx`
 
 **Checkpoint**: US1 chạy độc lập với Strategy/News và đáp ứng Market acceptance.
 

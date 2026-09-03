@@ -271,6 +271,149 @@ input {
 .content {
   padding: 1.5rem;
 }
+.market-workspace {
+  display: grid;
+  gap: 1rem;
+}
+.market-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: end;
+}
+.market-heading h1 {
+  margin: 0.15rem 0;
+  font-size: clamp(1.6rem, 3vw, 2.4rem);
+}
+.market-heading p {
+  margin: 0;
+  color: var(--muted);
+}
+.market-controls {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding: 0.75rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.market-controls label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  min-width: 112px;
+}
+.market-controls select {
+  background: #0b1114;
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 0.45rem;
+}
+.market-controls select:focus-visible,
+.market-error button:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.market-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+.market-panel {
+  min-width: 0;
+  background: #101619;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.market-panel > header {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+.market-panel > header span {
+  color: var(--green);
+  font:
+    700 0.8rem ui-monospace,
+    monospace;
+}
+.candle-chart {
+  margin: 0;
+  padding: 0.75rem;
+}
+.candle-chart svg {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  background: linear-gradient(#26323855 1px, transparent 1px);
+  background-size: 100% 40px;
+}
+.candle-chart line,
+.candle-chart rect {
+  stroke: currentColor;
+  fill: currentColor;
+}
+.candle-up {
+  color: var(--green2);
+}
+.candle-down {
+  color: var(--danger);
+}
+.candle-chart figcaption {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--muted);
+  font:
+    0.72rem ui-monospace,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.market-empty {
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.market-status {
+  display: grid;
+  gap: 0.2rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 0.55rem 0.75rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.market-status strong {
+  color: var(--text);
+}
+.market-status.is-live {
+  border-color: #28754d;
+}
+.market-status.is-live strong {
+  color: var(--green);
+}
+.market-error {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid #7d3036;
+  border-radius: 9px;
+  color: #ffb3b7;
+}
+.market-error button {
+  width: auto;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0.4rem 0.7rem;
+}
 .placeholder {
   min-height: calc(100vh - 116px);
   display: grid;
@@ -339,5 +482,12 @@ input {
   }
   .content {
     padding: 1rem;
+  }
+  .market-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .market-grid {
+    grid-template-columns: 1fr;
   }
 }
