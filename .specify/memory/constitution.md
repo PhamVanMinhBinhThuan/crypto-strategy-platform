@@ -154,6 +154,11 @@ demo MUST NOT được tạo giả.
    deployment. Áp dụng migration remote cần phê duyệt rõ ràng.
 8. Pull Request MUST nêu owner, ADR, contract, migration, security boundary và
    evidence bị ảnh hưởng. Vi phạm Constitution chưa giải quyết sẽ chặn merge.
+9. Feature tạo hoặc sửa `apps/web` MUST load shared UI reference trong `docs/ui/`
+   trước khi chốt specification, plan, tasks và implementation. Consistency analysis
+   và convergence review MUST kiểm tra implementation có tuân theo public contract,
+   F-011 boundary và UI reference phù hợp hay không; prototype MUST NOT mặc định được
+   xem là source of truth.
 
 ## Quản trị
 
@@ -177,4 +182,4 @@ Compliance MUST được review trong planning, consistency analysis, code revie
 trước deployment. Complexity vi phạm nguyên tắc cần ADR; nếu chính nguyên tắc thay
 đổi thì cần Constitution amendment trước.
 
-**Version**: 1.1.0 | **Ratified**: 2026-08-27 | **Last Amended**: 2026-08-28
+**Version**: 1.2.0 | **Ratified**: 2026-08-27 | **Last Amended**: 2026-09-03
