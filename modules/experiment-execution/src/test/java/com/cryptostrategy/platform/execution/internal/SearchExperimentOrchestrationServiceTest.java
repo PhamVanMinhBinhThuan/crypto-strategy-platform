@@ -69,8 +69,8 @@ class SearchExperimentOrchestrationServiceTest {
         when(job.experimentId()).thenReturn(EXPERIMENT_ID);
         when(job.jobId()).thenReturn(JOB_ID);
         SearchRun run = mock(SearchRun.class);
-        when(run.experimentRef()).thenReturn(EXPERIMENT_ID.value());
-        when(run.searchJobRef()).thenReturn(JOB_ID.value());
+        when(run.experimentId()).thenReturn(new com.cryptostrategy.platform.search.api.model.SearchExperimentId(EXPERIMENT_ID.value()));
+        when(run.searchJobId()).thenReturn(new com.cryptostrategy.platform.search.api.model.SearchJobId(JOB_ID.value()));
         OutboxEvent outbox = mock(OutboxEvent.class);
         when(outbox.aggregateId()).thenReturn(JOB_ID.value());
         return new StartCommand(owner, "key", "sha256:request", Instant.parse("2026-09-04T00:00:00Z"),

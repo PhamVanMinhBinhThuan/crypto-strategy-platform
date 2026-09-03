@@ -1,7 +1,8 @@
 package com.cryptostrategy.platform.execution.api.port.out;
 
-import java.util.UUID;
-
+import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.CandidateId;
+import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.search.api.model.SearchRun;
 import java.time.Instant;
 import java.util.Objects;
@@ -9,11 +10,11 @@ import java.util.Optional;
 
 /** Composite durable boundary cho Search Run và SEARCH Job authoritative progress. */
 public interface TrustedSearchCoordinationGateway {
-    Optional<AuthoritativeSnapshot> load(String experimentId);
+    Optional<AuthoritativeSnapshot> load(ExperimentId experimentId);
 
     /** Kiểm tra lineage Candidate/Backtest/Evaluation; empty nếu trigger không thuộc graph. */
     Optional<AuthoritativeSnapshot> loadCompletion(
-            String experimentId, String candidateId, String backtestJobId);
+            ExperimentId experimentId, CandidateId candidateId, JobId backtestJobId);
 
     boolean commit(Transition transition);
 
@@ -41,7 +42,7 @@ public interface TrustedSearchCoordinationGateway {
             SearchRun replacement,
             int completedWork,
             int failedWork,
-            String processedMessageRef) {
+            String messageId) {
         public Transition {
             if (expectedVersion < 0) throw new IllegalArgumentException("expectedVersion must be non-negative");
             Objects.requireNonNull(replacement, "replacement");

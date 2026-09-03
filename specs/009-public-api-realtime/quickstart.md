@@ -105,14 +105,13 @@ dịch vụ ngoài. Các stream là `work.progress`, `work.lifecycle` và
   — `10 passed`.
 - OpenAPI YAML parse và documentation parity test — pass.
 
-### Evidence chưa thể chạy trong môi trường hiện tại
+### Evidence bổ sung từ F-010 (2026-09-03)
 
-Tại thời điểm kiểm chứng, `DATABASE_URL`, `SUPABASE_DB_URL`,
-`SPRING_DATASOURCE_URL`, `REDIS_URL` và `SPRING_DATA_REDIS_HOST` đều chưa được cấu hình.
-Vì vậy T074 vẫn mở: chưa claim PostgreSQL/Supabase/Redis runtime integration hoặc latency
-production. Việc này không làm transport giả vờ hoạt động; Experiment start/reproduce giữ
-readiness gate và REST snapshot vẫn là nguồn trạng thái authoritative.
-
-
-## Search Coordinator Evidence
-- F-010 Search Coordinator tests completed successfully and integrated with F-009.
+- Commit triển khai `0a065db` trên branch `010-search-coordinator`; Java Temurin 21.0.12.
+- PostgreSQL fixture `crypto_f010` tại cổng `54322` đã chạy các suite finite Search,
+  stop/deadline race và durable reproduction; Redis fixture tại cổng `6379` đã được restart,
+  trả `PONG` và chạy các suite reclaim/reconciliation/failure policy. Chi tiết lệnh và cấu hình
+  không-production nằm trong `specs/010-search-coordinator/quickstart.md`.
+- Public Start và Reproduce integration tests xanh; các gate được mở theo evidence độc lập.
+- Evidence này đóng phần PostgreSQL/Redis runtime của T074, nhưng không tuyên bố latency production
+  hoặc benchmark throughput nhiều Worker ngoài phạm vi các test đã ghi.

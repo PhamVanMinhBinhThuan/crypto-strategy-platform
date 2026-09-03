@@ -14,6 +14,8 @@ import com.cryptostrategy.platform.search.api.model.SearchRun;
 import com.cryptostrategy.platform.search.api.model.SearchRunId;
 import com.cryptostrategy.platform.search.api.model.SearchRunMode;
 import com.cryptostrategy.platform.search.api.model.SearchStopConditions;
+import com.cryptostrategy.platform.search.api.model.SearchExperimentId;
+import com.cryptostrategy.platform.search.api.model.SearchJobId;
 import com.cryptostrategy.platform.search.api.port.out.SearchRunStore;
 import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterType;
 import com.cryptostrategy.platform.worker.search.reconciliation.SearchReconciler;
@@ -32,7 +34,8 @@ class SearchReconciliationTest {
         TrustedSearchCoordinationUseCase coordination = mock(TrustedSearchCoordinationUseCase.class);
         Instant now = Instant.parse("2026-09-03T00:10:00Z");
         SearchRun run = SearchRun.pending(new SearchRunId("01J7K8M9N0P1Q2R3S4T5A6V7W1"),
-                "01J7K8M9N0P1Q2R3S4T5A6V7W2", "01J7K8M9N0P1Q2R3S4T5A6V7W3",
+                new SearchExperimentId("01J7K8M9N0P1Q2R3S4T5A6V7W2"),
+                new SearchJobId("01J7K8M9N0P1Q2R3S4T5A6V7W3"),
                 SearchRunMode.GENERATION, null,
                 new GeneratorDescriptor(new GeneratorId("random-search"), GeneratorVersion.parse("1.0.0"),
                         "random-state-v1", Set.of(ParameterType.INTEGER), "descriptor"),

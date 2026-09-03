@@ -3,6 +3,8 @@ package com.cryptostrategy.platform.search.api.port.out;
 import com.cryptostrategy.platform.search.api.model.CoordinationDecision;
 import com.cryptostrategy.platform.search.api.model.SearchRun;
 import com.cryptostrategy.platform.search.api.model.SearchRunId;
+import com.cryptostrategy.platform.search.api.model.SearchExperimentId;
+import com.cryptostrategy.platform.search.api.model.SearchJobId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -13,9 +15,9 @@ public interface SearchRunStore {
 
     Optional<SearchRun> findById(SearchRunId searchRunId);
 
-    Optional<SearchRun> findByExperimentId(String experimentId);
+    Optional<SearchRun> findByExperimentId(SearchExperimentId experimentId);
 
-    Optional<SearchRun> findBySearchJobId(String searchJobId);
+    Optional<SearchRun> findBySearchJobId(SearchJobId searchJobId);
 
     /** Loads a proposal snapshot. A later save succeeds only while its version remains current. */
     Optional<SearchRunClaim> claim(SearchRunId searchRunId);

@@ -317,8 +317,8 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
 
     private void insertSearchRun(SearchRun run) {
         jdbc.update(INSERT_SEARCH_RUN,
-                run.searchRunId().value(), run.experimentRef(), run.searchJobRef(), run.mode().name(),
-                run.sourceExperimentRef(), run.generatorId().value(), run.generatorVersion().toString(), run.seed(),
+                run.searchRunId().value(), run.experimentId().value(), run.searchJobId().value(), run.mode().name(),
+                run.sourceExperimentId() == null ? null : run.sourceExperimentId().value(), run.generatorId().value(), run.generatorVersion().toString(), run.seed(),
                 run.searchSpaceFingerprint(), run.generatorState().contractVersion(),
                 run.generatorState().canonicalState(), run.generatorState().fingerprint(),
                 run.nextGenerationIndex(), run.stopConditions().maximumCandidates(),
@@ -347,7 +347,8 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
     private void insertDecision(CoordinationDecision decision) {
         jdbc.update(INSERT_DECISION,
                 decision.decisionId().value(), decision.searchRunId().value(), decision.sequence(),
-                decision.type().name(), decision.candidateRef(), decision.backtestJobRef(),
+                decision.type().name(), decision.candidateId() == null ? null : decision.candidateId().value(),
+                decision.backtestJobId() == null ? null : decision.backtestJobId().value(),
                 decision.candidateFingerprint(), decision.stateBeforeFingerprint(),
                 decision.stateAfterFingerprint(), decision.reasonCode(), timestamp(decision.decidedAt()));
     }
@@ -365,15 +366,15 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 || !experimentId.equals(command.manifest().experimentId())
                 || !experimentId.equals(command.searchJob().experimentId())
                 || command.searchJob().jobType() != JobType.SEARCH
-                || !experimentId.value().equals(command.searchRun().experimentRef())
-                || !command.searchJob().jobId().value().equals(command.searchRun().searchJobRef())) {
+                || !experimentId.value().equals(command.searchRun().experimentId().value())
+                || !command.searchJob().jobId().value().equals(command.searchRun().searchJobId().value())) {
             throw new IllegalArgumentException("Start Search graph is inconsistent");
         }
     }
 
     private static void validateAllocationGraph(AllocateSearchCandidateCommand command) {
-        String experimentId = command.claim().snapshot().experimentRef();
-        if (!experimentId.equals(command.replacementRun().experimentRef())
+        String experimentId = command.claim().snapshot().experimentId().value();
+        if (!experimentId.equals(command.replacementRun().experimentId().value())
                 || !experimentId.equals(command.candidate().experimentId().value())
                 || !experimentId.equals(command.backtestJob().experimentId().value())
                 || command.backtestJob().jobType() != JobType.BACKTEST

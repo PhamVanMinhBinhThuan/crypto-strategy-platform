@@ -46,9 +46,9 @@ public class SearchCoordinator {
     public SearchCoordinationResult coordinate(SearchRequestPayload request, String correlationId) {
         Objects.requireNonNull(request, "request");
         if (runs != null) {
-            SearchRun durable = runs.findBySearchJobId(request.searchJobId().value())
+            SearchRun durable = runs.findBySearchJobId(new com.cryptostrategy.platform.search.api.model.SearchJobId(request.searchJobId().value()))
                     .orElseThrow(() -> new IllegalArgumentException("Search Run is inaccessible"));
-            if (!durable.experimentRef().equals(request.experimentId().value())) {
+            if (!durable.experimentId().value().equals(request.experimentId().value())) {
                 throw new IllegalArgumentException("Search Run is inaccessible");
             }
             search.requireGenerator(durable.generatorId(), durable.generatorVersion());
@@ -58,7 +58,7 @@ public class SearchCoordinator {
                         durable.status());
             }
             var lifecycle = trusted.reconcileRun(new TrustedSearchCoordinationUseCase.ReconciliationTrigger(
-                    new com.cryptostrategy.platform.experiment.api.ExperimentId(durable.experimentRef()), Instant.now(), correlationId));
+                    new com.cryptostrategy.platform.experiment.api.ExperimentId(durable.experimentId().value()), Instant.now(), correlationId));
             if (durable.mode() == com.cryptostrategy.platform.search.api.model.SearchRunMode.REPRODUCTION) {
                 return new SearchCoordinationResult(lifecycle.searchRunId(), lifecycle.allocatedWork(),
                         lifecycle.allocatedWork() - lifecycle.completedWork() - lifecycle.failedWork(),
@@ -96,7 +96,7 @@ public class SearchCoordinator {
 
     private SearchRun requireDurableRun(String experimentId) {
         if (runs == null) throw new IllegalStateException("Durable Search Run store is not configured");
-        return runs.findByExperimentId(experimentId)
+        return runs.findByExperimentId(new com.cryptostrategy.platform.search.api.model.SearchExperimentId(experimentId))
                 .orElseThrow(() -> new IllegalArgumentException("Search Run is inaccessible"));
     }
 

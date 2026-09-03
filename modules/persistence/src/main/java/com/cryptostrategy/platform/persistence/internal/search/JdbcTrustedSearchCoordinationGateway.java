@@ -3,6 +3,9 @@ package com.cryptostrategy.platform.persistence.internal.search;
 import com.cryptostrategy.platform.execution.api.port.out.TrustedSearchCoordinationGateway;
 import com.cryptostrategy.platform.search.api.model.SearchRun;
 import com.cryptostrategy.platform.search.api.model.SearchRunStatus;
+import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.CandidateId;
+import com.cryptostrategy.platform.experiment.api.job.JobId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -39,21 +42,21 @@ public final class JdbcTrustedSearchCoordinationGateway implements TrustedSearch
     }
 
     @Override
-    public Optional<AuthoritativeSnapshot> load(String experimentId) {
-        List<AuthoritativeSnapshot> found = jdbc.query(SNAPSHOT, this::map, experimentId);
+    public Optional<AuthoritativeSnapshot> load(ExperimentId experimentId) {
+        List<AuthoritativeSnapshot> found = jdbc.query(SNAPSHOT, this::map, experimentId.value());
         return found.stream().findFirst();
     }
 
     @Override
     public Optional<AuthoritativeSnapshot> loadCompletion(
-            String experimentId, String candidateId, String backtestJobId) {
+            ExperimentId experimentId, CandidateId candidateId, JobId backtestJobId) {
         Integer valid = jdbc.queryForObject("""
                 select count(*) from experiment.candidate_definition c
                 join experiment.job j on j.candidate_id=c.candidate_id and j.experiment_id=c.experiment_id
                 join experiment.backtest_result br on br.job_id=j.job_id and br.experiment_id=j.experiment_id
                 join experiment.evaluation_result er on er.backtest_result_id=br.backtest_result_id
                 where c.experiment_id=? and c.candidate_id=? and j.job_id=? and j.status='SUCCEEDED'
-                """, Integer.class, experimentId, candidateId, backtestJobId);
+                """, Integer.class, experimentId.value(), candidateId.value(), backtestJobId.value());
         return valid != null && valid > 0 ? load(experimentId) : Optional.empty();
     }
 
@@ -63,11 +66,11 @@ public final class JdbcTrustedSearchCoordinationGateway implements TrustedSearch
     }
 
     private boolean commitInTransaction(Transition change) {
-        if (change.processedMessageRef() != null) {
+        if (change.messageId() != null) {
             int inserted = jdbc.update("""
                     insert into platform.processed_message(consumer_name,message_id,processed_at,expires_at)
                     values ('search-coordinators',?,?,?) on conflict do nothing
-                    """, change.processedMessageRef(), Timestamp.from(change.replacement().updatedAt()),
+                    """, change.messageId(), Timestamp.from(change.replacement().updatedAt()),
                     Timestamp.from(change.replacement().updatedAt().plus(Duration.ofDays(7))));
             if (inserted == 0) return true;
         }
@@ -92,7 +95,7 @@ public final class JdbcTrustedSearchCoordinationGateway implements TrustedSearch
                 where job_id=? and experiment_id=? and job_type='SEARCH'
                 """, change.completedWork(), change.failedWork(), jobStatus,
                 timestamp(run.startedAt()), run.status().isTerminal() ? timestamp(run.finishedAt()) : null,
-                Timestamp.from(run.updatedAt()), run.searchJobRef(), run.experimentRef());
+                Timestamp.from(run.updatedAt()), run.searchJobId().value(), run.experimentId().value());
         return true;
     }
 

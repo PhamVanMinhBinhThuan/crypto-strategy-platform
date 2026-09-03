@@ -125,6 +125,13 @@ hoặc số liệu minh họa.
   chỉ chứa khóa bounded an toàn, không chứa payload/stack/SQL/path.
 
 
-## Integration Suite Evidence
-- PostgreSQL/Supabase + Redis integration suite ran successfully in Java 21.
-- Passed on commit with valid properties.
+## Full quality gate (2026-09-03)
+
+- Commit triển khai: `0a065db`; canonical typed-ID repair cuối cùng ở working tree branch
+  `010-search-coordinator`; Java Temurin 21.0.12.
+- Lệnh: `./gradlew --init-script .specify/gradle-f010-isolation.init.gradle --no-daemon test`.
+- Kết quả: `BUILD SUCCESSFUL` trong 1 phút 38 giây; 79 task, gồm API, Worker, module và
+  architecture suites. Canonical identity rule vẫn được giữ nguyên, không nới test.
+- Checksum F-008 được đối chiếu từ chính hai migration đã commit: SHA-256 baseline
+  `a6ade694888cc6d306e3c6e3dce5131ae2ee43353494df3cb2b56de90d31771a` và user/job
+  `b788494c7bcb3c7cfaae98463e3e8786819290cf65ab578d7e5656a23fc59df6`; không sửa migration đã áp dụng.

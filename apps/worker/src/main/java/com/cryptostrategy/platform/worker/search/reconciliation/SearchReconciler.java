@@ -49,7 +49,7 @@ public final class SearchReconciler {
         runs.findRecoverable(observedAt.minus(staleAfter), batchSize).forEach(run -> {
             try {
                 coordination.reconcileRun(new TrustedSearchCoordinationUseCase.ReconciliationTrigger(
-                        new com.cryptostrategy.platform.experiment.api.ExperimentId(run.experimentRef()), observedAt, "search-recovery:" + run.searchRunId().value()));
+                        new com.cryptostrategy.platform.experiment.api.ExperimentId(run.experimentId().value()), observedAt, "search-recovery:" + run.searchRunId().value()));
             } catch (RuntimeException failure) {
                 log.warn("Search reconciliation failed for run '{}': {}",
                         run.searchRunId().value(), failure.getMessage());

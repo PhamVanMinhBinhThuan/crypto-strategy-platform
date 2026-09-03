@@ -1,19 +1,15 @@
 package com.cryptostrategy.platform.search.api.model;
 
-import java.util.UUID;
-
-
-import com.cryptostrategy.platform.domain.api.identity.Ulids;
 import java.time.Instant;
 import java.util.Objects;
 
 /** Immutable durable state owned by Search for one SEARCH job. */
 public record SearchRun(
         SearchRunId searchRunId,
-        String experimentRef,
-        String searchJobRef,
+        SearchExperimentId experimentId,
+        SearchJobId searchJobId,
         SearchRunMode mode,
-        String sourceExperimentRef,
+        SearchExperimentId sourceExperimentId,
         GeneratorId generatorId,
         GeneratorVersion generatorVersion,
         long seed,
@@ -34,12 +30,12 @@ public record SearchRun(
 ) {
     public SearchRun {
         Objects.requireNonNull(searchRunId, "searchRunId");
-        experimentRef = Objects.requireNonNull(experimentRef);
-        searchJobRef = Objects.requireNonNull(searchJobRef);
+        Objects.requireNonNull(experimentId, "experimentId");
+        Objects.requireNonNull(searchJobId, "searchJobId");
         Objects.requireNonNull(mode, "mode");
         if (mode == SearchRunMode.REPRODUCTION) {
-            sourceExperimentRef = Objects.requireNonNull(sourceExperimentRef);
-        } else if (sourceExperimentRef != null) {
+            Objects.requireNonNull(sourceExperimentId, "sourceExperimentId");
+        } else if (sourceExperimentId != null) {
             throw new IllegalArgumentException("sourceExperimentId is only valid in REPRODUCTION mode");
         }
         Objects.requireNonNull(generatorId, "generatorId");
@@ -67,10 +63,10 @@ public record SearchRun(
 
     public static SearchRun pending(
             SearchRunId searchRunId,
-            String experimentRef,
-            String searchJobRef,
+            SearchExperimentId experimentId,
+            SearchJobId searchJobId,
             SearchRunMode mode,
-            String sourceExperimentRef,
+            SearchExperimentId sourceExperimentId,
             GeneratorDescriptor generator,
             long seed,
             String searchSpaceFingerprint,
@@ -80,7 +76,7 @@ public record SearchRun(
             Instant createdAt
     ) {
         Objects.requireNonNull(generator, "generator");
-        return new SearchRun(searchRunId, experimentRef, searchJobRef, mode, sourceExperimentRef,
+        return new SearchRun(searchRunId, experimentId, searchJobId, mode, sourceExperimentId,
                 generator.generatorId(), generator.generatorVersion(), seed, searchSpaceFingerprint,
                 initialState, 0, stopConditions, maxInFlight, SearchRunStatus.PENDING, 0,
                 null, null, null, null, null, createdAt, createdAt);
@@ -163,7 +159,7 @@ public record SearchRun(
                            long nextVersion, Instant nextStartedAt, Instant nextDeadlineAt,
                            Instant nextFinishedAt, String nextFailureCode, String nextFailureMessage,
                            Instant nextUpdatedAt) {
-        return new SearchRun(searchRunId, experimentRef, searchJobRef, mode, sourceExperimentRef,
+        return new SearchRun(searchRunId, experimentId, searchJobId, mode, sourceExperimentId,
                 generatorId, generatorVersion, seed, searchSpaceFingerprint, nextState, nextIndex,
                 stopConditions, maxInFlight, nextStatus, nextVersion, nextStartedAt, nextDeadlineAt,
                 nextFinishedAt, nextFailureCode, nextFailureMessage, createdAt, nextUpdatedAt);

@@ -43,13 +43,13 @@ public final class JdbcSearchRunStore implements SearchRunStore {
     }
 
     @Override
-    public Optional<SearchRun> findByExperimentId(String experimentId) {
-        return queryOne(SearchSql.SELECT_BY_EXPERIMENT, Objects.requireNonNull(experimentId, "experimentId"));
+    public Optional<SearchRun> findByExperimentId(com.cryptostrategy.platform.search.api.model.SearchExperimentId experimentId) {
+        return queryOne(SearchSql.SELECT_BY_EXPERIMENT, Objects.requireNonNull(experimentId, "experimentId").value());
     }
 
     @Override
-    public Optional<SearchRun> findBySearchJobId(String searchJobId) {
-        return queryOne(SearchSql.SELECT_BY_SEARCH_JOB, Objects.requireNonNull(searchJobId, "searchJobId"));
+    public Optional<SearchRun> findBySearchJobId(com.cryptostrategy.platform.search.api.model.SearchJobId searchJobId) {
+        return queryOne(SearchSql.SELECT_BY_SEARCH_JOB, Objects.requireNonNull(searchJobId, "searchJobId").value());
     }
 
     @Override
@@ -99,8 +99,8 @@ public final class JdbcSearchRunStore implements SearchRunStore {
                 decision.searchRunId().value(),
                 decision.sequence(),
                 decision.type().name(),
-                decision.candidateRef(),
-                decision.backtestJobRef(),
+                decision.candidateId() == null ? null : decision.candidateId().value(),
+                decision.backtestJobId() == null ? null : decision.backtestJobId().value(),
                 decision.candidateFingerprint(),
                 decision.stateBeforeFingerprint(),
                 decision.stateAfterFingerprint(),
@@ -133,8 +133,8 @@ public final class JdbcSearchRunStore implements SearchRunStore {
 
     private static Object[] insertArguments(SearchRun run) {
         return new Object[] {
-                run.searchRunId().value(), run.experimentRef(), run.searchJobRef(), run.mode().name(),
-                run.sourceExperimentRef(), run.generatorId().value(), run.generatorVersion().toString(),
+                run.searchRunId().value(), run.experimentId().value(), run.searchJobId().value(), run.mode().name(),
+                run.sourceExperimentId() == null ? null : run.sourceExperimentId().value(), run.generatorId().value(), run.generatorVersion().toString(),
                 run.seed(), run.searchSpaceFingerprint(), run.generatorState().contractVersion(),
                 run.generatorState().canonicalState(), run.generatorState().fingerprint(),
                 run.nextGenerationIndex(), run.stopConditions().maximumCandidates(),

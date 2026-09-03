@@ -46,9 +46,9 @@ public final class SearchExperimentOrchestrationService implements StartSearchEx
         var experimentId = command.experiment().experimentId();
         if (!command.ownerUserId().equals(command.experiment().ownerUserId())
                 || !experimentId.equals(command.manifest().experimentId())
-                || !experimentId.value().equals(command.searchRun().experimentRef())
+                || !experimentId.value().equals(command.searchRun().experimentId().value())
                 || !experimentId.equals(command.searchJob().experimentId())
-                || !command.searchJob().jobId().value().equals(command.searchRun().searchJobRef())
+                || !command.searchJob().jobId().value().equals(command.searchRun().searchJobId().value())
                 || !command.searchJob().jobId().value().equals(command.searchRequest().aggregateId())) {
             throw new IllegalArgumentException("Start Search owner graph is inconsistent");
         }

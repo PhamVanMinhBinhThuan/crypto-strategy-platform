@@ -2,7 +2,7 @@
 
 ## F-010 — Bằng chứng thay thế Generator (2026-09-03)
 
-- **Commit gốc**: `93eb912`; bằng chứng đang ở working tree của branch
+- **Commit triển khai**: `0a065db`; phần sửa canonical typed ID cuối cùng đang ở working tree của branch
   `010-search-coordinator`, chưa tuyên bố là release artifact.
 - `FixtureStrategyGenerator` được đăng ký qua public `SearchModuleFactory.fromGenerators` và
   resolve bằng đúng cặp typed generator ID/version; không có fallback ngầm.
@@ -16,9 +16,9 @@
 - Phạm vi diff của proof chỉ gồm Search fixture/factory/test và architecture test; không sửa
   business implementation của Backtest, Evaluation hay Leaderboard.
 
-**Status**: Planned — Chưa có implementation evidence
+**Status**: Partially Verified — Các scenario F-010 có evidence; scenario chưa chạy vẫn giữ Planned
 
-**Last Updated**: 2026-09-02
+**Last Updated**: 2026-09-03
 
 **Owner**: Văn Minh
 
@@ -29,13 +29,13 @@ Tài liệu này nối yêu cầu với view, quyết định và cách kiểm c
 | Requirement/driver | Source | Architecture view | ADR | QA | Planned proof | Target | Evidence status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Thêm Strategy mới với ảnh hưởng tối thiểu | Đề §11–§12, §32.1, §41; Slide Architecture Proof #1 | [Module View](module-view.md) | [0002](../adr/0002-module-boundaries.md), [0005](../adr/0005-strategy-plugin-registry.md) | QA-01 | Thêm MACD + ArchUnit/contract test | Không sửa Backtester/Evaluator/Leaderboard/UI | Planned — chưa có implementation |
-| Thay Search Algorithm | Đề §16–§18, §32.6, §42; Slide Proof #2 | [Module View](module-view.md), [Search Flow](data-flows.md) | [0010](../adr/0010-strategy-generator-contract.md) | QA-02 | Thêm Fixture/Domain-guided Generator | Downstream contract không đổi | Planned — chưa có implementation |
+| Thay Search Algorithm | Đề §16–§18, §32.6, §42; Slide Proof #2 | [Module View](module-view.md), [Search Flow](data-flows.md) | [0010](../adr/0010-strategy-generator-contract.md) | QA-02 | Thêm Fixture/Domain-guided Generator | Downstream contract không đổi | Verified — fixture generator và downstream architecture regression xanh |
 | Thay Market Data Provider | Đề §4, §32.1, §40; Slide ATAM Scenario | [Context](system-context.md), [Market Flows](data-flows.md) | [0003](../adr/0003-market-data-adapter.md) | QA-03 | Chạy adapter contract suite | Frontend/public contract không đổi | Planned — chưa có implementation |
 | Realtime và Binance recovery | Đề §4–§5, §32.3–§32.4; Slide Proof #3 | [Realtime Flow](data-flows.md) | [0003](../adr/0003-market-data-adapter.md), [0004](../adr/0004-websocket-realtime.md) | QA-04, QA-09 | Disconnect/gap test + four-chart latency | ≤30s recovery, no gap/duplicate; p95 ≤1s | Planned — chưa có implementation |
 | Scale Search/Backtest | Đề §23–§24, §32.2, §32.5, §43; Slide Proof #3 | [Container](container-view.md), [Search Flow](data-flows.md), [Deployment](deployment-view.md) | [0006](../adr/0006-queue-worker-backtesting.md) | QA-05, QA-10 | 1-vs-3 Worker benchmark + API timing | ≥2× throughput; Start Search ≤2s | Planned — chưa có implementation |
-| Stop, retry, duplicate và ordering | Đề §23–§24, §34, §40; Slide checklist | [Data Flows](data-flows.md), [Data Model](data-model-overview.md) | [0004](../adr/0004-websocket-realtime.md), [0006](../adr/0006-queue-worker-backtesting.md) | QA-04, QA-08, QA-10 | Stop/retry/reclaim/duplicate tests | No duplicate business effect; bounded loop | Planned — chưa có implementation |
+| Stop, retry, duplicate và ordering | Đề §23–§24, §34, §40; Slide checklist | [Data Flows](data-flows.md), [Data Model](data-model-overview.md) | [0004](../adr/0004-websocket-realtime.md), [0006](../adr/0006-queue-worker-backtesting.md) | QA-04, QA-08, QA-10 | Stop/retry/reclaim/duplicate tests | No duplicate business effect; bounded loop | Verified — PostgreSQL fence/deadline và Redis reclaim/reconciliation suites xanh |
 | News/Sentiment failure isolation | Đề §27–§30, §40; Slide Proof #3 | [Container](container-view.md), [News Flow](data-flows.md) | [0008](../adr/0008-sentiment-service-boundary.md) | QA-06 | Kill/timeout Sentiment Service | Chart/technical Backtest continue; degraded ≤5s | Planned — chưa có implementation |
-| Reproducible Experiment/provenance | Đề §35–§36, §40; Slide ATAM Scenario E | [Data Model](data-model-overview.md) | [0007](../adr/0007-postgresql-redis-ownership.md), [0009](../adr/0009-reproducible-experiments.md) | QA-07 | Reproduction comparison | Same Trade sequence, four metrics, fingerprint | Planned — chưa có implementation |
+| Reproducible Experiment/provenance | Đề §35–§36, §40; Slide ATAM Scenario E | [Data Model](data-model-overview.md) | [0007](../adr/0007-postgresql-redis-ownership.md), [0009](../adr/0009-reproducible-experiments.md) | QA-07 | Reproduction comparison | Same Trade sequence, four metrics, fingerprint | Verified — durable async comparator và PostgreSQL atomic-copy/rollback suites xanh |
 | Observability | Đề §32.7; Slide rubric | [Search Flow](data-flows.md), [Deployment](deployment-view.md) | [0006](../adr/0006-queue-worker-backtesting.md) | QA-08 | Progress/event/log trace | Visible ≤5s và correlation end-to-end | Planned — chưa có implementation |
 | Architecture documentation | Đề §45; Slide C4/Dynamic/rubric | Toàn bộ `docs/architecture` | [ADR index](../adr/README.md) | QA-01–QA-10 | Link/name/diagram consistency review | Context/Container/Module/Dynamic views nhất quán | Planned — document review complete, runtime proof pending |
 
@@ -97,8 +97,7 @@ Tài liệu này nối yêu cầu với view, quyết định và cách kiểm c
   `websocket-events.md` được khóa bằng `DocumentationParityTest`.
 - **Architecture evidence**: full architecture suite kiểm tra dependency matrix, internal
   package access, cycle, framework purity và canonical UUID/typed-ULID/exact-decimal/UTC boundary.
-- **Chưa Verified runtime**: PostgreSQL/Supabase và Redis integration chưa chạy vì môi trường
-  hiện tại không có database/Redis variables. Không dùng unit performance smoke để claim latency
-  production hoặc multi-worker throughput.
-- **Dependency gate**: Experiment start/reproduce trả stable `503 DEPENDENCY_UNAVAILABLE` cho
-  đến khi Search Coordinator cung cấp published runtime boundary; read/stop và Job cancel vẫn ready.
+- **Runtime Search evidence**: PostgreSQL/Supabase fixture và Redis restart/recovery suites của
+  F-010 đã chạy xanh trên Java 21; cấu hình và lệnh có thể xem lại trong quickstart F-010.
+- **Dependency gate**: Experiment start được mở sau US1+US2; Reproduce được mở độc lập sau
+  durable async verification của US3. Read/stop và Job cancel tiếp tục dùng boundary hiện hữu.

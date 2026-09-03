@@ -2,6 +2,7 @@ package com.cryptostrategy.platform.api.experiment;
 
 import com.cryptostrategy.platform.execution.api.port.in.SearchStartCommandFactory;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUseCase.StartCommand;
+import com.cryptostrategy.platform.execution.api.port.in.RequestedGeneratorId;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
@@ -28,7 +29,7 @@ final class ExperimentRequestMapper {
         }
         return commands.create(new SearchStartCommandFactory.Request(
                 owner, key, hash, correlationId, request.name(), request.datasetId(),
-                request.generator() == null ? null : String.valueOf(request.generator().generatorId()),
+                request.generator() == null ? null : new RequestedGeneratorId(request.generator().generatorId().value()),
                 request.generator() == null ? null : request.generator().version(),
                 request.generator() == null ? null : request.generator().seed(),
                 request.searchSpace() == null ? null : request.searchSpace().strategyId(),

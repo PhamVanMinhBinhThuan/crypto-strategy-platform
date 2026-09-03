@@ -16,6 +16,8 @@ import com.cryptostrategy.platform.search.api.model.SearchRunMode;
 import com.cryptostrategy.platform.search.api.model.SearchRunStatus;
 import com.cryptostrategy.platform.search.api.model.SearchSpace;
 import com.cryptostrategy.platform.search.api.model.SearchStopConditions;
+import com.cryptostrategy.platform.search.api.model.SearchExperimentId;
+import com.cryptostrategy.platform.search.api.model.SearchJobId;
 import com.cryptostrategy.platform.search.api.port.in.StrategyGenerator;
 import com.cryptostrategy.platform.search.api.port.in.StrategyGeneratorRegistry;
 import com.cryptostrategy.platform.search.api.port.out.SearchRunStore;
@@ -122,8 +124,8 @@ class SearchModelContractTest {
                 "descriptor-fingerprint");
         SearchRun pending = SearchRun.pending(
                 new SearchRunId(ULID_A),
-                ULID_B,
-                "01J7K8M9N0P1Q2R3S4T5A6V7WA",
+                new SearchExperimentId(ULID_B),
+                new SearchJobId("01J7K8M9N0P1Q2R3S4T5A6V7WA"),
                 SearchRunMode.GENERATION,
                 null,
                 descriptor,

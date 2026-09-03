@@ -1,9 +1,5 @@
 package com.cryptostrategy.platform.search.api.model;
 
-import java.util.UUID;
-
-
-import com.cryptostrategy.platform.domain.api.identity.Ulids;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -13,8 +9,8 @@ public record CoordinationDecision(
         SearchRunId searchRunId,
         long sequence,
         CoordinationDecisionType type,
-        String candidateRef,
-        String backtestJobRef,
+        SearchCandidateId candidateId,
+        SearchJobId backtestJobId,
         String candidateFingerprint,
         String stateBeforeFingerprint,
         String stateAfterFingerprint,
@@ -34,11 +30,11 @@ public record CoordinationDecision(
         reasonCode = requireCode(reasonCode);
 
         if (type == CoordinationDecisionType.ALLOCATED) {
-            candidateRef = Objects.requireNonNull(candidateRef);
-            backtestJobRef = Objects.requireNonNull(backtestJobRef);
+            Objects.requireNonNull(candidateId, "candidateId");
+            Objects.requireNonNull(backtestJobId, "backtestJobId");
             candidateFingerprint = requireText(candidateFingerprint, "candidateFingerprint");
         } else {
-            if (candidateRef != null || backtestJobRef != null) {
+            if (candidateId != null || backtestJobId != null) {
                 throw new IllegalArgumentException("candidateId/backtestJobId are only valid for ALLOCATED");
             }
             if (type == CoordinationDecisionType.DUPLICATE_SKIPPED) {

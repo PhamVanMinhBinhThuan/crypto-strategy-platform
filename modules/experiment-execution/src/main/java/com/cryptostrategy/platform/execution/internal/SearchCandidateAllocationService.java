@@ -62,7 +62,7 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
         int targetWindow = Math.min(command.concurrencyHint(), command.topKTarget());
 
         while (active < targetWindow) {
-            SearchRunClaim claim = runs.findBySearchJobId(command.searchJobId().value())
+            SearchRunClaim claim = runs.findBySearchJobId(new com.cryptostrategy.platform.search.api.model.SearchJobId(command.searchJobId().value()))
                     .flatMap(run -> runs.claim(run.searchRunId()))
                     .orElseThrow(() -> new IllegalArgumentException("Search Run is inaccessible"));
             var run = claim.snapshot();
@@ -81,18 +81,19 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
             Instant now = clock.instant();
             CandidateId candidateId = new CandidateId(Ulids.generate());
             JobId backtestJobId = new JobId(Ulids.generate());
-            var candidate = new CandidateDefinition(candidateId, new ExperimentId(run.experimentRef()),
+            var candidate = new CandidateDefinition(candidateId, new ExperimentId(run.experimentId().value()),
                     generated.candidate().generationIndex(), parameterMap(generated),
                     Map.of("contractVersion", generated.nextState().contractVersion(),
                             "canonicalState", generated.nextState().canonicalState(),
                             "fingerprint", generated.nextState().fingerprint()),
                     generated.candidate().fingerprint(), now);
-            Job job = Job.createBacktestJob(backtestJobId, new ExperimentId(run.experimentRef()),
+            Job job = Job.createBacktestJob(backtestJobId, new ExperimentId(run.experimentId().value()),
                     candidateId, command.correlationId(), now);
             var replacement = run.advance(generated.nextState(), run.nextGenerationIndex() + 1, now);
             var decision = new CoordinationDecision(new CoordinationDecisionId(Ulids.generate()),
                     run.searchRunId(), run.nextGenerationIndex(), CoordinationDecisionType.ALLOCATED,
-                    candidateId.value(), backtestJobId.value(), generated.candidate().fingerprint(),
+                    new com.cryptostrategy.platform.search.api.model.SearchCandidateId(candidateId.value()),
+                    new com.cryptostrategy.platform.search.api.model.SearchJobId(backtestJobId.value()), generated.candidate().fingerprint(),
                     run.generatorState().fingerprint(), generated.nextState().fingerprint(),
                     "CANDIDATE_ALLOCATED", now);
             String messageId = Ulids.generate();
@@ -114,7 +115,7 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
             context = new SearchAllocationContextGateway.Context(context.ownerUserId(), context.searchSpace(),
                     fingerprints, context.completedWork(), context.failedWork());
         }
-        var run = runs.findBySearchJobId(command.searchJobId().value()).orElseThrow();
+        var run = runs.findBySearchJobId(new com.cryptostrategy.platform.search.api.model.SearchJobId(command.searchJobId().value())).orElseThrow();
         return result(run, allocated, active, context);
     }
 

@@ -55,7 +55,8 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         if (request.datasetId() == null || request.strategyId() == null || request.parameters() == null) {
             throw new IllegalArgumentException("Dataset, generator, search space and stop condition are required");
         }
-        if (!"random-search".equals(request.generatorRef()) || !"1.0.0".equals(request.generatorVersion())) {
+        if (request.generatorId() == null || !"random-search".equals(request.generatorId().value())
+                || !"1.0.0".equals(request.generatorVersion())) {
             throw new IllegalArgumentException("Unsupported generator identity/version");
         }
         if (request.maximumCandidates() == null && request.maximumDurationSeconds() == null) {
@@ -95,7 +96,8 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         Job searchJob = Job.createSearchJob(searchJobId, experimentId, request.correlationId(), maximumCandidates, now);
         var baseline = SearchModuleFactory.baselineDefinition(seed);
         GeneratorDescriptor generator = baseline.descriptor();
-        SearchRun run = SearchRun.pending(searchRunId, experimentId.value(), searchJobId.value(),
+        SearchRun run = SearchRun.pending(searchRunId,
+                new SearchExperimentId(experimentId.value()), new SearchJobId(searchJobId.value()),
                 SearchRunMode.GENERATION, null, generator, seed, SearchModuleFactory.canonicalSearchSpaceFingerprint(searchSpace),
                 baseline.initialState(),
                 new SearchStopConditions(maximumCandidates, Duration.ofSeconds(durationSeconds)),

@@ -8,6 +8,8 @@ import com.cryptostrategy.platform.search.api.model.SearchRunId;
 import com.cryptostrategy.platform.search.api.model.SearchRunMode;
 import com.cryptostrategy.platform.search.api.model.SearchRunStatus;
 import com.cryptostrategy.platform.search.api.model.SearchStopConditions;
+import com.cryptostrategy.platform.search.api.model.SearchExperimentId;
+import com.cryptostrategy.platform.search.api.model.SearchJobId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -16,10 +18,10 @@ final class SearchRows {
     SearchRun mapSearchRun(ResultSet resultSet, int rowNumber) throws SQLException {
         return new SearchRun(
                 new SearchRunId(resultSet.getString("search_run_id")),
-                resultSet.getString("experiment_id"),
-                resultSet.getString("search_job_id"),
+                new SearchExperimentId(resultSet.getString("experiment_id")),
+                new SearchJobId(resultSet.getString("search_job_id")),
                 SearchRunMode.valueOf(resultSet.getString("mode")),
-                resultSet.getString("source_experiment_id"),
+                resultSet.getString("source_experiment_id") == null ? null : new SearchExperimentId(resultSet.getString("source_experiment_id")),
                 new GeneratorId(resultSet.getString("generator_id")),
                 GeneratorVersion.parse(resultSet.getString("generator_version")),
                 resultSet.getLong("seed"),
