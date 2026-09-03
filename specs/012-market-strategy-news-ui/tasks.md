@@ -79,21 +79,21 @@ validation đúng, version cũ bất biến và mutation luôn reconcile authori
 
 ### Tests
 
-- [ ] T037 [P] [US2] Viết system/private Strategy DTO và inaccessible parity tests trong `apps/web/tests/strategy/strategy-api.contract.test.ts`
-- [ ] T038 [P] [US2] Viết parameter kind/required/min/max/enum/exact-decimal tests trong `apps/web/tests/strategy/strategy-parameter-validator.test.ts`
-- [ ] T039 [P] [US2] Viết lower/upper cross-rule và unsupported descriptor tests trong `apps/web/tests/strategy/strategy-cross-rule.test.ts`
-- [ ] T040 [P] [US2] Viết SINGLE/COMPOSITE draft mapping tests trong `apps/web/tests/strategy/strategy-draft.test.ts`
-- [ ] T041 [P] [US2] Viết create/version/publish/archive timeout/conflict/reconcile tests trong `apps/web/tests/strategy/strategy-mutations.test.tsx`
+- [x] T037 [P] [US2] Viết system/private Strategy DTO và inaccessible parity tests trong `apps/web/tests/strategy/strategy-api.contract.test.ts`
+- [x] T038 [P] [US2] Viết parameter kind/required/min/max/enum/exact-decimal tests trong `apps/web/tests/strategy/strategy-parameter-validator.test.ts`
+- [x] T039 [P] [US2] Viết lower/upper cross-rule và unsupported descriptor tests trong `apps/web/tests/strategy/strategy-cross-rule.test.ts`
+- [x] T040 [P] [US2] Viết SINGLE/COMPOSITE draft mapping tests trong `apps/web/tests/strategy/strategy-draft.test.ts`
+- [x] T041 [P] [US2] Viết create/version/publish/archive timeout/conflict/reconcile tests trong `apps/web/tests/strategy/strategy-mutations.test.tsx`
 - [ ] T042 [P] [US2] Viết independent system/private loading/empty/error component tests trong `apps/web/tests/strategy/strategy-library.test.tsx`
 - [ ] T043 [P] [US2] Viết immutable published-version và confirmation interaction tests trong `apps/web/tests/strategy/strategy-detail.test.tsx`
 
 ### Implementation
 
-- [ ] T044 [P] [US2] Implement Strategy descriptor/private version typed models trong `apps/web/src/features/strategy/model/strategy.ts`
-- [ ] T045 [P] [US2] Implement discriminated SINGLE/COMPOSITE draft models trong `apps/web/src/features/strategy/model/strategy-draft.ts`
-- [ ] T046 [US2] Implement system/private list/detail/mutation adapter trong `apps/web/src/features/strategy/api/strategy-api.ts`
-- [ ] T047 [US2] Implement schema-driven exact parameter validator trong `apps/web/src/features/strategy/state/strategy-parameter-validator.ts`
-- [ ] T048 [US2] Implement draft/mutation/reconciliation controller trong `apps/web/src/features/strategy/state/strategy-controller.ts`
+- [x] T044 [P] [US2] Implement Strategy descriptor/private version typed models trong `apps/web/src/features/strategy/model/strategy.ts`
+- [x] T045 [P] [US2] Implement discriminated SINGLE/COMPOSITE draft models trong `apps/web/src/features/strategy/model/strategy-draft.ts`
+- [x] T046 [US2] Implement system/private list/detail/mutation adapter trong `apps/web/src/features/strategy/api/strategy-api.ts`
+- [x] T047 [US2] Implement schema-driven exact parameter validator trong `apps/web/src/features/strategy/state/strategy-parameter-validator.ts`
+- [x] T048 [US2] Implement draft/mutation/reconciliation controller trong `apps/web/src/features/strategy/state/strategy-controller.ts`
 - [ ] T049 [P] [US2] Implement system/private catalog panels trong `apps/web/src/features/strategy/components/StrategyCatalog.tsx`
 - [ ] T050 [P] [US2] Implement descriptor/version/provenance detail panel trong `apps/web/src/features/strategy/components/StrategyDetail.tsx`
 - [ ] T051 [US2] Implement schema-driven SINGLE/COMPOSITE Strategy form trong `apps/web/src/features/strategy/components/StrategyForm.tsx`
