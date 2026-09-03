@@ -15,7 +15,11 @@ export function useExperimentMonitor(api: ApiClient, id?: string) {
     const service = createExperimentService(api);
     const exp = await service.readExperiment(id);
     if (!exp.ok) {
-      setError(exp.error.message);
+      setError(
+        exp.error.retryable
+          ? "Experiment đang tạm thời không khả dụng. Vui lòng thử lại."
+          : "Không thể tải Experiment."
+      );
       setStatus("error");
       return;
     }

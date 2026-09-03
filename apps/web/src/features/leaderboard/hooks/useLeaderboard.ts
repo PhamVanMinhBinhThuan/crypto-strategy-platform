@@ -13,7 +13,13 @@ export function useLeaderboard(api: ApiClient, id?: string) {
     if (r.ok) {
       setSnapshot(r.data);
       setError(undefined);
-    } else setError(r.error.message);
+    } else {
+      setError(
+        r.error.retryable
+          ? "Leaderboard đang tạm thời không khả dụng. Vui lòng thử lại."
+          : "Không thể tải Leaderboard."
+      );
+    }
   }, [api, id, limit, snapshot?.topK]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- leaderboard identity starts an external API synchronization
