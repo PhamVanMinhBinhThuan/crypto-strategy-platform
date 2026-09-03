@@ -1,0 +1,81 @@
+# UI Reference Package Manifest
+
+- `docs/ui/README.md`
+- `docs/ui/design-system.md`
+- `docs/ui/features/F-012.md`
+- `docs/ui/features/F-013.md`
+- `docs/ui/features/_template.md`
+- `docs/ui/interaction-states.md`
+- `docs/ui/prototype/README.md`
+- `docs/ui/prototype/components/backtest/BacktestChart.tsx`
+- `docs/ui/prototype/components/backtest/BacktestHeader.tsx`
+- `docs/ui/prototype/components/backtest/BacktestMetricsGrid.tsx`
+- `docs/ui/prototype/components/backtest/EquityCurve.tsx`
+- `docs/ui/prototype/components/backtest/FullTradeHistoryTable.tsx`
+- `docs/ui/prototype/components/backtest/MetricCard.tsx`
+- `docs/ui/prototype/components/backtest/SecondaryAnalytics.tsx`
+- `docs/ui/prototype/components/backtest/TradeTable.tsx`
+- `docs/ui/prototype/components/common/Badge.tsx`
+- `docs/ui/prototype/components/common/Button.tsx`
+- `docs/ui/prototype/components/common/Card.tsx`
+- `docs/ui/prototype/components/common/MarketSelector.tsx`
+- `docs/ui/prototype/components/common/MetricBox.tsx`
+- `docs/ui/prototype/components/common/StatusBadge.tsx`
+- `docs/ui/prototype/components/common/TickerBar.tsx`
+- `docs/ui/prototype/components/market/ChartHeader.tsx`
+- `docs/ui/prototype/components/market/IndicatorToggle.tsx`
+- `docs/ui/prototype/components/market/MarketChart.tsx`
+- `docs/ui/prototype/components/market/MarketChartGrid.tsx`
+- `docs/ui/prototype/components/market/MarketStatus.tsx`
+- `docs/ui/prototype/components/market/TimeframeSelector.tsx`
+- `docs/ui/prototype/components/navigation/Sidebar.tsx`
+- `docs/ui/prototype/components/navigation/SidebarItem.tsx`
+- `docs/ui/prototype/components/navigation/TopBar.tsx`
+- `docs/ui/prototype/components/news/NewsAnalytics.tsx`
+- `docs/ui/prototype/components/news/NewsFeedTable.tsx`
+- `docs/ui/prototype/components/news/NewsSentimentHeader.tsx`
+- `docs/ui/prototype/components/news/SentimentDistribution.tsx`
+- `docs/ui/prototype/components/news/SentimentOverview.tsx`
+- `docs/ui/prototype/components/news/SentimentStrategyPanel.tsx`
+- `docs/ui/prototype/components/news/SentimentTrendChart.tsx`
+- `docs/ui/prototype/components/search/CurrentCandidateCard.tsx`
+- `docs/ui/prototype/components/search/LeaderboardRow.tsx`
+- `docs/ui/prototype/components/search/LeaderboardTable.tsx`
+- `docs/ui/prototype/components/search/SearchConfiguration.tsx`
+- `docs/ui/prototype/components/search/SearchControls.tsx`
+- `docs/ui/prototype/components/search/SearchPipeline.tsx`
+- `docs/ui/prototype/components/search/SearchSpaceSelector.tsx`
+- `docs/ui/prototype/components/search/SearchStatusMetrics.tsx`
+- `docs/ui/prototype/components/search/StopConditionEditor.tsx`
+- `docs/ui/prototype/components/search/WorkerMonitor.tsx`
+- `docs/ui/prototype/components/strategy/ActiveStrategyBlock.tsx`
+- `docs/ui/prototype/components/strategy/CombinationEngine.tsx`
+- `docs/ui/prototype/components/strategy/LiveStrategySummary.tsx`
+- `docs/ui/prototype/components/strategy/SignalBadge.tsx`
+- `docs/ui/prototype/components/strategy/StrategyLibrary.tsx`
+- `docs/ui/prototype/components/strategy/StrategyLibraryItem.tsx`
+- `docs/ui/prototype/index.css`
+- `docs/ui/prototype/layouts/AppLayout.tsx`
+- `docs/ui/prototype/layouts/FooterStatusBar.tsx`
+- `docs/ui/prototype/layouts/Header.tsx`
+- `docs/ui/prototype/pages/BacktestResultsPage.tsx`
+- `docs/ui/prototype/pages/MarketDashboardPage.tsx`
+- `docs/ui/prototype/pages/NewsSentimentPage.tsx`
+- `docs/ui/prototype/pages/PagePlaceholder.tsx`
+- `docs/ui/prototype/pages/SearchLeaderboardPage.tsx`
+- `docs/ui/prototype/pages/StrategyComposerPage.tsx`
+- `docs/ui/prototype/types/backtest.ts`
+- `docs/ui/prototype/types/index.ts`
+- `docs/ui/prototype/types/news.ts`
+- `docs/ui/prototype/types/search.ts`
+- `docs/ui/prototype/types/strategy.ts`
+- `docs/ui/prototype/utils/cn.ts`
+- `docs/ui/screen-map.md`
+- `docs/ui/screens/.gitkeep`
+- `docs/ui/screens/Backtest Results.png`
+- `docs/ui/screens/Market Dashboard.png`
+- `docs/ui/screens/New Sentiment.png`
+- `docs/ui/screens/Search & Leaderboard.png`
+- `docs/ui/screens/Stragegy Composer.png`
+- `docs/ui/spec-kit-reference.md`
+- `docs/ui/stitch-guide.md`
