@@ -98,6 +98,24 @@ demo MUST NOT được tạo giả.
   cho durable storage; Redis Streams/Redis cho queue và cache. `apps/web` MUST dùng
   Next.js làm application framework và MUST NOT tạo thêm một React SPA độc lập khi
   chưa có architectural driver và ADR.
+- Feature tạo hoặc sửa browser UI trong `apps/web` MUST tham khảo shared UI reference
+  dưới `docs/ui/`. Tối thiểu workflow MUST đọc `docs/ui/README.md`,
+  `docs/ui/spec-kit-reference.md`, `docs/ui/screen-map.md`,
+  `docs/ui/design-system.md` và `docs/ui/interaction-states.md`. Nếu tồn tại mapping
+  cho feature hiện tại, workflow MUST đọc `docs/ui/features/<FEATURE-ID>.md` và
+  SHOULD kiểm tra screenshot hoặc prototype liên quan trong `docs/ui/screens/`
+  và `docs/ui/prototype/`.
+- Shared UI reference chỉ định presentation, visual hierarchy và interaction intent;
+  nó MUST NOT trở thành source of truth cho business behavior. Thứ tự authority là:
+  Constitution → ADR `Accepted` → released public contract → F-011 Frontend Foundation
+  → specification/planning artifact của feature → shared UI reference dưới `docs/ui/`.
+  Khi UI reference mâu thuẫn với public contract, public contract MUST thắng.
+- Source dưới `docs/ui/prototype/` là read-only design evidence và MUST NOT được xem
+  là production architecture. `apps/web` MUST NOT sao chép prototype-only business
+  simulation, Search orchestration, Backtest/Evaluation/Ranking calculation,
+  authentication/session infrastructure, HTTP client, WebSocket client hoặc
+  application shell. Frontend feature MUST tái sử dụng các boundary đã công bố bởi
+  F-011.
 - Thay đổi công nghệ ảnh hưởng kiến trúc MUST có driver, trade-off, ADR và
   verification plan. Kafka, Kubernetes, microservice theo từng module, full CQRS hoặc
   Event Sourcing MUST NOT được thêm vào MVP nếu chưa có quy trình này.
