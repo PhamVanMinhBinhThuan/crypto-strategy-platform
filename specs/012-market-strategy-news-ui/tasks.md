@@ -84,8 +84,8 @@ validation đúng, version cũ bất biến và mutation luôn reconcile authori
 - [x] T039 [P] [US2] Viết lower/upper cross-rule và unsupported descriptor tests trong `apps/web/tests/strategy/strategy-cross-rule.test.ts`
 - [x] T040 [P] [US2] Viết SINGLE/COMPOSITE draft mapping tests trong `apps/web/tests/strategy/strategy-draft.test.ts`
 - [x] T041 [P] [US2] Viết create/version/publish/archive timeout/conflict/reconcile tests trong `apps/web/tests/strategy/strategy-mutations.test.tsx`
-- [ ] T042 [P] [US2] Viết independent system/private loading/empty/error component tests trong `apps/web/tests/strategy/strategy-library.test.tsx`
-- [ ] T043 [P] [US2] Viết immutable published-version và confirmation interaction tests trong `apps/web/tests/strategy/strategy-detail.test.tsx`
+- [x] T042 [P] [US2] Viết independent system/private loading/empty/error component tests trong `apps/web/tests/strategy/strategy-library.test.tsx`
+- [x] T043 [P] [US2] Viết immutable published-version và confirmation interaction tests trong `apps/web/tests/strategy/strategy-detail.test.tsx`
 
 ### Implementation
 
@@ -94,12 +94,12 @@ validation đúng, version cũ bất biến và mutation luôn reconcile authori
 - [x] T046 [US2] Implement system/private list/detail/mutation adapter trong `apps/web/src/features/strategy/api/strategy-api.ts`
 - [x] T047 [US2] Implement schema-driven exact parameter validator trong `apps/web/src/features/strategy/state/strategy-parameter-validator.ts`
 - [x] T048 [US2] Implement draft/mutation/reconciliation controller trong `apps/web/src/features/strategy/state/strategy-controller.ts`
-- [ ] T049 [P] [US2] Implement system/private catalog panels trong `apps/web/src/features/strategy/components/StrategyCatalog.tsx`
-- [ ] T050 [P] [US2] Implement descriptor/version/provenance detail panel trong `apps/web/src/features/strategy/components/StrategyDetail.tsx`
+- [x] T049 [P] [US2] Implement system/private catalog panels trong `apps/web/src/features/strategy/components/StrategyCatalog.tsx`
+- [x] T050 [P] [US2] Implement descriptor/version/provenance detail panel trong `apps/web/src/features/strategy/components/StrategyDetail.tsx`
 - [ ] T051 [US2] Implement schema-driven SINGLE/COMPOSITE Strategy form trong `apps/web/src/features/strategy/components/StrategyForm.tsx`
-- [ ] T052 [US2] Implement explicit publish/archive confirmation và mutation feedback trong `apps/web/src/features/strategy/components/StrategyActions.tsx`
-- [ ] T053 [US2] Compose independent-source Strategy workspace trong `apps/web/src/features/strategy/components/StrategyWorkspace.tsx`
-- [ ] T054 [US2] Thay F-011 Strategy placeholder bằng feature entry point trong `apps/web/app/(protected)/strategies/page.tsx`
+- [x] T052 [US2] Implement explicit publish/archive confirmation và mutation feedback trong `apps/web/src/features/strategy/components/StrategyActions.tsx`
+- [x] T053 [US2] Compose independent-source Strategy workspace trong `apps/web/src/features/strategy/components/StrategyWorkspace.tsx`
+- [x] T054 [US2] Thay F-011 Strategy placeholder bằng feature entry point trong `apps/web/app/(protected)/strategies/page.tsx`
 - [ ] T055 [US2] Chạy owner A/B, immutable-version và retry integration scenarios theo `specs/012-market-strategy-news-ui/quickstart.md`
 
 **Checkpoint**: US2 quản lý Strategy mà không phụ thuộc Market/News hoặc sửa F-009 contract.

@@ -414,6 +414,119 @@ input {
   border-radius: 7px;
   padding: 0.4rem 0.7rem;
 }
+.strategy-workspace > header h1 {
+  margin: 0.15rem 0;
+}
+.strategy-workspace > header p {
+  color: var(--muted);
+}
+.strategy-layout {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.8fr) minmax(280px, 1.4fr) minmax(240px, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+.strategy-library,
+.strategy-detail,
+.strategy-form {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+.strategy-library {
+  display: grid;
+  gap: 1rem;
+}
+.strategy-library h2,
+.strategy-form h2 {
+  margin-top: 0;
+  font-size: 1rem;
+}
+.strategy-library section {
+  display: grid;
+  gap: 0.45rem;
+}
+.strategy-library button {
+  display: grid;
+  gap: 0.2rem;
+  text-align: left;
+  background: #0b1114;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem;
+}
+.strategy-library button span,
+.strategy-library p {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.strategy-center {
+  display: grid;
+  gap: 0.75rem;
+}
+.strategy-detail h2 {
+  margin: 0.2rem 0;
+}
+.strategy-detail dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.45rem 1rem;
+}
+.strategy-detail dt {
+  color: var(--muted);
+}
+.strategy-detail dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, monospace;
+}
+.strategy-detail [role="note"] {
+  border-left: 3px solid var(--green);
+  padding-left: 0.7rem;
+  color: var(--muted);
+}
+.strategy-form {
+  display: grid;
+  gap: 0.7rem;
+}
+.strategy-form label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.strategy-form input,
+.strategy-form textarea {
+  width: 100%;
+  background: #0b1114;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0.55rem;
+}
+.strategy-form small {
+  color: #ff9398;
+}
+.strategy-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+.strategy-actions button {
+  flex: 1;
+  background: var(--panel2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem;
+}
+.strategy-feedback {
+  border: 1px solid var(--line);
+  padding: 0.65rem;
+  border-radius: 8px;
+  color: var(--green);
+}
 .placeholder {
   min-height: calc(100vh - 116px);
   display: grid;
@@ -488,6 +601,9 @@ input {
     flex-direction: column;
   }
   .market-grid {
+    grid-template-columns: 1fr;
+  }
+  .strategy-layout {
     grid-template-columns: 1fr;
   }
 }

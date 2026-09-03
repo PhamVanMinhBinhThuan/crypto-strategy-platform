@@ -1,10 +1,4 @@
-import { RoutePlaceholder } from "@/src/components/states/RoutePlaceholder";
+import { StrategyWorkspace } from "@/src/features/strategy/components/StrategyWorkspace";
 export default function Page() {
-  return (
-    <RoutePlaceholder
-      eyebrow="F-012"
-      title="Strategy Composer"
-      description="System and private strategy experiences will be implemented in F-012."
-    />
-  );
+  return <StrategyWorkspace />;
 }
