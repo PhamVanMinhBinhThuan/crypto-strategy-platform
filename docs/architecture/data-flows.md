@@ -121,31 +121,39 @@ sequenceDiagram
     actor User
     participant Web
     participant API
+    participant Execution as Experiment Execution
+    participant Search as Search Module
     participant DB as PostgreSQL/Outbox
     participant Publisher as Outbox Publisher
     participant Redis as Redis Streams
-    participant Coordinator as Search Coordinator
+    participant Coordinator as Worker-hosted Coordinator
     participant Worker as Backtest Worker
     participant Ranking as Ranking Handler
 
     User->>Web: Start Search
     Web->>API: REST create/start Experiment
-    API->>DB: Transaction: Manifest + Job + Outbox
+    API->>Execution: Published Start command
+    Execution->>DB: Atomic Manifest + SEARCH Job + Search Run + Outbox
     API-->>Web: 202 + experimentId/jobId/QUEUED
     Publisher->>DB: Read unpublished event
-    Publisher->>Redis: Publish search request
-    Redis-->>Coordinator: Deliver through consumer group
-    loop Bounded batches until Stop Condition
-        Coordinator->>Coordinator: Generate + validate + deduplicate Candidate
-        Coordinator->>DB: Persist Candidate + Backtest Job/Outbox
+    Publisher->>Redis: SEARCH_REQUEST v1 → search.requests.v1
+    Redis-->>Coordinator: Group search-coordinators
+    loop Bounded in-flight window until Stop Condition
+        Coordinator->>Execution: Published allocation command + expected fence
+        Execution->>Search: Generate/validate deterministic proposal
+        Execution->>DB: Composite transaction: Candidate + state + Backtest Job + decision + Outbox
         Publisher->>Redis: Publish Backtest Job
         Redis-->>Worker: Deliver at least once
         Worker->>DB: Check Job/idempotency + load references
         Worker->>Worker: Backtest → Evaluate
         Worker->>DB: Transaction: Result + Evaluation + Outbox
         Worker->>Redis: Acknowledge after durable commit
-        Redis-->>Ranking: CANDIDATE_EVALUATED
+        Redis-->>Ranking: CANDIDATE_EVALUATED qua ranking-workers
+        Redis-->>Coordinator: Cùng event qua group search-coordinators
         Ranking->>DB: Idempotent score + Top-K revision
+        Coordinator->>Execution: Reconcile authoritative completion
+        Execution->>DB: Progress + stop/fill/terminal decision
+        Coordinator->>Redis: ACK sau durable reconciliation
         Ranking-->>API: Progress/Leaderboard event
         API-->>Web: WebSocket progress/revision
     end
@@ -153,18 +161,27 @@ sequenceDiagram
 
 Stop và backpressure:
 
-- Stop Condition thuộc Search Coordinator: `maxCandidates`, `maxDuration`, `maxIterationsWithoutImprovement` hoặc user stop.
+- Stop Conditions của MVP gồm `maximumCandidates`, frozen `deadlineAt` từ `maximumDuration` và user stop.
 - `STOP_REQUESTED` ngừng sinh candidate; queued job bị skip/cancel; running job kết thúc tại safe checkpoint.
-- Coordinator giới hạn `QUEUED + RUNNING`, sinh batch nhỏ và giảm tốc khi queue vượt threshold.
+- Coordinator giới hạn authoritative `QUEUED + RUNNING` theo `maxInFlightPerExperiment`; không fill vô hạn theo queue depth.
 - Worker concurrency và job timeout cấu hình theo môi trường; Dataset chỉ truyền bằng reference.
+- MVP chỉ nhận một frozen Strategy version; Composite Search bị validation từ chối.
 
 Reliability:
 
-- Delivery là at-least-once; `jobId`, `candidateId`, unique constraint và Processed Message ngăn effect trùng.
+- Mọi envelope dùng `messageType`/`messageVersion`, `messageId`, `occurredAt` và `correlationId`.
+- Delivery là at-least-once; durable decision/fence và unique constraint là correctness boundary,
+  còn Processed Message chỉ tối ưu duplicate delivery.
+- Search Request và Candidate Evaluated đều dùng group Coordinator riêng `search-coordinators`;
+  không dùng chung `ranking-workers`, nên Ranking và Search đều nhận logical fan-out.
 - Worker chỉ acknowledge sau durable commit; Worker chết trước ack cho phép consumer khác reclaim.
 - Transient error retry có giới hạn/backoff; permanent validation error không retry; hết retry đưa Dead Letter và đánh dấu `FAILED`.
 - Transactional Outbox tránh “DB đã lưu nhưng Redis chưa nhận”; recovery scan republish event/job chưa hoàn thành.
 - Top-K dùng revision và stable tie-break, không phụ thuộc thứ tự Worker hoàn thành.
+- Reproduction tạo linked run và durable verification `PENDING`, dispatch exact frozen Candidate
+  sequence, rồi verify bất đồng bộ sau terminal; request thread không chạy Backtest hoặc comparator.
+- Verification reconciler claim bằng version fence và phục hồi `PENDING/RUNNING` sau restart;
+  outcome terminal là `MATCHED`, `MISMATCHED` hoặc `FAILED`, với differences đã giới hạn/redact.
 
 ## 5. News và Sentiment
 

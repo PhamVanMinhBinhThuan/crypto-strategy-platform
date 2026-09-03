@@ -46,6 +46,8 @@ public class OutboxPublisherEngine {
                 String streamKey = resolveDestinationStream(record);
                 streamPublisher.publish(streamKey, record.messageId(), record.payload(), Map.of(
                         "eventType", record.eventType(),
+                        "messageType", messageType(record),
+                        "messageVersion", Integer.toString(record.eventVersion()),
                         "aggregateType", record.aggregateType() != null ? record.aggregateType() : "",
                         "aggregateId", record.aggregateId() != null ? record.aggregateId() : ""
                 ));
@@ -62,11 +64,20 @@ public class OutboxPublisherEngine {
     private String resolveDestinationStream(OutboxRecord record) {
         String eventType = record.eventType();
         var streams = workerProperties.streams();
+        if (eventType != null && eventType.equalsIgnoreCase(MessageTypes.SEARCH_REQUEST)) {
+            return streams.getSearchRequestsStream();
+        }
         if (eventType != null && (eventType.equalsIgnoreCase(MessageTypes.BACKTEST_JOB)
                 || eventType.equalsIgnoreCase("EXPERIMENT_QUEUED")
                 || eventType.toUpperCase().contains("JOB"))) {
             return streams.getBacktestJobsStream();
         }
         return streams.getLifecycleEventsStream();
+    }
+
+    private static String messageType(OutboxRecord record) {
+        return record.eventType().equalsIgnoreCase(MessageTypes.SEARCH_REQUEST)
+                ? MessageTypes.SEARCH_REQUEST
+                : record.eventType();
     }
 }

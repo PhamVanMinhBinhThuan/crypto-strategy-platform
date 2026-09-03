@@ -119,4 +119,38 @@ class MessageContractSerializationTest {
         String dlqJson = objectMapper.writeValueAsString(dlq);
         assertThat(dlqJson).contains("WORKER_CRASHED", "EXECUTION_TIMEOUT");
     }
+
+    @Test
+    void searchRequestV1KeepsReservedIdsCompatibleAndBoundsOptionalHints() throws Exception {
+        String legacyJson = """
+                {
+                    "searchJobId": "01J7K8M9N0P1Q2R3S4T5A6V7W8",
+                    "experimentId": "01J7K8M9N0P1Q2R3S4T5A6V7W9"
+                }
+                """;
+
+        SearchRequestPayload legacy = objectMapper.readValue(legacyJson, SearchRequestPayload.class);
+        assertThat(legacy.concurrencyHint()).isEqualTo(SearchRequestPayload.DEFAULT_CONCURRENCY_HINT);
+        assertThat(legacy.topKTarget()).isEqualTo(SearchRequestPayload.DEFAULT_TOP_K_TARGET);
+
+        String activeJson = """
+                {
+                    "searchJobId": "01J7K8M9N0P1Q2R3S4T5A6V7W8",
+                    "experimentId": "01J7K8M9N0P1Q2R3S4T5A6V7W9",
+                    "concurrencyHint": 4,
+                    "topKTarget": 25,
+                    "futureField": "ignored"
+                }
+                """;
+        SearchRequestPayload active = objectMapper.readValue(activeJson, SearchRequestPayload.class);
+        assertThat(active.concurrencyHint()).isEqualTo(4);
+        assertThat(active.topKTarget()).isEqualTo(25);
+
+        assertThatThrownBy(() -> new SearchRequestPayload(
+                "01J7K8M9N0P1Q2R3S4T5A6V7W8",
+                "01J7K8M9N0P1Q2R3S4T5A6V7W9",
+                SearchRequestPayload.MAX_CONCURRENCY_HINT + 1,
+                10
+        )).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("concurrencyHint");
+    }
 }

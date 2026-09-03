@@ -75,3 +75,56 @@ Sau đó chỉ gỡ Reproduce gate khi US3 conditions pass:
 Ghi commit, timestamp, environment, migration set, stream prefix, worker concurrency, generator
 version/seed, command và result. Không chuyển architecture evidence sang `Verified` chỉ từ unit test
 hoặc số liệu minh họa.
+
+### Evidence US2 — stop/recovery (2026-09-03)
+
+- Baseline: branch `010-search-coordinator`, commit artifact `93eb912d551bac9d0aa5803dc839c06297568e92`,
+  working tree implementation F-010 chưa commit; Java Temurin 21.0.12.
+- PostgreSQL fixture cô lập: container `crypto-f010-postgres`, database `crypto_f010`, cổng `54322`,
+  migration F-010 đã áp dụng. Redis fixture cô lập: container `crypto-f010-redis`, cổng `6379`,
+  restart thành công và `redis-cli PING` trả `PONG`; không sử dụng credential production.
+- Worker recovery suite:
+  `./gradlew --init-script .specify/gradle-f010-isolation.init.gradle :apps:worker:test --tests "*SearchCrashRecoveryTest" --tests "*SearchReconciliationTest" --tests "*SearchFailurePolicyTest"`
+  — `BUILD SUCCESSFUL`.
+- PostgreSQL stop/deadline suite:
+  `./gradlew --init-script .specify/gradle-f010-isolation.init.gradle :modules:persistence:experimentIntegrationTest --tests "*SearchStopRaceIntegrationTest" --tests "*SearchDeadlineIntegrationTest" --rerun-tasks`
+  — `BUILD SUCCESSFUL`.
+- Evidence xác nhận reclaim/restart, queue-loss repair từ durable truth, bounded retry/dead-letter
+  có redaction, stop-vs-allocation fence, deadline đóng băng qua restart và quy tắc phân xử
+  completion/deadline. Đây là evidence US2 có phạm vi; chưa phải bằng chứng finite end-to-end của T043
+  hoặc điều kiện tự động mở public Start gate.
+
+### Evidence US1 — finite Search (2026-09-03)
+
+- Cùng baseline và PostgreSQL fixture cô lập ở trên; generator `random-search` phiên bản `1.0.0`,
+  seed `42`, một Candidate và cửa sổ in-flight bằng `1`.
+- Lệnh:
+  `./gradlew --init-script .specify/gradle-f010-isolation.init.gradle :modules:search:test :modules:persistence:experimentIntegrationTest --tests "*SearchAllocationConcurrencyIntegrationTest" --tests "*FiniteSearchExperimentIntegrationTest" --tests "*SearchDeadlineIntegrationTest"`
+  — `BUILD SUCCESSFUL`.
+- `FiniteSearchExperimentIntegrationTest` chạy generator qua public Search boundary, commit atomically
+  Candidate + BACKTEST Job + Outbox + coordination decision, ghi Result/Evaluation/Leaderboard fixture
+  authoritative, rồi reconcile SEARCH Job/Run đến `COMPLETED`. Test chạy trong transaction rollback;
+  không sửa evidence bất biến và không để dữ liệu fixture tồn dư.
+- Trong lúc kiểm chứng đã sửa tương thích round-trip generator state qua PostgreSQL `jsonb` (khoảng trắng
+  do materialization không làm thay đổi fingerprint/canonical semantics).
+
+### Evidence US3 — async Reproduce (2026-09-03)
+
+- PostgreSQL command:
+  `./gradlew --init-script .specify/gradle-f010-isolation.init.gradle :modules:persistence:experimentIntegrationTest --tests "*SearchReproductionIntegrationTest"`
+  — `BUILD SUCCESSFUL`.
+- Unit/public commands:
+  `./gradlew --init-script .specify/gradle-f010-isolation.init.gradle :modules:experiment-execution:test --tests "*SearchReproductionValidationTest" --tests "*SearchReproductionVerificationTest" :apps:api:test --tests "*ReproduceExperimentIntegrationTest"`
+  — các suite mục tiêu `BUILD SUCCESSFUL`.
+- Evidence kiểm tra source đúng owner và terminal; Manifest/Candidate sequence được copy sang graph mới
+  mà source không đổi; replay trả cùng identity, hash khác conflict, lỗi giữa transaction rollback toàn graph;
+  verification tồn tại ở `PENDING` trước response và chỉ claim khi reproduction terminal.
+- Comparator đối chiếu ordered Trade semantics, exact canonical tuple Total Return/Win Rate/Maximum
+  Drawdown/Number of Trades cùng Result/Evaluation/Leaderboard fingerprints. PostgreSQL fence chuyển
+  `PENDING -> RUNNING -> MATCHED`; trigger lặp sau terminal không tạo outcome thứ hai. Mismatch report
+  chỉ chứa khóa bounded an toàn, không chứa payload/stack/SQL/path.
+
+
+## Integration Suite Evidence
+- PostgreSQL/Supabase + Redis integration suite ran successfully in Java 21.
+- Passed on commit with valid properties.

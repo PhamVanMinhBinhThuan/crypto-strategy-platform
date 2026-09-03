@@ -528,10 +528,7 @@ paths:
       operationId: startExperiment
       summary: Start a strategy search Experiment
       description: |-
-        Reserved contract for freezing a search configuration and queuing execution.
-        This operation currently returns `503 DEPENDENCY_UNAVAILABLE` until the Search
-        Coordinator publishes its application boundary; no partial Experiment is created.
-      x-readiness: BLOCKED_SEARCH_COORDINATOR
+        Atomically freezes a single-Strategy search configuration and queues durable execution.
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -553,6 +550,16 @@ paths:
               stopCondition: { maximumCandidates: 100, maximumDurationSeconds: 300 }
               topK: 10
       responses:
+        '202':
+          description: Search accepted or returned from an equivalent idempotent replay.
+          headers:
+            Location:
+              description: URL of the authoritative Experiment state.
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExperimentAccepted' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
@@ -616,14 +623,32 @@ paths:
       operationId: reproduceExperiment
       summary: Create a new Experiment linked to immutable original evidence
       description: |-
-        Reserved contract. This operation currently returns `503 DEPENDENCY_UNAVAILABLE`
-        until the Search Coordinator is available; the original Experiment is not modified.
-      x-readiness: BLOCKED_SEARCH_COORDINATOR
+        Atomically creates a linked run from frozen source evidence. Verification is durable
+        and asynchronous; the original Experiment is never modified.
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/ExperimentId'
         - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                name: { type: string }
       responses:
+        '202':
+          description: Reproduction accepted with verification initially PENDING.
+          headers:
+            Location:
+              description: URL of the new authoritative Experiment state.
+              schema: { type: string, format: uri-reference }
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ExperimentAccepted' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }

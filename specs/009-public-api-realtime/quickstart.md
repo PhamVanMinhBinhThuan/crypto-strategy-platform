@@ -112,3 +112,7 @@ Tại thời điểm kiểm chứng, `DATABASE_URL`, `SUPABASE_DB_URL`,
 Vì vậy T074 vẫn mở: chưa claim PostgreSQL/Supabase/Redis runtime integration hoặc latency
 production. Việc này không làm transport giả vờ hoạt động; Experiment start/reproduce giữ
 readiness gate và REST snapshot vẫn là nguồn trạng thái authoritative.
+
+
+## Search Coordinator Evidence
+- F-010 Search Coordinator tests completed successfully and integrated with F-009.

@@ -1,5 +1,21 @@
 # Architecture Requirements and Evidence
 
+## F-010 — Bằng chứng thay thế Generator (2026-09-03)
+
+- **Commit gốc**: `93eb912`; bằng chứng đang ở working tree của branch
+  `010-search-coordinator`, chưa tuyên bố là release artifact.
+- `FixtureStrategyGenerator` được đăng ký qua public `SearchModuleFactory.fromGenerators` và
+  resolve bằng đúng cặp typed generator ID/version; không có fallback ngầm.
+- `GeneratorReplaceabilityTest` chạy deterministic fixture qua cùng `StrategyGenerator`
+  contract và registry factory dùng cho Random Search.
+- `SearchGeneratorReplaceabilityTest` khóa Backtest, Evaluation, Leaderboard, Experiment và
+  public message contracts không phụ thuộc generator/Search internals.
+- Lệnh đã chạy xanh trên Windows, Java 21:
+  `gradlew :modules:search:test --tests *GeneratorReplaceabilityTest` và
+  `gradlew :architecture-tests:test --tests *SearchGeneratorReplaceabilityTest`.
+- Phạm vi diff của proof chỉ gồm Search fixture/factory/test và architecture test; không sửa
+  business implementation của Backtest, Evaluation hay Leaderboard.
+
 **Status**: Planned — Chưa có implementation evidence
 
 **Last Updated**: 2026-09-02

@@ -1,0 +1,16 @@
+gradle.beforeProject { project ->
+    if (project.rootProject.name == "build-logic") {
+        project.layout.buildDirectory.set(
+                new File(System.getProperty("java.io.tmpdir"), "crypto-strategy-platform-f010-build-logic"))
+    }
+}
+
+// Cô lập ba fixture F-005/F-006 đã lệch API để kiểm chứng riêng source set F-010.
+gradle.afterProject { project, state ->
+    if (project.path == ":modules:persistence" && !state.failure) {
+        def integration = project.extensions.findByName("sourceSets")?.findByName("experimentIntegrationTest")
+        integration?.java?.exclude("**/AttemptCancellationCompletionRaceIntegrationTest.java")
+        integration?.java?.exclude("**/AttemptFinalizationConcurrencyIntegrationTest.java")
+        integration?.java?.exclude("**/BacktestAtomicCompletionIntegrationTest.java")
+    }
+}

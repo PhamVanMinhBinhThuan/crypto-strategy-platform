@@ -26,7 +26,12 @@ class WorkerPropertiesTest {
         assertThat(props.streams().getProgressEventsStream()).isEqualTo("progress.events.v1");
         assertThat(props.streams().getLifecycleEventsStream()).isEqualTo("lifecycle.events.v1");
         assertThat(props.streams().getSearchRequestsStream()).isEqualTo("search.requests.v1");
+        assertThat(props.consumer().searchGroup()).isEqualTo("search-coordinators");
         assertThat(props.concurrency().backtest()).isEqualTo(4);
+        assertThat(props.concurrency().search()).isEqualTo(2);
+        assertThat(props.concurrency().maxInFlightPerExperiment()).isEqualTo(4);
+        assertThat(props.reconciliation().searchInterval()).isEqualTo(Duration.ofSeconds(5));
+        assertThat(props.reconciliation().searchBatchSize()).isEqualTo(50);
         assertThat(props.retry().maxAttempts()).isEqualTo(3);
         assertThat(props.processedMessage().ttl()).isGreaterThan(props.execution().timeout().plus(props.reconciliation().staleGracePeriod()));
     }
@@ -58,6 +63,11 @@ class WorkerPropertiesTest {
         map.put("worker.redis.ssl", true);
         map.put("worker.redis.timeout", "10s");
         map.put("worker.concurrency.backtest", 8);
+        map.put("worker.consumer.search-group", "search-coordinators-test");
+        map.put("worker.concurrency.search", 3);
+        map.put("worker.concurrency.max-in-flight-per-experiment", 6);
+        map.put("worker.reconciliation.search-interval", "7s");
+        map.put("worker.reconciliation.search-batch-size", 25);
         map.put("worker.retry.max-attempts", 5);
 
         ConfigurationPropertySource source = new MapConfigurationPropertySource(map);
@@ -70,6 +80,11 @@ class WorkerPropertiesTest {
         assertThat(props.redis().ssl()).isTrue();
         assertThat(props.redis().timeout()).isEqualTo(Duration.ofSeconds(10));
         assertThat(props.concurrency().backtest()).isEqualTo(8);
+        assertThat(props.consumer().searchGroup()).isEqualTo("search-coordinators-test");
+        assertThat(props.concurrency().search()).isEqualTo(3);
+        assertThat(props.concurrency().maxInFlightPerExperiment()).isEqualTo(6);
+        assertThat(props.reconciliation().searchInterval()).isEqualTo(Duration.ofSeconds(7));
+        assertThat(props.reconciliation().searchBatchSize()).isEqualTo(25);
         assertThat(props.retry().maxAttempts()).isEqualTo(5);
     }
 
@@ -88,7 +103,8 @@ class WorkerPropertiesTest {
                 Duration.ofSeconds(30), Duration.ofMinutes(2),
                 Duration.ofSeconds(30), Duration.ofHours(1),
                 Duration.ofSeconds(10), 20,
-                Duration.ofSeconds(5)
+                Duration.ofSeconds(5),
+                Duration.ofSeconds(5), 50
         );
         WorkerProperties.ProcessedMessage shortTtl = new WorkerProperties.ProcessedMessage(Duration.ofMinutes(30));
 

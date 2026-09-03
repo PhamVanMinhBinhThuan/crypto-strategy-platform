@@ -143,7 +143,10 @@ pipeline downstream và trạng thái public không đổi contract.
 - **FR-011**: Stop conditions MUST được đánh giá sau mỗi thay đổi liên quan và Experiment MUST
   vào terminal state đúng một lần. `deadlineAt` MUST được tính bằng injected UTC clock đúng một lần
   tại first start, không được kéo dài khi restart/retry; completion/deadline race MUST lock hoặc
-  reload durable state để cho một deterministic terminal decision.
+  reload durable state để cho một deterministic terminal decision. Khi completion và deadline cùng
+  hợp lệ, hệ thống MUST reconcile outcome có authoritative `completedAt <= deadlineAt` trước khi
+  đánh giá deadline; tại đúng `completedAt == deadlineAt`, completion thắng. Outcome hoàn tất sau
+  `deadlineAt` vẫn được giữ nhưng deadline thắng quyết định chặn allocation và đưa run sang stopping.
 - **FR-012**: Sau stop, Coordinator MUST không dispatch Candidate mới và MUST chờ mọi active Job
   terminal trước khi Experiment thành `STOPPED`.
 - **FR-013**: Coordinator MUST phục hồi được chỉ từ durable state khi process, queue hoặc cache mất.
@@ -184,7 +187,9 @@ pipeline downstream và trạng thái public không đổi contract.
 
 ### Measurable Outcomes
 
-- **SC-001**: 95% Start Experiment hợp lệ trả durable identity trong dưới 2 giây.
+- **SC-001**: 95% Start Experiment hợp lệ trả durable identity trong dưới 2 giây, đo từ lúc API nhận
+  command đến khi atomic commit hoàn tất và response chứa identity sẵn sàng; acceptance benchmark
+  dùng ít nhất 100 request sau warm-up và không tính thời gian khởi tạo container hoặc migration.
 - **SC-002**: Replay cùng Start/Reproduce command 100 lần tạo đúng một logical Experiment và
   không tạo Candidate/Job business trùng.
 - **SC-003**: 100 lượt generator cùng frozen inputs/seed tạo cùng ordered fingerprints/indices.
@@ -194,11 +199,13 @@ pipeline downstream và trạng thái public không đổi contract.
 - **SC-006**: Sau stop hoặc frozen deadline, không Candidate mới được dispatch; active Jobs terminal
   và Experiment đạt đúng terminal state trong configured cancellation grace, kể cả qua restart và
   completion/deadline race.
-- **SC-007**: Reproduction fixture có cùng Trade sequence, bốn metrics và fingerprints, hoặc trả
-  mismatch report chính xác thay vì báo thành công sai.
+- **SC-007**: Reproduction fixture có cùng Trade sequence; cùng bốn metric F-006 gồm Total Return,
+  Win Rate, Maximum Drawdown và Number of Trades theo exact canonical value của frozen metric version;
+  cùng fingerprints, hoặc trả mismatch report chính xác thay vì báo thành công sai.
 - **SC-008**: Generator fixture thay thế chạy end-to-end mà không đổi downstream/public contract.
 - **SC-009**: Mất queue/cache không làm mất durable Experiment, Candidate, Job, Result hay intent.
-- **SC-010**: 100% public error/progress failure không lộ secret, provider payload, SQL, path hay stack.
+- **SC-010**: 100% public error/progress/lifecycle failure mappings được kiểm tra tại API boundary và
+  không lộ secret, provider payload, SQL, path, stack hoặc internal exception detail.
 
 ## Assumptions
 

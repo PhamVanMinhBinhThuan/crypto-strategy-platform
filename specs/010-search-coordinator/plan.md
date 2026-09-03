@@ -21,11 +21,13 @@ strategy, experiment, contracts, persistence và worker hiện có
 **Testing**: JUnit 5, AssertJ, Mockito, ArchUnit; PostgreSQL integration source set và Redis smoke  
 **Target Platform**: Linux container/server; local macOS/Linux development  
 **Project Type**: Modular monolith với API app và Worker app  
-**Performance Goals**: Start acceptance p95 dưới 2 giây; bounded active Backtests; progress
-notification trong 5 giây ở môi trường acceptance  
+**Performance Goals**: Start acceptance p95 dưới 2 giây trên ít nhất 100 request hợp lệ sau warm-up,
+đo từ API command receipt đến atomic commit và response durable identity, không gồm container startup
+hoặc migration; bounded active Backtests; progress notification trong 5 giây ở môi trường acceptance
 **Constraints**: At-least-once delivery, no cross-module internal import/direct table write,
 typed ULID/UUID, exact decimal, UTC, forward-only migration, deterministic fingerprints  
-**Scale/Scope**: Một Coordinator logical owner mỗi Search Job; nhiều Search Jobs song song;
+**Scale/Scope**: Một active Coordinator claimant có database fence mỗi Search Job, không phải
+business/data owner; nhiều Search Jobs song song;
 Random Search deterministic trên một Strategy version trong MVP; không Composite Search,
 Bayesian/adaptive search hoặc multi-leader consensus
 
@@ -84,6 +86,15 @@ Không có Constitution violation cần miễn trừ.
 8. Reproduction initialization tạo linked run, copy frozen manifest/Candidate sequence và durable
    `PENDING` verification rồi trả `202`; khi run terminal, execution handler/reconciler claim/fence,
    compare evidence và persist `MATCHED`, `MISMATCHED` hoặc `FAILED` idempotently.
+
+Completion/deadline race dùng authoritative `completedAt` và frozen `deadlineAt`: Coordinator
+reconcile completion có `completedAt <= deadlineAt` trước khi đánh giá deadline, bao gồm equality;
+completion sau deadline vẫn được giữ nhưng không đảo quyết định deadline đã chặn allocation và đưa
+run sang stopping. Quy tắc này được áp dụng sau durable lock/reload để mọi replay có cùng outcome.
+
+Reproduction comparator so exact canonical values theo frozen metric version cho Total Return,
+Win Rate, Maximum Drawdown và Number of Trades, cùng ordered Trade sequence và fingerprints; không
+dùng tolerance ngầm.
 
 ## Project Structure
 
@@ -169,9 +180,13 @@ Các quyết định và alternatives nằm trong [research.md](research.md). Kh
 4. Architecture tests: dependency matrix, no internal imports, no direct Worker SQL, no framework
    in pure Search module.
 5. API tests: Start 202/Location/idempotency/ownership chỉ activate sau US2 evidence; Reproduce 202
-   và gate riêng chỉ activate sau terminal async verification evidence US3.
+   và gate riêng chỉ activate sau terminal async verification evidence US3; parameterized public
+   error/progress/lifecycle failure matrix xác nhận redaction cho mọi mapping của F-010.
 6. PostgreSQL/Redis integration: forward migration, concurrent allocation/fencing, outbox delivery,
    restart/reclaim and end-to-end finite Experiment/reproduction.
+7. Performance acceptance: chạy ít nhất 100 Start request hợp lệ sau warm-up trong môi trường cô lập,
+   đo từ API receipt đến atomic commit/response durable identity, assert p95 dưới 2 giây và ghi commit,
+   environment cùng configuration; loại trừ container startup và migration khỏi sample.
 
 ## Post-design Constitution Check
 

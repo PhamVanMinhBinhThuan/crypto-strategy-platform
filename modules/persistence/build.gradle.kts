@@ -13,6 +13,7 @@ dependencies {
     implementation(project(":modules:evaluation"))
     implementation(project(":modules:leaderboard"))
     implementation(project(":modules:experiment-execution"))
+    implementation(project(":modules:search"))
     implementation(libs.spring.jdbc)
     implementation(libs.jackson.databind)
     implementation(libs.slf4j.api)
