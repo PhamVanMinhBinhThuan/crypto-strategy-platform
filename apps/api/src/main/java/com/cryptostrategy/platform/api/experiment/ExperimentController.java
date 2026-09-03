@@ -3,6 +3,8 @@ package com.cryptostrategy.platform.api.experiment;
 import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
 import com.cryptostrategy.platform.api.error.DependencyUnavailableException;
 import com.cryptostrategy.platform.api.idempotency.IdempotencyCommandExecutor;
+import com.cryptostrategy.platform.api.observability.CorrelationContext;
+import com.cryptostrategy.platform.api.observability.CorrelationId;
 import com.cryptostrategy.platform.api.transport.PageRequestMapper;
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
@@ -11,6 +13,11 @@ import com.cryptostrategy.platform.experiment.api.port.in.GetExperimentUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.GetJobUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.ListCandidatesUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.StopExperimentUseCase;
+import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUseCase;
+import com.cryptostrategy.platform.execution.api.port.in.StartSearchReproductionUseCase;
+import java.time.Instant;
+import java.time.Duration;
+import java.time.Clock;
 import java.net.URI;
 import java.util.Map;
 import java.util.Objects;
@@ -24,6 +31,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 @RestController
 @RequestMapping("/api/v1/experiments")
@@ -36,6 +46,12 @@ public final class ExperimentController {
     private final ListCandidatesUseCase candidates;
     private final StopExperimentUseCase stopExperiment;
     private final PageRequestMapper pages;
+    private final StartSearchExperimentUseCase startSearch;
+    private final ExperimentRequestMapper startRequests;
+    private final boolean searchStartEnabled;
+    private final StartSearchReproductionUseCase reproduceSearch;
+    private final boolean searchReproduceEnabled;
+    private final Clock clock;
 
     public ExperimentController(
             IdempotencyCommandExecutor idempotency,
@@ -44,12 +60,55 @@ public final class ExperimentController {
             ListCandidatesUseCase candidates,
             StopExperimentUseCase stopExperiment,
             PageRequestMapper pages) {
+        this(idempotency, experiments, jobs, candidates, stopExperiment, pages, null, null, false, null, false,
+                Clock.systemUTC());
+    }
+
+    ExperimentController(
+            IdempotencyCommandExecutor idempotency, GetExperimentUseCase experiments,
+            GetJobUseCase jobs, ListCandidatesUseCase candidates, StopExperimentUseCase stopExperiment,
+            PageRequestMapper pages, StartSearchExperimentUseCase startSearch,
+            ExperimentRequestMapper startRequests, boolean searchStartEnabled) {
+        this(idempotency, experiments, jobs, candidates, stopExperiment, pages, startSearch, startRequests,
+                searchStartEnabled, null, false, Clock.systemUTC());
+    }
+
+    ExperimentController(
+            IdempotencyCommandExecutor idempotency, GetExperimentUseCase experiments,
+            GetJobUseCase jobs, ListCandidatesUseCase candidates, StopExperimentUseCase stopExperiment,
+            PageRequestMapper pages, StartSearchExperimentUseCase startSearch,
+            ExperimentRequestMapper startRequests, boolean searchStartEnabled,
+            StartSearchReproductionUseCase reproduceSearch, boolean searchReproduceEnabled) {
+        this(idempotency, experiments, jobs, candidates, stopExperiment, pages, startSearch, startRequests,
+                searchStartEnabled, reproduceSearch, searchReproduceEnabled, Clock.systemUTC());
+    }
+
+    @Autowired
+    public ExperimentController(
+            IdempotencyCommandExecutor idempotency,
+            GetExperimentUseCase experiments,
+            GetJobUseCase jobs,
+            ListCandidatesUseCase candidates,
+            StopExperimentUseCase stopExperiment,
+            PageRequestMapper pages,
+            StartSearchExperimentUseCase startSearch,
+            ExperimentRequestMapper startRequests,
+            @Value("${platform.features.search-start-enabled:true}") boolean searchStartEnabled,
+            StartSearchReproductionUseCase reproduceSearch,
+            @Value("${platform.features.search-reproduce-enabled:true}") boolean searchReproduceEnabled,
+            @Qualifier("searchApiClock") Clock clock) {
         this.idempotency = Objects.requireNonNull(idempotency, "idempotency");
         this.experiments = Objects.requireNonNull(experiments, "experiments");
         this.jobs = Objects.requireNonNull(jobs, "jobs");
         this.candidates = Objects.requireNonNull(candidates, "candidates");
         this.stopExperiment = Objects.requireNonNull(stopExperiment, "stopExperiment");
         this.pages = Objects.requireNonNull(pages, "pages");
+        this.startSearch = startSearch;
+        this.startRequests = startRequests;
+        this.searchStartEnabled = searchStartEnabled;
+        this.reproduceSearch = reproduceSearch;
+        this.searchReproduceEnabled = searchReproduceEnabled;
+        this.clock = Objects.requireNonNull(clock, "clock");
     }
 
     @PostMapping
@@ -57,7 +116,21 @@ public final class ExperimentController {
             @AuthenticationPrincipal AuthenticatedUserContext user,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestBody CommandDtos.StartExperimentRequest request) {
-        throw searchCoordinatorUnavailable();
+        if (!searchStartEnabled) {
+            throw searchCoordinatorUnavailable();
+        }
+        var accepted = idempotency.execute(
+                user.userId(),
+                "START_SEARCH",
+                idempotencyKey,
+                request,
+                (key, requestHash) -> startSearch.start(startRequests.map(
+                        user.userId(), key, requestHash, correlationId(), request)));
+        var response = new CommandDtos.ExperimentAcceptedResponse(
+                accepted.experimentId(), accepted.searchJobId(), accepted.status());
+        return ResponseEntity.accepted()
+                .location(URI.create("/api/v1/experiments/" + accepted.experimentId().value()))
+                .body(response);
     }
 
     @GetMapping("/{id}")
@@ -103,7 +176,21 @@ public final class ExperimentController {
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @PathVariable String id,
             @RequestBody(required = false) CommandDtos.ReproduceExperimentRequest request) {
-        throw searchCoordinatorUnavailable();
+        if (!searchReproduceEnabled) throw searchCoordinatorUnavailable();
+        CommandDtos.ReproduceExperimentRequest body = request == null
+                ? new CommandDtos.ReproduceExperimentRequest("Reproduction of " + id) : request;
+        Instant now = clock.instant();
+        String correlationId = correlationId();
+        var accepted = idempotency.execute(user.userId(), "REPRODUCE_SEARCH", idempotencyKey,
+                Map.of("sourceExperimentId", id, "name", body.name()),
+                (key, hash) -> reproduceSearch.start(new StartSearchReproductionUseCase.Command(
+                        user.userId(), new ExperimentId(id), body.name(), key, hash,
+                        correlationId, now, now.plus(Duration.ofHours(24)))));
+        var response = new CommandDtos.ExperimentAcceptedResponse(
+                accepted.experimentId(), accepted.searchJobId(), accepted.status());
+        return ResponseEntity.accepted()
+                .location(URI.create("/api/v1/experiments/" + accepted.experimentId().value()))
+                .body(response);
     }
 
     @GetMapping("/{id}/candidates")
@@ -148,6 +235,11 @@ public final class ExperimentController {
 
     private static DependencyUnavailableException searchCoordinatorUnavailable() {
         return new DependencyUnavailableException("Search Coordinator");
+    }
+
+    private static String correlationId() {
+        String current = CorrelationContext.current();
+        return current == null ? CorrelationId.resolve(null) : current;
     }
 
     private static ResourceInaccessibleException inaccessible() {

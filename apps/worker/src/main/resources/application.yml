@@ -74,3 +74,15 @@ news:
         url: "https://www.coindesk.com/arc/outboundfeeds/rss/"
         language: "en"
         asset-symbols: ["BTC"]
+
+worker:
+  streams:
+    search-requests: ${SEARCH_REQUESTS_STREAM:search.requests.v1}
+  consumer:
+    search-group: ${SEARCH_COORDINATOR_GROUP:search-coordinators}
+  concurrency:
+    search: ${SEARCH_COORDINATOR_CONCURRENCY:2}
+    max-in-flight-per-experiment: ${SEARCH_MAX_IN_FLIGHT_PER_EXPERIMENT:4}
+  reconciliation:
+    search-interval: ${SEARCH_RECONCILIATION_INTERVAL:5s}
+    search-batch-size: ${SEARCH_RECONCILIATION_BATCH_SIZE:50}

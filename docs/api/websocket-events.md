@@ -588,6 +588,10 @@ Hệ thống không đảm bảo exactly-once delivery. Client phải xử lý d
   `lifecycle.events.v1` và `candidate.evaluated.v1`. Có thể đổi tên bằng
   `platform.realtime.streams.*`; khi stream gián đoạn, REST read vẫn hoạt động và là
   nguồn trạng thái authoritative.
+- Search Coordinator consume `SEARCH_REQUEST` (`messageType`/`messageVersion` bằng
+  `SEARCH_REQUEST`/`1`) từ `search.requests.v1` qua group riêng `search-coordinators`; completion
+  `CANDIDATE_EVALUATED` chỉ là trigger để reload durable progress. Start/Reproduce chỉ nhận qua REST,
+  còn WebSocket tiếp tục chỉ phân phối progress/lifecycle và hướng client reconcile snapshot.
 - Chỉ cho phép Origin trong allowlist.
 - Không nhận `START_SEARCH`, `STOP_SEARCH` hoặc command thay đổi business state qua WebSocket.
 - Không gửi credential, token, SQL, internal class name, stack trace hoặc raw Binance/Python response.

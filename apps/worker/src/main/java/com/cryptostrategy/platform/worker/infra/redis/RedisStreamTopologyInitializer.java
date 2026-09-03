@@ -37,7 +37,10 @@ public class RedisStreamTopologyInitializer {
         // 2. Candidate Evaluated stream with ranking consumer group
         ensureConsumerGroup(streams.getCandidateEvaluatedStream(), consumer.rankingGroup());
 
-        // 3. Other streams initialized
+        // 3. Search Request dùng group riêng, không chia pending-entry list với Ranking.
+        ensureConsumerGroup(streams.getSearchRequestsStream(), consumer.searchGroup());
+
+        // 4. Other streams initialized
         List<String> otherStreams = List.of(
                 streams.getDeadLetterStream(),
                 streams.getProgressEventsStream(),

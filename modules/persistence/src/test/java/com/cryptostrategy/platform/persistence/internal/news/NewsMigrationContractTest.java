@@ -20,5 +20,8 @@ class NewsMigrationContractTest {
         String sql=Files.readString(migrations.resolve("20260830000100_add_news_sentiment_workflow.sql"));
         for(String required:new String[]{"sentiment_model_release","FAILED_RETRYABLE","lease_token","next_eligible_attempt","news_analysis_claim_idx","sentiment_result_immutable"})assertTrue(sql.contains(required),required);
     }
-    private static String hash(Path path)throws Exception{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(path)));}
+    private static String hash(Path path)throws Exception{
+        byte[] canonical=Files.readString(path).replace("\r\n","\n").getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(canonical));
+    }
 }

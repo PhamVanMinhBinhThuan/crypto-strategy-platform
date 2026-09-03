@@ -240,7 +240,7 @@ Idempotency-Key: search-demo-001
   "name": "BTC MA random search",
   "datasetId": "01JDATASET00000000000000001",
   "generator": {
-    "generatorId": "random",
+    "generatorId": "random-search",
     "version": "1.0.0",
     "seed": 20260816
   },
@@ -260,19 +260,20 @@ Idempotency-Key: search-demo-001
 }
 ```
 
-Trạng thái hiện tại: `503 Service Unavailable` với code
-`DEPENDENCY_UNAVAILABLE`. Search Coordinator chưa có published application boundary nên
-API không claim request, không tạo Experiment/Job một phần và không trả `202` giả.
+Response `202 Accepted` được trả sau khi Experiment, Manifest, SEARCH Job, Search Run,
+Outbox intent và idempotency receipt đã commit atomically.
 
 ```json
 {
-  "code": "DEPENDENCY_UNAVAILABLE",
-  "message": "A required capability is not available yet.",
-  "details": {"retryable": true},
-  "correlationId": "01JSEARCHREQUEST00000000001",
-  "timestamp": "2026-09-02T12:00:00Z"
+  "experimentId": "01JEXPERIMENT0000000000001",
+  "jobId": "01JJOB00000000000000000002",
+  "status": "QUEUED"
 }
 ```
+
+Header `Location: /api/v1/experiments/01JEXPERIMENT0000000000001` trỏ tới snapshot
+authoritative. Reproduce dùng `POST /api/v1/experiments/{id}/reproductions`, cũng trả `202` và
+identity mới; source không đổi, verification bắt đầu durable ở `PENDING` rồi chạy sau terminal.
 
 ### 3.2. Experiment Progress Event
 

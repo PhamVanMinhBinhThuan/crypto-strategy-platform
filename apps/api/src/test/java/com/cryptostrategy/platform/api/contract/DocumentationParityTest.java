@@ -49,7 +49,7 @@ class DocumentationParityTest {
     }
 
     @Test
-    void searchOperationsAreDocumentedAsBlockedAndCommandsRequireIdempotency() throws Exception {
+    void searchOperationsAreDocumentedAsReadyAndCommandsRequireIdempotency() throws Exception {
         String openApi = documentation("docs/api/openapi.yaml");
         String start = pathSection(openApi, "/experiments:", "/experiments/{experimentId}:");
         String stop = pathSection(
@@ -62,10 +62,10 @@ class DocumentationParityTest {
                 "/experiments/{experimentId}/candidates:");
         String cancel = pathSection(openApi, "/jobs/{jobId}/cancel:", "/experiments:");
 
-        assertThat(start).contains("x-readiness: BLOCKED_SEARCH_COORDINATOR", "IdempotencyKey")
-                .doesNotContain("'202':");
-        assertThat(reproduce).contains("x-readiness: BLOCKED_SEARCH_COORDINATOR", "IdempotencyKey")
-                .doesNotContain("'202':");
+        assertThat(start).contains("IdempotencyKey", "'202':")
+                .doesNotContain("BLOCKED_SEARCH_COORDINATOR");
+        assertThat(reproduce).contains("IdempotencyKey", "'202':")
+                .doesNotContain("BLOCKED_SEARCH_COORDINATOR");
         assertThat(stop).contains("IdempotencyKey", "'202':");
         assertThat(cancel).contains("IdempotencyKey", "'202':");
     }
@@ -95,14 +95,14 @@ class DocumentationParityTest {
                 "IDEMPOTENCY_KEY_CONFLICT",
                 "INVALID_STATE_TRANSITION",
                 "DEPENDENCY_UNAVAILABLE",
-                "BLOCKED_SEARCH_COORDINATOR");
+                "REPRODUCE_EXPERIMENT");
         assertThat(examples)
                 .contains(
                         "NEXT_CANDLE_OPEN",
                         "tradingPairId=",
                         "\"newsId\"",
                         "\"evaluationResultId\"",
-                        "DEPENDENCY_UNAVAILABLE")
+                        "status\": \"QUEUED")
                 .doesNotContain("CANDLE_CLOSE", "\"newsItemId\"");
     }
 

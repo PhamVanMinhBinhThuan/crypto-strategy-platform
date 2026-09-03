@@ -23,6 +23,7 @@ dependencies {
     implementation(project(":modules:backtesting"))
     implementation(project(":modules:evaluation"))
     implementation(project(":modules:experiment-execution"))
+    implementation(project(":modules:search"))
     implementation(project(":modules:leaderboard"))
     implementation(project(":modules:persistence"))
 

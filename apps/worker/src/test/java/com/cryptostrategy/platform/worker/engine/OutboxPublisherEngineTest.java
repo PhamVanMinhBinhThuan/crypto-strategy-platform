@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -66,5 +67,27 @@ class OutboxPublisherEngineTest {
 
         assertThat(published).isEqualTo(0);
         verify(outboxPort).recordPublishFailure(eq("evt-1"), eq("Redis connection error"), any());
+    }
+
+    @Test
+    void publishesSearchRequestWithTheVersionedEnvelopeOnItsDedicatedStream() {
+        Instant now = Instant.now();
+        OutboxRecord record = new OutboxRecord(
+                "evt-search", "01J7K8M9N0P1Q2R3S4T5A6V7W2", "JOB", "search-job-1",
+                "SEARCH_REQUEST", 1, "{\"searchJobId\":\"job\"}", null, null, 0, null, now, now);
+        when(outboxPort.listUnpublishedBatch(workerProperties.reconciliation().outboxBatchSize()))
+                .thenReturn(List.of(record));
+
+        assertThat(engine.publishPendingOutboxBatch()).isEqualTo(1);
+        verify(streamPublisher).publish(
+                workerProperties.streams().getSearchRequestsStream(),
+                record.messageId(),
+                record.payload(),
+                Map.of(
+                        "eventType", "SEARCH_REQUEST",
+                        "messageType", "SEARCH_REQUEST",
+                        "messageVersion", "1",
+                        "aggregateType", "JOB",
+                        "aggregateId", "search-job-1"));
     }
 }

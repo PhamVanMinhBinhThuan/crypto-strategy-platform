@@ -40,12 +40,12 @@ class ModuleBoundaryTest {
             Map.entry("search", Set.of("domain", "strategy")),
             Map.entry("leaderboard", Set.of("domain", "evaluation", "experiment")),
             Map.entry("news", Set.of("domain")),
-            Map.entry("execution", Set.of("domain", "backtesting", "evaluation", "leaderboard", "experiment", "strategy", "combination")),
+            Map.entry("execution", Set.of("domain", "contracts", "marketdata", "backtesting", "evaluation", "leaderboard", "experiment", "search", "strategy", "combination")),
             Map.entry("persistence", Set.of(
                     "domain", "marketdata", "strategy", "backtesting", "evaluation", "experiment", "execution", "search", "leaderboard", "news")),
             Map.entry("api", Set.of(
                     "domain", "contracts", "marketdata", "strategy", "strategies", "combination", "backtesting",
-                    "evaluation", "experiment", "execution", "search", "leaderboard", "news", "persistence")),
+                    "evaluation", "experiment", "execution", "leaderboard", "news", "persistence")),
             Map.entry("worker", Set.of(
                     "domain", "contracts", "marketdata", "strategy", "strategies", "combination", "backtesting",
                     "evaluation", "experiment", "execution", "search", "leaderboard", "news", "persistence")));
@@ -75,6 +75,18 @@ class ModuleBoundaryTest {
     }
 
     @Test
+    void searchCoordinatorDependencyEdgesAreExplicitlyLocked() {
+        assertTrue(ALLOWED.get("execution").contains("search"));
+        assertTrue(ALLOWED.get("persistence").contains("search"));
+        assertTrue(ALLOWED.get("worker").contains("search"));
+        assertFalse(ALLOWED.get("api").contains("search"));
+        assertFalse(ALLOWED.get("search").contains("persistence"));
+        assertFalse(ALLOWED.get("search").contains("experiment"));
+        assertFalse(ALLOWED.get("search").contains("execution"));
+        assertFalse(ALLOWED.get("search").contains("worker"));
+    }
+
+    @Test
     void allowedDomainDependencyFixturePasses() {
         String fixtureRoot = PLATFORM + ".architecture.fixtures.allowed";
         JavaClasses fixtures = new ClassFileImporter().importPackages(fixtureRoot);
@@ -98,7 +110,8 @@ class ModuleBoundaryTest {
         JavaClasses production = productionClasses();
 
         for (String owner : ALLOWED.keySet()) {
-            assertFalse(noExternalInternalAccess(PLATFORM, owner).evaluate(production).hasViolation());
+            var result = noExternalInternalAccess(PLATFORM, owner).evaluate(production);
+            assertFalse(result.hasViolation(), result.getFailureReport().toString());
         }
     }
 

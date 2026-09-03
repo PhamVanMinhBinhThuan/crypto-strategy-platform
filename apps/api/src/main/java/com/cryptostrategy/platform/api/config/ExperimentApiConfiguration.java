@@ -10,12 +10,72 @@ import com.cryptostrategy.platform.experiment.api.port.out.ExecutionAttemptStore
 import com.cryptostrategy.platform.experiment.api.port.out.ExperimentStore;
 import com.cryptostrategy.platform.experiment.api.port.out.JobStore;
 import com.cryptostrategy.platform.persistence.api.ExperimentPersistenceFactory;
+import com.cryptostrategy.platform.persistence.api.SearchPersistenceFactory;
 import javax.sql.DataSource;
+import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUseCase;
+import com.cryptostrategy.platform.execution.api.port.out.SearchExperimentTransactionGateway;
+import com.cryptostrategy.platform.execution.api.port.in.StartSearchReproductionUseCase;
+import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionGateway;
+import com.cryptostrategy.platform.execution.api.port.in.SearchStartCommandFactory;
+import com.cryptostrategy.platform.execution.api.ExperimentExecutionModuleFactory;
+import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
+import com.cryptostrategy.platform.strategy.api.port.in.StrategyFingerprintCalculator;
+import com.cryptostrategy.platform.strategy.api.port.in.StrategyRegistry;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Clock;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
 public class ExperimentApiConfiguration {
+    @Bean("searchApiClock")
+    Clock searchApiClock() {
+        return Clock.systemUTC();
+    }
+
+    @Bean
+    SearchStartCommandFactory searchStartCommandFactory(
+            GetDatasetUseCase datasets,
+            StrategyRegistry strategies,
+            StrategyFingerprintCalculator fingerprints,
+            ObjectMapper objectMapper,
+            @Value("${platform.build.version:development}") String softwareVersion,
+            @Value("${platform.build.git-commit:unknown}") String gitCommit) {
+        return ExperimentExecutionModuleFactory.startCommands(
+                datasets, strategies, fingerprints, objectMapper, softwareVersion, gitCommit, Clock.systemUTC());
+    }
+
+    @Bean
+    SearchPersistenceFactory.ExperimentTransactions searchExperimentTransactions(DataSource dataSource) {
+        return new SearchPersistenceFactory(dataSource).createExperimentTransactions();
+    }
+
+    @Bean
+    SearchExperimentTransactionGateway searchExperimentTransactionGateway(
+            SearchPersistenceFactory.ExperimentTransactions transactions) {
+        return transactions.start();
+    }
+
+    @Bean
+    SearchReproductionGateway searchReproductionGateway(
+            SearchPersistenceFactory.ExperimentTransactions transactions) {
+        return transactions.reproduction();
+    }
+
+    @Bean
+    StartSearchExperimentUseCase startSearchExperimentUseCase(
+            SearchExperimentTransactionGateway transactions) {
+        return ExperimentExecutionModuleFactory.start(transactions);
+    }
+
+    @Bean
+    StartSearchReproductionUseCase startSearchReproductionUseCase(
+            @Qualifier("searchReproductionGateway") SearchReproductionGateway gateway) {
+        return ExperimentExecutionModuleFactory.reproduce(gateway);
+    }
+
     @Bean
     ExperimentStore experimentStore(DataSource dataSource) {
         return new ExperimentPersistenceFactory(dataSource).createExperimentStore();
