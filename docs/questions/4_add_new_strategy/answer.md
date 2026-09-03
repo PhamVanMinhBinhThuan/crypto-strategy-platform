@@ -1,39 +1,89 @@
-# 4. Thêm strategy mới sửa ở đâu?
+# 4. Thêm Strategy mới sửa ở đâu?
 
 ## Trả lời ngắn
 
-Thêm Strategy mới bằng cách tạo implementation/plugin trong `modules/strategies`, khai báo descriptor và parameter schema, viết test rồi đăng ký plugin. Registry tra cứu nó qua cùng `StrategyPlugin` contract. Không sửa Backtester, Evaluator, Leaderboard hay logic UI vì các phần đó chỉ biết contract chung `Strategy → StrategyDecision`.
+Muốn thêm Strategy mới, ví dụ MACD, nhóm chỉ cần:
+
+1. Tạo `MacdStrategy` implement `Strategy`.
+2. Tạo `MacdStrategyPlugin` để khai báo ID, version, parameter schema và cách khởi tạo Strategy.
+3. Viết test cho thuật toán và validation.
+4. Thêm plugin vào `StrategyPlugins.trusted()`.
+
+Backtester, Search, Evaluation, Leaderboard và UI không cần thêm logic riêng cho MACD vì các thành phần này làm việc qua contract chung và Strategy Registry.
 
 ## Minh họa
 
 ```mermaid
 flowchart LR
-    NEW["MACD plugin mới"] -->|"implements"| CONTRACT["StrategyPlugin contract"]
-    NEW --> DESC["Descriptor + parameter schema"]
-    NEW --> TEST["Unit/contract tests"]
-    CONTRACT --> REG["Strategy Registry"]
-    REG --> PIPE["Backtest → Evaluation → Leaderboard"]
-    PIPE -. "không sửa" .-> UI["UI business logic"]
+    MACD["MacdStrategy"] --> PLUGIN["MacdStrategyPlugin"]
+    PLUGIN --> REG["Strategy Registry"]
+    REG --> BACKTEST["Backtester"]
+    BACKTEST --> RESULT["Evaluation / Leaderboard"]
 ```
 
-## Ví dụ cụ thể
+## Contract chung
 
-Hiện registry tin cậy đăng ký `MovingAverageCrossoverPlugin`. Muốn thêm MACD, nhóm tạo `MacdStrategy` và `MacdStrategyPlugin`, mô tả các tham số như fast/slow/signal period, thêm vào danh sách contribution và chạy contract/architecture test. Backtester vẫn chỉ gọi Strategy với `StrategyContext` và nhận `BUY`, `SELL` hoặc `HOLD`.
+Mọi Strategy đều nhận `StrategyContext` và trả về `StrategyDecision`:
 
-Composite Strategy cũng không cần biết class MACD cụ thể; materializer lấy các Strategy version qua registry rồi Majority Vote kết hợp quyết định.
+```java
+public interface Strategy {
+    StrategyDecision evaluate(StrategyContext context);
+}
+```
 
-## Trạng thái và trade-off
+Bằng chứng: [`Strategy.java`](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/api/Strategy.java).
 
-**Implemented:** contract, Registry, MA Crossover plugin, parameter validation và Composite Majority Vote. MACD thực tế chưa phải plugin production; nó là phép kiểm chứng thay đổi mục tiêu QA-01. Plugin architecture thêm công việc version/schema/registration nhưng ngăn chuỗi `if/else` lan khắp hệ thống.
+Mỗi plugin cung cấp descriptor và tạo Strategy từ parameters:
 
-## Bằng chứng trong project
+```java
+public interface StrategyPlugin {
+    StrategyDescriptor descriptor();
+    Strategy create(StrategyParameterSet parameters);
+}
+```
 
-- [ADR-0005 — Strategy Plugin Registry](../../adr/0005-strategy-plugin-registry.md)
-- [StrategyPlugin contract](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/api/StrategyPlugin.java)
-- [DefaultStrategyRegistry](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/internal/registry/DefaultStrategyRegistry.java)
-- [StrategyPlugins registration](../../../modules/strategies/src/main/java/com/cryptostrategy/platform/strategies/api/StrategyPlugins.java)
-- [MA Crossover implementation](../../../modules/strategies/src/main/java/com/cryptostrategy/platform/strategies/internal/ma/MovingAverageCrossoverStrategy.java)
-- [Strategy architecture test](../../../architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/StrategyArchitectureTest.java)
+Bằng chứng: [`StrategyPlugin.java`](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/api/StrategyPlugin.java).
+
+## Ví dụ đang có trong project
+
+Project hiện có `MovingAverageCrossoverStrategy` và `MovingAverageCrossoverPlugin`. Plugin khai báo:
+
+- ID và version của Strategy;
+- hai tham số `fastPeriod` và `slowPeriod`;
+- ràng buộc `fastPeriod < slowPeriod`;
+- số candle cần thiết trước khi chạy;
+- cách tạo `MovingAverageCrossoverStrategy`.
+
+Bằng chứng: [`MovingAverageCrossoverStrategy.java`](../../../modules/strategies/src/main/java/com/cryptostrategy/platform/strategies/internal/ma/MovingAverageCrossoverStrategy.java) và [`MovingAverageCrossoverPlugin.java`](../../../modules/strategies/src/main/java/com/cryptostrategy/platform/strategies/internal/ma/MovingAverageCrossoverPlugin.java).
+
+MACD sẽ được thêm theo cùng cấu trúc. MACD hiện chỉ là ví dụ mở rộng, chưa được implement trong project.
+
+## Đăng ký plugin
+
+Các plugin được đăng ký tập trung tại `StrategyPlugins.trusted()`:
+
+```java
+public static List<StrategyPlugin> trusted() {
+    return List.of(new MovingAverageCrossoverPlugin());
+}
+```
+
+Khi thêm MACD, chỉ cần bổ sung `new MacdStrategyPlugin()` vào danh sách trên. Bằng chứng: [`StrategyPlugins.java`](../../../modules/strategies/src/main/java/com/cryptostrategy/platform/strategies/api/StrategyPlugins.java).
+
+Registry kiểm tra version, chống đăng ký trùng, validate parameters và tạo đúng Strategy. Bằng chứng: [`DefaultStrategyRegistry.java`](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/internal/registry/DefaultStrategyRegistry.java) và [`DefaultStrategyRegistryTest.java`](../../../modules/strategy-core/src/test/java/com/cryptostrategy/platform/strategy/internal/registry/DefaultStrategyRegistryTest.java).
+
+## Vì sao các phần khác không phải sửa?
+
+Backtester nhận một đối tượng `Strategy` và chỉ gọi `evaluate(context)`. Nó không kiểm tra Strategy là Moving Average hay MACD.
+
+Bằng chứng: [`StrategyExecutionSession.java`](../../../modules/backtesting/src/main/java/com/cryptostrategy/platform/backtesting/internal/StrategyExecutionSession.java).
+
+Thiết kế này tuân theo Open–Closed Principle: có thể thêm Strategy mới nhưng hạn chế sửa code đang hoạt động. Quyết định kiến trúc được ghi tại [ADR-0005 — Strategy Plugin Registry](../../adr/0005-strategy-plugin-registry.md).
+
+## Trạng thái hiện tại
+
+- **Đã có:** Strategy contract, Plugin contract, Registry, parameter validation và Moving Average Crossover.
+- **Chưa có:** MACD production plugin; đây là ví dụ để chứng minh khả năng mở rộng.
 
 ## Nguồn đề bài
 
