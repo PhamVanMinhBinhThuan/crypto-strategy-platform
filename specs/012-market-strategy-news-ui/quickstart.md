@@ -69,6 +69,22 @@ API, không dùng jsdom wall-clock. Khi môi trường non-production sẵn sàn
 chạy lại với API/WebSocket thật. Ghi commit, timestamp, environment, command và sanitized result.
 Không chuyển evidence sang Verified nếu chỉ có fixture hoặc kết quả chưa chạy thật.
 
+### Browser và production gate
+
+- Ngày chạy: 2026-09-03 (Asia/Ho_Chi_Minh); implementation commit `264ef35`; Node.js `22.23.2`;
+  Playwright `1.62.1`, Chromium `151.0.7922.34`, WebKit `26.5`.
+- Controllable adapter chỉ intercept public F-009 HTTP surface trong browser test. Auth bypass yêu
+  cầu header/token riêng và bị khóa khi `NODE_ENV=production`; `NEXT_PUBLIC_ENABLE_FIXTURES=false`.
+- Viewport: desktop `1440x900`, mobile `360x740`. Ba Market/Strategy/News journey pass trên cả hai
+  project; tổng journey suite 6/6 pass.
+- SC-001: 20 mẫu cho mỗi route trên mỗi project, ít nhất 19/20 mẫu primary content dưới 2 giây;
+  performance suite 2/2 pass, tổng F-012 Playwright gate 8/8 pass trong 26.7 giây.
+- `format:check`, `lint`, `typecheck` pass; Vitest 53 file/112 test pass.
+- Production `next build` pass với sanitized public URL/key placeholders, API/WebSocket localhost và
+  fixture mode `false`; tạo đủ 14 page, gồm `/market`, `/strategies`, `/news`.
+- Đây là browser evidence cục bộ trên controllable adapter. Shared non-production F-009 REST/WS
+  vẫn chưa chạy và được giữ Pending tại T086.
+
 ## Cross-route recovery acceptance
 
 - Ngày chạy: 2026-09-03 (Asia/Ho_Chi_Minh), Node.js `22.23.2`.

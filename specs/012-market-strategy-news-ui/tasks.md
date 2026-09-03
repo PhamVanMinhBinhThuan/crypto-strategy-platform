@@ -159,15 +159,15 @@ keyboard; focus/status/retry đúng và không lộ internal detail.
 
 ## Phase 7: Polish & Cross-Cutting Verification
 
-- [ ] T079 [P] Thêm Market/Strategy/News Playwright journeys bằng controllable adapter trong `apps/web/tests/e2e/f012-market-strategy-news.spec.ts`
-- [ ] T080 [P] Thêm SC-001 browser readiness measurement bằng Playwright Performance API trong `apps/web/tests/e2e/f012-performance.spec.ts`
-- [ ] T081 [P] Thêm F-012 documentation/contract parity guard trong `apps/web/tests/contracts/f012-documentation-parity.test.ts`
-- [ ] T082 Review screenshot hierarchy/design/interaction parity và chặn prototype-only aggregate/AI/search/backtest/trading behavior trong `apps/web/tests/architecture/f012-scope-boundary.test.ts`
-- [ ] T083 Chạy `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm run test` và sửa toàn bộ failure/warning trong `apps/web/package.json`
-- [ ] T084 Chạy production `npm run build` với mock mode off và ghi sanitized output trong `specs/012-market-strategy-news-ui/quickstart.md`
-- [ ] T085 Chạy Playwright ở 360px/1440px và ghi commit/environment/config/result thật trong `specs/012-market-strategy-news-ui/quickstart.md`
+- [x] T079 [P] Thêm Market/Strategy/News Playwright journeys bằng controllable adapter trong `apps/web/tests/e2e/f012-market-strategy-news.spec.ts`
+- [x] T080 [P] Thêm SC-001 browser readiness measurement bằng Playwright Performance API trong `apps/web/tests/e2e/f012-performance.spec.ts`
+- [x] T081 [P] Thêm F-012 documentation/contract parity guard trong `apps/web/tests/contracts/f012-documentation-parity.test.ts`
+- [x] T082 Review screenshot hierarchy/design/interaction parity và chặn prototype-only aggregate/AI/search/backtest/trading behavior trong `apps/web/tests/architecture/f012-scope-boundary.test.ts`
+- [x] T083 Chạy `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm run test` và sửa toàn bộ failure/warning trong `apps/web/package.json`
+- [x] T084 Chạy production `npm run build` với mock mode off và ghi sanitized output trong `specs/012-market-strategy-news-ui/quickstart.md`
+- [x] T085 Chạy Playwright ở 360px/1440px và ghi commit/environment/config/result thật trong `specs/012-market-strategy-news-ui/quickstart.md`
 - [ ] T086 Chạy non-production F-009 REST/WebSocket integration acceptance khi environment sẵn sàng và ghi evidence thật trong `specs/012-market-strategy-news-ui/quickstart.md`
-- [ ] T087 Rà soát implementation-to-FR/SC traceability, git diff và chỉ đánh dấu Verified theo evidence thật trong `specs/012-market-strategy-news-ui/checklists/implementation-readiness.md`
+- [x] T087 Rà soát implementation-to-FR/SC traceability, git diff và chỉ đánh dấu Verified theo evidence thật trong `specs/012-market-strategy-news-ui/checklists/implementation-readiness.md`
 
 ## Dependencies & Execution Order
 
