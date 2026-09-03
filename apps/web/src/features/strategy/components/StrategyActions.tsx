@@ -3,16 +3,23 @@ export function StrategyActions({
   archived,
   pending,
   onPublish,
-  onArchive
+  onArchive,
+  onNewVersion
 }: {
   canPublish: boolean;
   archived: boolean;
   pending: boolean;
   onPublish: () => void;
   onArchive: () => void;
+  onNewVersion: () => void;
 }) {
   return (
     <div className="strategy-actions">
+      {!archived && (
+        <button disabled={pending} onClick={onNewVersion}>
+          Tạo version mới
+        </button>
+      )}
       {canPublish && (
         <button
           disabled={pending}

@@ -68,3 +68,10 @@ Chạy Playwright journeys bằng controllable F-009 adapter; đo SC-001 trong b
 API, không dùng jsdom wall-clock. Khi môi trường non-production sẵn sàng,
 chạy lại với API/WebSocket thật. Ghi commit, timestamp, environment, command và sanitized result.
 Không chuyển evidence sang Verified nếu chỉ có fixture hoặc kết quả chưa chạy thật.
+
+## Strategy integration evidence
+
+- 2026-09-03: automated owner-safe missing/foreign parity, SINGLE/COMPOSITE form, immutable
+  next-version request (`expectedLatestVersionNo`) và timeout reconciliation đều pass trong Vitest.
+- Đây là fixture/contract evidence, không phải xác nhận môi trường shared; production API vẫn là
+  authority và scenario non-production tiếp tục được kiểm chứng ở final integration gate.

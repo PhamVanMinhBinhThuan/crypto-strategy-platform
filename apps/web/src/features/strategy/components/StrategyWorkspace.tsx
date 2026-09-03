@@ -5,6 +5,7 @@ import type { StrategyDescriptor, UserStrategy, UserStrategySummary } from "../m
 import type { StrategyDraft } from "../model/strategy-draft";
 import {
   archiveUserStrategy,
+  createUserStrategyVersion,
   createUserStrategy,
   getUserStrategy,
   listSystemStrategies,
@@ -125,10 +126,44 @@ export function StrategyWorkspace() {
               onArchive={() =>
                 void mutate(() => archiveUserStrategy(api, selectedOwned.userStrategyId))
               }
+              onNewVersion={() =>
+                void mutate(() =>
+                  createUserStrategyVersion(
+                    api,
+                    selectedOwned.userStrategyId,
+                    selectedOwned.latestVersion.versionNo,
+                    selectedOwned.latestVersion.source.type === "SINGLE"
+                      ? {
+                          type: "SINGLE",
+                          strategy: {
+                            strategyId: selectedOwned.latestVersion.source.strategy.strategyId,
+                            version: selectedOwned.latestVersion.source.strategy.version,
+                            parameters: selectedOwned.latestVersion.source.strategy.parameters
+                          }
+                        }
+                      : {
+                          type: "COMPOSITE",
+                          policyId: selectedOwned.latestVersion.source.policyId,
+                          policyVersion: selectedOwned.latestVersion.source.policyVersion,
+                          policyParameters: selectedOwned.latestVersion.source.policyParameters,
+                          components: selectedOwned.latestVersion.source.components.map((item) => ({
+                            strategyId: item.strategyId,
+                            version: item.version,
+                            parameters: item.parameters
+                          }))
+                        }
+                  )
+                )
+              }
             />
           )}
         </div>
-        <StrategyForm descriptor={selectedSystem} pending={pending} onSubmit={create} />
+        <StrategyForm
+          descriptor={selectedSystem}
+          systemStrategies={system}
+          pending={pending}
+          onSubmit={create}
+        />
       </div>
     </main>
   );

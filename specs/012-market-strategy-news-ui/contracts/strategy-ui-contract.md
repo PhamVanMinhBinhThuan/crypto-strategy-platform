@@ -2,15 +2,15 @@
 
 ## Public operations
 
-| Journey | F-009 operation | UI outcome |
+| Journey         | F-009 operation                              | UI outcome                          |
 | --- | --- | --- |
-| System catalog | `GET /api/v1/strategies` | Cursor list/detail descriptor |
-| Private library | `GET /api/v1/user-strategies` | Owner-scoped list |
-| Private detail | `GET /api/v1/user-strategies/{id}` | Latest immutable version |
-| Create | `POST /api/v1/user-strategies` | Reload authoritative created detail |
-| New version | `POST /api/v1/user-strategies/{id}/versions` | Reload latest version |
-| Publish | `POST .../{versionId}/publish` | Confirm then reload detail |
-| Archive | `POST .../{id}/archive` | Confirm then reload list/detail |
+| System catalog  | `GET /api/v1/strategies`                     | Cursor list/detail descriptor       |
+| Private library | `GET /api/v1/user-strategies`                | Owner-scoped list                   |
+| Private detail  | `GET /api/v1/user-strategies/{id}`           | Latest immutable version            |
+| Create          | `POST /api/v1/user-strategies`               | Reload authoritative created detail |
+| New version     | `POST /api/v1/user-strategies/{id}/versions` | Reload latest version               |
+| Publish         | `POST .../{versionId}/publish`               | Confirm then reload detail          |
+| Archive         | `POST .../{id}/archive`                      | Confirm then reload list/detail     |
 
 Adapter uses exact OpenAPI DTO shapes; it never imports backend/provider models. Missing and foreign
 owner map to the same inaccessible view. Correlation ID may be shown for support without raw detail.

@@ -42,6 +42,7 @@ describe("Strategy detail", () => {
         pending={false}
         onPublish={vi.fn()}
         onArchive={archive}
+        onNewVersion={vi.fn()}
       />
     );
     await userEvent.click(screen.getByRole("button", { name: "Archive" }));

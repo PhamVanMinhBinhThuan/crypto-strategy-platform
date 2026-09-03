@@ -35,19 +35,19 @@ bounded; system/private Strategy including SINGLE/COMPOSITE; public News sentime
 
 ### Pre-design gates
 
-| Gate | Kết quả | Bằng chứng/quyết định |
+| Gate                                  | Kết quả | Bằng chứng/quyết định                                                                                                                                              |
 | --- | --- | --- |
-| Spec-first và acceptance measurable | Pass | `spec.md` có 4 journeys, 24 FR và 10 SC |
-| ADR/architecture governance | Pass | Reuse F-011/F-009 contracts; không có quyết định dài hạn mới cần ADR |
-| Module/data ownership | Pass | Browser chỉ gọi F-009; feature-local view model không thành business authority |
-| Reproducibility/immutability | Pass | Published Strategy version read-only; edits tạo version mới |
-| Versioned/provider-isolated contracts | Pass | Adapter validate F-009 payload; không import Binance/Sentiment internal model |
-| Security/ownership/redaction | Pass | Auth client chung, safe error mapping, inaccessible không phân biệt missing |
-| Durable/realtime correctness | Pass | REST snapshot authority; event dedupe/selection/revision guards và reconciliation |
-| Exact value/UTC semantics | Pass | Decimal string giữ nguyên; UTC parse/format tại presentation boundary |
-| Evidence | Pass | Contract, reducer, component, accessibility, E2E, build và secret/mock tests planned |
-| MVP safety boundary | Pass | Read-only market/news context, không trading/wallet/financial advice |
-| Shared UI reference | Pass | Đã đọc README, spec-kit reference, screen map, design system, interaction states, F-012 reference và screenshots/prototype; contract authority thắng mock behavior |
+| Spec-first và acceptance measurable   | Pass    | `spec.md` có 4 journeys, 24 FR và 10 SC                                                                                                                            |
+| ADR/architecture governance           | Pass    | Reuse F-011/F-009 contracts; không có quyết định dài hạn mới cần ADR                                                                                               |
+| Module/data ownership                 | Pass    | Browser chỉ gọi F-009; feature-local view model không thành business authority                                                                                     |
+| Reproducibility/immutability          | Pass    | Published Strategy version read-only; edits tạo version mới                                                                                                        |
+| Versioned/provider-isolated contracts | Pass    | Adapter validate F-009 payload; không import Binance/Sentiment internal model                                                                                      |
+| Security/ownership/redaction          | Pass    | Auth client chung, safe error mapping, inaccessible không phân biệt missing                                                                                        |
+| Durable/realtime correctness          | Pass    | REST snapshot authority; event dedupe/selection/revision guards và reconciliation                                                                                  |
+| Exact value/UTC semantics             | Pass    | Decimal string giữ nguyên; UTC parse/format tại presentation boundary                                                                                              |
+| Evidence                              | Pass    | Contract, reducer, component, accessibility, E2E, build và secret/mock tests planned                                                                               |
+| MVP safety boundary                   | Pass    | Read-only market/news context, không trading/wallet/financial advice                                                                                               |
+| Shared UI reference                   | Pass    | Đã đọc README, spec-kit reference, screen map, design system, interaction states, F-012 reference và screenshots/prototype; contract authority thắng mock behavior |
 
 Không có Constitution violation hoặc exemption.
 

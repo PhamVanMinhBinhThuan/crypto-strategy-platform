@@ -96,11 +96,11 @@ validation đúng, version cũ bất biến và mutation luôn reconcile authori
 - [x] T048 [US2] Implement draft/mutation/reconciliation controller trong `apps/web/src/features/strategy/state/strategy-controller.ts`
 - [x] T049 [P] [US2] Implement system/private catalog panels trong `apps/web/src/features/strategy/components/StrategyCatalog.tsx`
 - [x] T050 [P] [US2] Implement descriptor/version/provenance detail panel trong `apps/web/src/features/strategy/components/StrategyDetail.tsx`
-- [ ] T051 [US2] Implement schema-driven SINGLE/COMPOSITE Strategy form trong `apps/web/src/features/strategy/components/StrategyForm.tsx`
+- [x] T051 [US2] Implement schema-driven SINGLE/COMPOSITE Strategy form trong `apps/web/src/features/strategy/components/StrategyForm.tsx`
 - [x] T052 [US2] Implement explicit publish/archive confirmation và mutation feedback trong `apps/web/src/features/strategy/components/StrategyActions.tsx`
 - [x] T053 [US2] Compose independent-source Strategy workspace trong `apps/web/src/features/strategy/components/StrategyWorkspace.tsx`
 - [x] T054 [US2] Thay F-011 Strategy placeholder bằng feature entry point trong `apps/web/app/(protected)/strategies/page.tsx`
-- [ ] T055 [US2] Chạy owner A/B, immutable-version và retry integration scenarios theo `specs/012-market-strategy-news-ui/quickstart.md`
+- [x] T055 [US2] Chạy owner A/B, immutable-version và retry integration scenarios theo `specs/012-market-strategy-news-ui/quickstart.md`
 
 **Checkpoint**: US2 quản lý Strategy mà không phụ thuộc Market/News hoặc sửa F-009 contract.
 
@@ -113,17 +113,17 @@ News vẫn đọc được và browser không gọi internal audit.
 
 ### Tests
 
-- [ ] T056 [P] [US3] Viết News page/status/sentiment DTO validation tests trong `apps/web/tests/news/news-api.contract.test.ts`
-- [ ] T057 [P] [US3] Viết analysis-status/cursor dedupe/stable-order/late-filter-response tests trong `apps/web/tests/news/news-reducer.test.ts`
+- [x] T056 [P] [US3] Viết News page/status/sentiment DTO validation tests trong `apps/web/tests/news/news-api.contract.test.ts`
+- [x] T057 [P] [US3] Viết analysis-status/cursor dedupe/stable-order/late-filter-response tests trong `apps/web/tests/news/news-reducer.test.ts`
 - [ ] T058 [P] [US3] Viết ANALYZED/PENDING/ANALYZING/FAILED_RETRYABLE/FAILED mapping tests trong `apps/web/tests/news/sentiment-view.test.tsx`
 - [ ] T059 [P] [US3] Viết safe external-link/internal-audit prohibition tests trong `apps/web/tests/news/news-security.test.tsx`
 - [ ] T060 [P] [US3] Viết loading/empty/degraded/load-more component tests trong `apps/web/tests/news/news-feed.test.tsx`
 
 ### Implementation
 
-- [ ] T061 [P] [US3] Implement analysis-status-only News query/page/public-sentiment models trong `apps/web/src/features/news/model/news.ts`
-- [ ] T062 [US3] Implement browser-safe public News adapter trong `apps/web/src/features/news/api/news-api.ts`
-- [ ] T063 [US3] Implement query-generation/cursor/dedupe reducer trong `apps/web/src/features/news/state/news-reducer.ts`
+- [x] T061 [P] [US3] Implement analysis-status-only News query/page/public-sentiment models trong `apps/web/src/features/news/model/news.ts`
+- [x] T062 [US3] Implement browser-safe public News adapter trong `apps/web/src/features/news/api/news-api.ts`
+- [x] T063 [US3] Implement query-generation/cursor/dedupe reducer trong `apps/web/src/features/news/state/news-reducer.ts`
 - [ ] T064 [P] [US3] Implement URL-backed analysis-status News filter, không pair filter, trong `apps/web/src/features/news/components/NewsFilters.tsx`
 - [ ] T065 [P] [US3] Implement safe Sentiment badge/degraded explanation/disclaimer trong `apps/web/src/features/news/components/SentimentStatus.tsx`
 - [ ] T066 [US3] Implement News cards, safe links và bounded load-more trong `apps/web/src/features/news/components/NewsFeed.tsx`

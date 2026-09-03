@@ -4,23 +4,23 @@ Các model dưới đây là frontend view/state model, không phải durable bu
 
 ## 1. Market Selection
 
-| Field | Rules |
+| Field                  | Rules                                                              |
 | --- | --- |
-| `pair` | Canonical supported `BASE/QUOTE`; URL-safe encode |
-| `panels` | 1–4 panel có stable ID và timeframe trong versioned Market catalog |
-| `startTime`, `endTime` | UTC interval, start inclusive/end exclusive |
-| `generation` | Monotonic local request identity; late generation không commit |
+| `pair`                 | Canonical supported `BASE/QUOTE`; URL-safe encode                  |
+| `panels`               | 1–4 panel có stable ID và timeframe trong versioned Market catalog |
+| `startTime`, `endTime` | UTC interval, start inclusive/end exclusive                        |
+| `generation`           | Monotonic local request identity; late generation không commit     |
 
 Invalid URL value được canonicalize về default đã công bố và replace URL, không loop navigation.
 
 ## 2. Candle View
 
-| Field | Rules |
+| Field                                    | Rules                                                                  |
 | --- | --- |
-| `identity` | `(pair, timeframe, openTime)` |
-| `openTime`, `closeTime` | Valid UTC instants; ordered ascending |
+| `identity`                               | `(pair, timeframe, openTime)`                                          |
+| `openTime`, `closeTime`                  | Valid UTC instants; ordered ascending                                  |
 | `open`, `high`, `low`, `close`, `volume` | Canonical exact strings; validate finite/nonnegative rules từ contract |
-| `closed` | Closed Candle không bị open update cũ ghi đè |
+| `closed`                                 | Closed Candle không bị open update cũ ghi đè                           |
 
 Reducer dedupe theo identity, kiểm tra selection, giữ newest canonical value và bounded window. Chart
 projection có thể dùng number tạm thời nhưng source string không đổi.
@@ -50,14 +50,14 @@ version và timestamps. Missing/foreign dùng chung inaccessible presentation.
 
 ### Strategy Draft
 
-| Field | Rules |
+| Field                     | Rules                                                      |
 | --- | --- |
-| `name`, `description` | Bounded text theo public contract |
-| `kind`, `source` | Discriminated SINGLE hoặc COMPOSITE |
-| `parameters` | Canonical string/boolean draft keyed by descriptor name |
-| `expectedLatestVersionNo` | Bắt buộc khi tạo next version |
-| `issues` | Field/global safe validation messages |
-| `mutationState` | `IDLE`, `SUBMITTING`, `RECONCILING`, `SUCCEEDED`, `FAILED` |
+| `name`, `description`     | Bounded text theo public contract                          |
+| `kind`, `source`          | Discriminated SINGLE hoặc COMPOSITE                        |
+| `parameters`              | Canonical string/boolean draft keyed by descriptor name    |
+| `expectedLatestVersionNo` | Bắt buộc khi tạo next version                              |
+| `issues`                  | Field/global safe validation messages                      |
+| `mutationState`           | `IDLE`, `SUBMITTING`, `RECONCILING`, `SUCCEEDED`, `FAILED` |
 
 Published version không chuyển về editable; edit bắt đầu draft version mới. Mutation success/timeout/
 conflict đều kết thúc bằng authoritative detail/list reload.
