@@ -131,7 +131,9 @@ public class BacktestJobHandler implements MessageHandler {
         ExecutionAttempt attempt = null;
         try {
             attempt = experimentUseCase.startNextAttempt(jobId, new com.cryptostrategy.platform.experiment.api.job.WorkerId(consumerName));
-            UUID ownerUserId = UUID.fromString("00000000-0000-0000-0000-000000000000"); // resolved by port
+            UUID ownerUserId = experimentUseCase.getFrozenExecution(jobId)
+                    .experiment()
+                    .ownerUserId();
 
             BacktestRunCommand command = new BacktestRunCommand(
                     ownerUserId,

@@ -1,10 +1,10 @@
 export function DependencyGateNotice() {
   return (
     <aside className="gate-notice" role="status">
-      <strong>Production Search Coordinator unavailable</strong>
+      <strong>Deterministic fixture mode</strong>
       <p>
-        Start and Reproduce can be demonstrated with finite fixtures. Production requests currently
-        preserve the <code>BLOCKED_SEARCH_COORDINATOR</code> dependency response.
+        Start and Reproduce return finite predefined responses here. Production mode uses the
+        released Search Coordinator APIs.
       </p>
     </aside>
   );

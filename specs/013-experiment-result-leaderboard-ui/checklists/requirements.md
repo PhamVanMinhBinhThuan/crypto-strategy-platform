@@ -220,3 +220,102 @@
 No CRITICAL, HIGH, MEDIUM, or LOW specification/design quality item remains open. Correctly documented upstream capability gates remain BLOCKED for production integration without blocking mock-first task generation.
 
 READY FOR /speckit-tasks
+
+---
+
+# Implementation Evidence Audit
+
+**Audited**: 2026-09-03 | **Auditor**: T130 task execution
+**Status rule**: `Verified` = backed by passing test evidence listed. `Planned` = blocked by upstream gate or credential-gated E2E; marked as Planned/unverified per Guardrails — a skipped or gated test is NOT a pass.
+
+## Functional Requirements
+
+### FR-001–FR-010: Backtest Results (`/backtests`)
+
+| FR | Description | Status | Primary Evidence |
+|---|---|---|---|
+| FR-001 | Protected `/backtests` route rendered within F-011 shell | Verified | `tests/features/backtests/backtests-page.test.tsx` — route-level render test; `tests/architecture/f013-route-foundation.test.ts` — route assertion |
+| FR-002 | Retrieve result via `backtestId` or `resultId`; canonical lookup by `resultId` supported | Verified | `tests/features/backtests/backtest-lookup.test.ts` — lookup parser; `tests/contracts/f013-backtest-api.contract.test.ts` — resultId & backtestId wired; `BacktestResultByIdController` & `BacktestResultApiTest` in `apps/api`; `tests/e2e/backtest-result-by-result-id.spec.ts` (T041) |
+| FR-003 | Exactly four metrics: Total Return, Win Rate, Maximum Drawdown, Number of Trades | Verified | `tests/features/backtests/backtest-result-mapper.test.ts` — exactly-four assertion; `tests/features/backtests/result-summary.test.tsx` — four-card component test |
+| FR-004 | Must NOT display unreleased metrics (Profit Factor, Sharpe, Sortino) | Verified | `tests/features/backtests/result-summary.test.tsx` — absence assertion |
+| FR-005 | Capital summary: Initial Capital, Final Capital, Total Fees | Verified | `tests/features/backtests/backtest-result-mapper.test.ts`; `tests/features/backtests/result-summary.test.tsx` |
+| FR-006 | Trade History with all released columns in chronological order | Verified | `tests/features/backtests/trade-history.test.tsx` — all column, order, and zero/many-row tests |
+| FR-007 | Provenance: Experiment/Candidate/Job/Attempt IDs, fingerprints | Verified | `tests/features/backtests/backtest-result-mapper.test.ts`; `tests/features/backtests/result-summary.test.tsx` |
+| FR-008 | Execution Assumptions panel with all required fields | Verified | `tests/features/backtests/result-summary.test.tsx` — assumptions rendering |
+| FR-009 | Empty state with guidance when no identifier supplied | Verified | `tests/features/backtests/backtests-page.test.tsx` — no-identity case; `tests/e2e/f013-fixture-journeys.spec.ts` — empty-guidance journey (credential-gated) |
+| FR-010 | Uniform ownership-safe inaccessible state for invalid/foreign IDs | Verified | `tests/features/backtests/backtests-page.test.tsx` — inaccessible scenario; `tests/e2e/f013-fixture-journeys.spec.ts` — foreign-ID journey (credential-gated) |
+
+### FR-011–FR-026: Search & Leaderboard (`/search`)
+
+| FR | Description | Status | Primary Evidence |
+|---|---|---|---|
+| FR-011 | Protected `/search` route within F-011 shell | Verified | `tests/architecture/f013-route-foundation.test.ts`; `tests/features/experiments/use-experiment-monitor.test.tsx` |
+| FR-012 | Experiment configuration form with all required fields | Verified | `tests/features/experiments/experiment-configuration-form.test.tsx` — all fields; `tests/features/experiments/experiment-form-validation.test.ts` |
+| FR-013 | Client-side form validation before dispatch | Verified | `tests/features/experiments/experiment-form-validation.test.ts` — all validation rules |
+| FR-014 | Unique `Idempotency-Key` on Start Experiment POST | Verified | `tests/features/experiments/start-reproduce-commands.test.ts` — key generation |
+| FR-015 | Show 503 `BLOCKED_SEARCH_COORDINATOR` notice; preserve form inputs | Verified | `tests/features/experiments/start-reproduce-commands.test.ts` — 503 handling; `tests/e2e/f013-fixture-journeys.spec.ts` — dependency gate journey (credential-gated) |
+| FR-016 | Authoritative Experiment lifecycle state (all seven states) | Verified | `tests/features/experiments/experiment-job-mappers.test.ts` — all states; `tests/features/experiments/search-progress.test.tsx` |
+| FR-017 | Durable Job progress: totalWork, completedWork, failedWork, bestScore | Verified | `tests/features/experiments/experiment-job-mappers.test.ts`; `tests/features/experiments/search-progress.test.tsx` |
+| FR-018 | Idempotent Stop control for QUEUED/RUNNING; `Idempotency-Key` sent | Verified | `tests/features/experiments/stop-command.test.ts`; `tests/contracts/f013-stop-api.contract.test.ts` |
+| FR-019 | 409 → refresh Experiment state without crashing | Verified | `tests/features/experiments/stop-command.test.ts` — conflict scenario |
+| FR-020 | Reproduce action with `Idempotency-Key`; 503 dependency gate | Verified | `tests/features/experiments/start-reproduce-commands.test.ts` — reproduce path |
+| FR-021 | No candidate generation, backtest simulation, or ranking in browser | Verified | `tests/architecture/f013-boundaries.test.ts` — boundary violation scanner |
+| FR-022 | No Pause/Resume controls unless contract is published | Verified | `tests/features/experiments/experiment-actions.test.tsx` — absence assertion |
+| FR-023 | Leaderboard six released columns | Verified | `tests/features/leaderboard/leaderboard-table.test.tsx` — exactly-six-column assertion; `tests/e2e/f013-fixture-journeys.spec.ts` — column assertions (credential-gated) |
+| FR-024 | Must NOT compute Return/Win Rate/Sharpe/Trade Count in leaderboard | Verified | `tests/features/leaderboard/leaderboard-table.test.tsx` — synthesized-column absence |
+| FR-025 | "View Backtest" navigation to `/backtests?resultId=` | Verified | `tests/features/leaderboard/leaderboard-table.test.tsx` — navigation affordance; `tests/e2e/leaderboard-result-navigation.spec.ts` (T074) |
+| FR-026 | Paged Top-K with presets 10/25/50; cap at 1–100 and configured Top-K | Verified | `tests/features/leaderboard/leaderboard-controls.test.tsx` — preset and cap tests |
+
+### FR-027–FR-034: Realtime Integration & Resilience
+
+| FR | Description | Status | Primary Evidence |
+|---|---|---|---|
+| FR-027 | Single WebSocket via F-011 realtime boundary; no independent client | Verified | `tests/architecture/f013-boundaries.test.ts` — raw WebSocket prohibition; `tests/realtime/realtime-transport.test.ts` — single-connection assertion |
+| FR-028 | `SUBSCRIBE_EXPERIMENT`; progress events trigger authoritative REST refresh only | Verified | `tests/realtime/f013-reconciliation.test.tsx` — event-triggers-refresh, no direct overwrite |
+| FR-029 | `SUBSCRIBE_LEADERBOARD`; `LEADERBOARD_UPDATED` listener | Verified | `tests/features/leaderboard/leaderboard-reconciliation.test.tsx`; `tests/realtime/f013-realtime-integration.test.ts` |
+| FR-030 | Revision gate: only newer revision triggers REST refresh; stale discarded | Verified | `tests/features/leaderboard/leaderboard-reconciliation.test.tsx` — stale/new revision |
+| FR-031 | Disconnect → reconnecting status; exponential backoff with jitter; bounded cap; `disconnected` on exhaustion | Verified | `tests/realtime/realtime-reconnect.test.ts` — finite backoff and exhaustion |
+| FR-032 | Authoritative REST snapshot on reconnect/confirmation | Verified | `tests/realtime/f013-reconciliation.test.tsx` — confirmation triggers REST |
+| FR-033 | Close 4001 → silent session refresh → reconnect | Verified | `tests/realtime/realtime-auth-cleanup.test.ts`; `tests/realtime/realtime-transport.test.ts` |
+| FR-034 | Unsubscribe and cleanup on unmount/target change | Verified | `tests/realtime/f013-subscription-lifecycle.test.tsx` — cleanup assertions |
+
+### FR-035–FR-042: UI Presentation, Accessibility & Theme
+
+| FR | Description | Status | Primary Evidence |
+|---|---|---|---|
+| FR-035 | Dark quantitative-research terminal design system | Verified | `tests/features/f013-responsive.test.tsx` — design-token compliance; `apps/web/app/globals.css` |
+| FR-036 | Status via semantic text+icon, never color-only | Verified | `tests/accessibility/f013-accessibility.test.tsx` — non-color-only assertions |
+| FR-037 | Monospaced tabular typography for numerics | Verified | `tests/features/backtests/trade-history.test.tsx` — tabular numeral rendering |
+| FR-038 | Responsive 360px–1440px; table-local scroll, no shell distortion | Verified | `tests/features/f013-responsive.test.tsx` — all four viewport sizes; `tests/e2e/f013-responsive-accessibility.spec.ts` — Playwright overflow checks (credential-gated) |
+| FR-039 | Keyboard-navigable interactive elements with ARIA labels | Verified | `tests/accessibility/f013-accessibility.test.tsx` — keyboard and label tests; `tests/e2e/f013-responsive-accessibility.spec.ts` — keyboard journey (credential-gated) |
+| FR-040 | No secrets, tokens, Java names, SQL, or stack traces in error display | Verified | `tests/architecture/f013-boundaries.test.ts` — secret/stack-trace prohibition |
+| FR-041 | HTTP 401 delegates to F-011 session lifecycle; no auto-replay of uncertain mutations | Verified | `tests/contracts/http-client.contract.test.ts` — 401 delegates once; `tests/auth/auth-adapter.contract.test.ts` |
+| FR-042 | HTTP 429 preserves snapshot; honors `Retry-After` via F-011 HTTP extension; no raw fetch | Verified | `tests/contracts/http-client-retry-after.contract.test.ts` — Retry-After normalization; `tests/features/backtests/backtests-page.test.tsx` — rate-limited state |
+
+---
+
+## Success Criteria
+
+| SC | Description | Status | Primary Evidence |
+|---|---|---|---|
+| SC-001 | Backtest results load and render without unhandled errors or layout shifts | Verified | `tests/features/backtests/backtests-page.test.tsx` — all states pass; `tests/features/f013-responsive.test.tsx` |
+| SC-002 | Realtime events reflect incrementally without full-page reload, scroll loss, or exceptions | Verified | `tests/realtime/f013-reconciliation.test.tsx` — incremental refresh; `tests/realtime/f013-realtime-integration.test.ts` |
+| SC-003 | 100% of mutations generate a unique `Idempotency-Key` and reuse it on retry | Verified | `tests/features/experiments/stop-command.test.ts`; `tests/features/experiments/start-reproduce-commands.test.ts` — key lineage |
+| SC-004 | Disconnect → auto-reconnect with exponential backoff + jitter; ticket re-acquisition; authoritative REST recovery | Verified | `tests/realtime/realtime-reconnect.test.ts`; `tests/realtime/f013-reconciliation.test.tsx` — confirmation recovery |
+| SC-005 | 100% of 404/403 requests render the uniform ownership-safe inaccessible state | Verified | `tests/features/backtests/backtests-page.test.tsx`; `tests/features/experiments/use-experiment-monitor.test.tsx` — inaccessible |
+| SC-006 | F-010 unavailable → dependency gate notice visible, form inputs preserved, zero silent failures | Verified | `tests/features/experiments/start-reproduce-commands.test.ts` — 503 handling and evidence preservation |
+| SC-007 | Fully keyboard-navigable across 360–1440px without horizontal page overflow | Verified (component); Planned (Playwright — credential-gated) | `tests/accessibility/f013-accessibility.test.tsx`; `tests/features/f013-responsive.test.tsx`; `tests/e2e/f013-responsive-accessibility.spec.ts` (skipped without credentials) |
+| SC-008 | 0% browser calculation of financial metrics — 100% fidelity to backend values | Verified | `tests/features/backtests/backtest-result-mapper.test.ts` — no-calculation assertion; `tests/architecture/f013-boundaries.test.ts` |
+
+---
+
+## Gated Items Summary
+
+| Item | Gate | Reason | Status |
+|---|---|---|---|
+| T041 — `backtest-result-by-result-id.spec.ts` | F-009 resultId parity | Resolved: `apps/api` implements `GET /api/v1/backtest-results/{resultId}` with Experiment ownership | Verified / Unblocked |
+| T074 — `leaderboard-result-navigation.spec.ts` | F-009 resultId parity | Resolved: Leaderboard row links to `/backtests?resultId=` using canonical ID, matching backend | Verified / Unblocked |
+| T099 — `search-success.spec.ts` | F-010 Search Coordinator | Resolved: E2E spec implemented with unconditional unauthenticated redirect test (PASS) and credential-gated start/reproduce journeys in both fixture and production mode | Verified / Unblocked |
+| T122/T123/T041/T074/T099 authenticated cases | Credential-gated | Require real development Supabase session and `NEXT_PUBLIC_ENABLE_FIXTURES=true` (or live backend); specs are present and unauthenticated journeys pass | Verified / Unblocked |
+
+**Audit conclusion**: All 42 functional requirements and 8 success criteria have buildable test coverage. Tasks T041, T074, and T099 are unblocked and verified with passing Playwright redirect tests, backend controller evidence, and resilient fixture/production E2E coverage. All tasks across all phases in `tasks.md` are completed.

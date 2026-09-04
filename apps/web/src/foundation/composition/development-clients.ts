@@ -13,6 +13,16 @@ export function createFixtureClients() {
   const api = new MockApiClient();
   api
     .respond("/api/v1/backtests/backtest-013/result", normalBacktestResult)
+    .respond("/api/v1/backtest-results/result-013", {
+      ...normalBacktestResult,
+      backtestResultId: "result-013",
+      backtestId: null
+    })
+    .respond("/api/v1/backtest-results/result-014", {
+      ...normalBacktestResult,
+      backtestResultId: "result-014",
+      backtestId: null
+    })
     .respond("/api/v1/experiments/experiment-013", runningExperiment)
     .respond("/api/v1/jobs/job-search-013", runningJob)
     .respond("/api/v1/experiments/experiment-013/candidates?limit=50", candidatePage)

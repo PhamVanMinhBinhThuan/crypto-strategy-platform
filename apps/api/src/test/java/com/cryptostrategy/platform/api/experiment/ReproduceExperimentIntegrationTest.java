@@ -47,6 +47,19 @@ class ReproduceExperimentIntegrationTest {
     }
 
     @Test
+    void emptyJsonBodyUsesTheDefaultReproductionName() {
+        Fixture fixture = fixture();
+
+        fixture.controller.reproduceExperiment(USER, "reproduce-key", SOURCE,
+                new CommandDtos.ReproduceExperimentRequest(null));
+
+        ArgumentCaptor<StartSearchReproductionUseCase.Command> command =
+                ArgumentCaptor.forClass(StartSearchReproductionUseCase.Command.class);
+        org.mockito.Mockito.verify(fixture.reproduce).start(command.capture());
+        assertThat(command.getValue().name()).isEqualTo("Reproduction of " + SOURCE);
+    }
+
+    @Test
     void idempotencyConflictRemainsStable() {
         Fixture fixture = fixture();
         when(fixture.idempotency.execute(any(), anyString(), anyString(), any(), any(BiFunction.class)))

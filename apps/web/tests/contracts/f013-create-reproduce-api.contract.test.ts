@@ -11,15 +11,12 @@ describe("F-009 Strategy/Create/Reproduce contracts", () => {
     expect(result.ok).toBe(true);
   });
   it.each([["/api/v1/experiments"], ["/api/v1/experiments/experiment-013/reproductions"]] as const)(
-    "preserves current Search Coordinator 503 marker on %s",
+    "accepts the released Search Coordinator response on %s",
     async (path) => {
       const api = new MockApiClient().respond(`POST ${path}`, {
-        ok: false,
-        error: {
-          code: "DEPENDENCY_UNAVAILABLE",
-          message: "BLOCKED_SEARCH_COORDINATOR",
-          retryable: true
-        }
+        experimentId: "01JNEWEXPERIMENT00000000001",
+        jobId: "01JNEWSEARCHJOB000000000001",
+        status: "QUEUED"
       });
       const service = createExperimentCommandService(api);
       const result = path.endsWith("reproductions")
@@ -28,15 +25,15 @@ describe("F-009 Strategy/Create/Reproduce contracts", () => {
             { ...initialExperimentDraft, name: "x", datasetId: "dataset" },
             "key"
           );
-      expect(result).toEqual({
-        ok: false,
-        error: {
-          code: "DEPENDENCY_UNAVAILABLE",
-          message: "BLOCKED_SEARCH_COORDINATOR",
-          retryable: true
-        }
+      expect(result).toMatchObject({
+        ok: true,
+        data: { experimentId: "01JNEWEXPERIMENT00000000001", status: "QUEUED" }
       });
       expect(api.requests).toHaveLength(1);
+      expect(api.requests[0]?.init.method).toBe("POST");
+      expect((api.requests[0]?.init.headers as Record<string, string>)["Idempotency-Key"]).toBe(
+        "key"
+      );
     }
   );
 });

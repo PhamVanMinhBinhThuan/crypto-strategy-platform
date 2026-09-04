@@ -30,12 +30,17 @@ describe("backtest route/query states", () => {
     );
     expect(result.ok && result.data.backtestId).toBe("backtest-013");
   });
-  it("preserves the result-ID dependency gate without a request", async () => {
-    const api = new MockApiClient();
+  it("loads a Search-produced result without inventing a standalone Backtest ID", async () => {
+    const api = new MockApiClient().respond("/api/v1/backtest-results/result-013", {
+      ...normalBacktestResult,
+      backtestResultId: "result-013",
+      backtestId: null
+    });
     const result = await createBacktestResultService(api).readByResultId(
       "result-013" as BacktestResultId
     );
-    expect(result.ok).toBe(false);
-    expect(api.requests).toHaveLength(0);
+    expect(result.ok && result.data.backtestResultId).toBe("result-013");
+    expect(result.ok && result.data.backtestId).toBeUndefined();
+    expect(api.requests).toHaveLength(1);
   });
 });

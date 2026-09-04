@@ -22,7 +22,7 @@ const trade = z
 const schema = z
   .object({
     backtestResultId: z.string().min(1),
-    backtestId: z.string().min(1),
+    backtestId: z.string().min(1).nullish(),
     status: z.literal("COMPLETED"),
     metrics: z
       .object({
@@ -67,7 +67,9 @@ export function mapBacktestResult(value: unknown): BacktestResultViewModel {
   const parsed = schema.parse(value);
   return {
     ...parsed,
-    backtestId: parsed.backtestId as BacktestResultViewModel["backtestId"],
+    backtestId: parsed.backtestId
+      ? (parsed.backtestId as NonNullable<BacktestResultViewModel["backtestId"]>)
+      : undefined,
     backtestResultId: parsed.backtestResultId as BacktestResultViewModel["backtestResultId"]
   };
 }

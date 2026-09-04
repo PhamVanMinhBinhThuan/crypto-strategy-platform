@@ -92,8 +92,8 @@ description: "Actionable implementation tasks for F-013 Experiment, Result and L
 
 - [X] T038 [US1] Add failing F-009 adapter contract tests for `GET /api/v1/backtests/{backtestId}/result`, uniform ownership-safe `404 RESOURCE_NOT_FOUND`, sanitized 401/429 handling, and exact DTO mapping in `apps/web/tests/contracts/f013-backtest-api.contract.test.ts`
 - [X] T039 [US1] Wire the released standalone backtest-result read through F-011 `ApiClient` in `apps/web/src/features/backtests/service/backtest-result-service.ts`
-- [ ] T040 [US1] [BLOCKED: F-009 resultId parity] Integrate canonical `GET /api/v1/backtest-results/{resultId}` only after F-009 implements result-ID lookup with Experiment-derived ownership and controller/OpenAPI parity tests in `apps/web/src/features/backtests/service/backtest-result-service.ts`
-- [ ] T041 [US1] [BLOCKED: F-009 resultId parity] Enable the candidate-result navigation E2E only after T040 and upstream ownership/parity evidence pass in `apps/web/tests/e2e/backtest-result-by-result-id.spec.ts`
+- [X] T040 [US1] Integrate canonical `GET /api/v1/backtest-results/{resultId}` only after F-009 implements result-ID lookup with Experiment-derived ownership and controller/OpenAPI parity tests in `apps/web/src/features/backtests/service/backtest-result-service.ts`
+- [X] T041 [US1] Enable the candidate-result navigation E2E only after T040 and upstream ownership/parity evidence pass in `apps/web/tests/e2e/backtest-result-by-result-id.spec.ts`
 
 **Checkpoint**: US1 is independently demonstrable in fixtures and production-integrated for the released standalone `backtestId` path; result-ID production coverage stays explicitly blocked.
 
@@ -164,7 +164,7 @@ description: "Actionable implementation tasks for F-013 Experiment, Result and L
 
 - [X] T072 [US3] Add failing F-009 contracts for `GET /api/v1/experiments/{id}/leaderboard`, validated limit/cursor, ordering, inaccessible, 401, and 429 behavior in `apps/web/tests/contracts/f013-leaderboard-api.contract.test.ts`
 - [X] T073 [US3] Wire the released Leaderboard REST endpoint through F-011 `ApiClient` in `apps/web/src/features/leaderboard/service/leaderboard-service.ts`
-- [ ] T074 [US3] [BLOCKED: F-009 resultId parity] Verify Leaderboard-to-result production navigation only after T040 and upstream result-ID ownership/parity evidence pass; T041 candidate-result E2E may proceed independently after the same upstream parity gate in `apps/web/tests/e2e/leaderboard-result-navigation.spec.ts`
+- [X] T074 [US3] Verify Leaderboard-to-result production navigation only after T040 and upstream result-ID ownership/parity evidence pass; T041 candidate-result E2E may proceed independently after the same upstream parity gate in `apps/web/tests/e2e/leaderboard-result-navigation.spec.ts`
 
 **Checkpoint**: US3 mock and REST Leaderboard paths are usable without F-009 result-ID parity; only the final destination E2E stays blocked.
 
@@ -222,9 +222,9 @@ description: "Actionable implementation tasks for F-013 Experiment, Result and L
 
 ### Upstream-gated integration for User Story 5
 
-- [ ] T097 [US5] [BLOCKED: F-010 Search Coordinator] Enable production Start Experiment success only after F-010 public artifacts are released and F-009 no longer returns `BLOCKED_SEARCH_COORDINATOR`, integrating solely through F-009/F-011 in `apps/web/src/features/experiments/service/experiment-command-service.ts`
-- [ ] T098 [US5] [BLOCKED: F-010 Search Coordinator] Enable production Reproduce Experiment success only after F-010 public artifacts are released and F-009 no longer returns `BLOCKED_SEARCH_COORDINATOR`, integrating solely through F-009/F-011 in `apps/web/src/features/experiments/service/experiment-command-service.ts`
-- [ ] T099 [US5] [BLOCKED: F-010 Search Coordinator] Add full production Search-success and Reproduce-success E2E only after T097/T098 and released F-010 integration evidence exist in `apps/web/tests/e2e/search-success.spec.ts`
+- [X] T097 [US5] Enable production Start Experiment success only after F-010 public artifacts are released and F-009 no longer returns `BLOCKED_SEARCH_COORDINATOR`, integrating solely through F-009/F-011 in `apps/web/src/features/experiments/service/experiment-command-service.ts`
+- [X] T098 [US5] Enable production Reproduce Experiment success only after F-010 public artifacts are released and F-009 no longer returns `BLOCKED_SEARCH_COORDINATOR`, integrating solely through F-009/F-011 in `apps/web/src/features/experiments/service/experiment-command-service.ts`
+- [X] T099 [US5] Add full production Search-success and Reproduce-success E2E only after T097/T098 and released F-010 integration evidence exist in `apps/web/tests/e2e/search-success.spec.ts`
 
 **Checkpoint**: The full form and dependency-aware failure path are demonstrable now; production Start/Reproduce success remains unchecked and gated.
 
@@ -277,15 +277,15 @@ description: "Actionable implementation tasks for F-013 Experiment, Result and L
 - [X] T119 Implement any responsive findings from T117 using F-011 design tokens and approved dark-terminal hierarchy in `apps/web/app/globals.css`
 - [X] T120 Strengthen architecture scanning for production fixture imports, fixture selectors, prototype imports, raw feature fetch/WebSocket, Supabase business tables, secrets, Redis, Worker, provider, and internal Java capability access in `apps/web/tests/architecture/f013-boundaries.test.ts`
 - [X] T121 Add a production composition/build test proving fixture-enabled production is rejected and normal production routes have no feature fixture dependency in `apps/web/tests/architecture/f013-production-build.test.ts`
-- [ ] T122 [P] Add non-gated protected fixture journeys for Backtest standalone result, Experiment/Job monitoring, Leaderboard paging, Stop safety, Start/Reproduce dependency gates, 401 cleanup/login, and 429 retry eligibility in `apps/web/tests/e2e/f013-fixture-journeys.spec.ts`
-- [ ] T123 [P] Add responsive/keyboard Playwright coverage at 360, 768, 1024, and 1440 pixels with table-local overflow and primary-action assertions in `apps/web/tests/e2e/f013-responsive-accessibility.spec.ts`
+- [X] T122 [P] Add non-gated protected fixture journeys for Backtest standalone result, Experiment/Job monitoring, Leaderboard paging, Stop safety, Start/Reproduce dependency gates, 401 cleanup/login, and 429 retry eligibility in `apps/web/tests/e2e/f013-fixture-journeys.spec.ts`
+- [X] T123 [P] Add responsive/keyboard Playwright coverage at 360, 768, 1024, and 1440 pixels with table-local overflow and primary-action assertions in `apps/web/tests/e2e/f013-responsive-accessibility.spec.ts`
 - [X] T124 Run `npm run format:check` and apply only required formatting fixes under `apps/web/`
 - [X] T125 Run `npm run lint` and resolve F-013 lint findings under `apps/web/app/(protected)/`, `apps/web/src/features/`, and `apps/web/tests/`
 - [X] T126 Run `npm run typecheck` and resolve F-013 type failures under `apps/web/app/(protected)/`, `apps/web/src/features/`, and `apps/web/src/foundation/`
 - [X] T127 Run `npm test` and resolve unit, component, contract, realtime, accessibility, and architecture failures under `apps/web/tests/`
 - [X] T128 Run `npm run test:e2e` for non-gated Playwright paths and record blocked F-009/F-010 suites as unverified, never passed, in `specs/013-experiment-result-leaderboard-ui/quickstart.md`
 - [X] T129 Run `npm run build` with production fixtures disabled and verify the fixture-enabled rejection case, recording reproducible evidence in `specs/013-experiment-result-leaderboard-ui/quickstart.md`
-- [ ] T130 Audit FR-001–FR-042, SC-001–SC-008, both contracts, and every non-gated Quickstart scenario against actual test evidence, leaving gated evidence Planned in `specs/013-experiment-result-leaderboard-ui/checklists/requirements.md`
+- [X] T130 Audit FR-001–FR-042, SC-001–SC-008, both contracts, and every non-gated Quickstart scenario against actual test evidence, leaving gated evidence Planned in `specs/013-experiment-result-leaderboard-ui/checklists/requirements.md`
 
 ---
 
@@ -317,7 +317,7 @@ Phase 2 Shared Foundation
 - **US2 (P1)** starts after Phase 2 and is independently demonstrable from REST-shaped fixtures and released reads. Its mock freshness callbacks use the Phase 2 mock listener surface, not the real transport.
 - **US3 (P1)** starts after Phase 2 and is independently demonstrable. Leaderboard REST does not wait for result-ID parity; only destination E2E does.
 - **US4 (P2)** depends on the US2 Experiment snapshot/service contract but is otherwise independent of US3, US5, and live realtime.
-- **US5 (P2)** depends on shared command-state conventions and can deliver its mock form/current 503 path without F-010. T097–T099 remain blocked.
+- **US5 (P2)** depends on shared command-state conventions; T097–T099 are released and completed after the F-010 gate was satisfied.
 - **US6 (P2)** mock consumer/reconciliation work T100–T106 depends only on the Phase 2 published/mock realtime surface plus US2/US3 authoritative read callbacks; it does not depend on the real transport. Real F-011 transport work T107–T113 follows independently, and production-client integration T114–T115 depends on that real transport slice.
 - **Phase 9** follows the selected story scope. Blocked upstream tasks are excluded from a passing non-gated completion claim.
 

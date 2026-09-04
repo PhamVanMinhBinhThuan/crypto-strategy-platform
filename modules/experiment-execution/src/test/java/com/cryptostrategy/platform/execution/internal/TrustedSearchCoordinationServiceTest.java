@@ -51,6 +51,32 @@ class TrustedSearchCoordinationServiceTest {
     }
 
     @Test
+    void completionNeverMovesDurableTimeBackwardsWhenTheAuthoritativeEventIsOlder() {
+        TrustedSearchCoordinationGateway gateway = mock(TrustedSearchCoordinationGateway.class);
+        SearchRun started = pending().start(START);
+        Instant advancedAt = START.plusSeconds(20);
+        SearchRun running = started.advance(
+                new GeneratorState("random-state-v1", "{\"cursor\":1}", "advanced-state"),
+                1,
+                advancedAt);
+        Instant completedAt = START.plusSeconds(10);
+        SearchRun completed = running.complete(advancedAt);
+        var before = snapshot(running, 2, 2, 0, completedAt);
+        var after = snapshot(completed, 2, 2, 0, completedAt);
+        when(gateway.loadCompletion(experiment(running), candidate(), job())).thenReturn(Optional.of(before));
+        when(gateway.commit(any())).thenReturn(true);
+        when(gateway.load(experiment(running))).thenReturn(Optional.of(after));
+        var service = new TrustedSearchCoordinationService(gateway, Clock.fixed(advancedAt, ZoneOffset.UTC));
+
+        var result = service.reconcileCompletion(new TrustedSearchCoordinationUseCase.CompletionTrigger(
+                "older-message", experiment(running), candidate(), job(), completedAt, "correlation"));
+
+        assertThat(result.status()).isEqualTo(SearchRunStatus.COMPLETED);
+        verify(gateway).commit(new TrustedSearchCoordinationGateway.Transition(
+                running.version(), completed, 2, 0, "older-message"));
+    }
+
+    @Test
     void lateCompletionCannotBeatFrozenDeadlineAndStopsAfterAllChildrenSettle() {
         TrustedSearchCoordinationGateway gateway = mock(TrustedSearchCoordinationGateway.class);
         SearchRun running = pending().start(START);

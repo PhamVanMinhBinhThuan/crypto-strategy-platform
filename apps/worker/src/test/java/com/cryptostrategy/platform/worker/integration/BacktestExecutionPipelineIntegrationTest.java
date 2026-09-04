@@ -15,7 +15,9 @@ import com.cryptostrategy.platform.execution.api.BacktestCompletionOutcome;
 import com.cryptostrategy.platform.execution.api.port.in.CompleteBacktestAttemptUseCase;
 import com.cryptostrategy.platform.evaluation.api.model.EvaluationResultId;
 import com.cryptostrategy.platform.experiment.api.CandidateId;
+import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.execution.FrozenBacktestExecution;
 import com.cryptostrategy.platform.experiment.api.job.AttemptId;
 import com.cryptostrategy.platform.experiment.api.job.ExecutionAttempt;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
@@ -37,6 +39,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -105,6 +108,13 @@ class BacktestExecutionPipelineIntegrationTest {
                 AttemptId.generate(), new JobId(jId), new CandidateId(candId), 1, "worker-1", Instant.now()
         );
         when(experimentUseCase.startNextAttempt(eq(new JobId(jId)), any())).thenReturn(attempt);
+
+        UUID ownerUserId = UUID.randomUUID();
+        Experiment mockExperiment = mock(Experiment.class);
+        when(mockExperiment.ownerUserId()).thenReturn(ownerUserId);
+        FrozenBacktestExecution frozen = mock(FrozenBacktestExecution.class);
+        when(frozen.experiment()).thenReturn(mockExperiment);
+        when(experimentUseCase.getFrozenExecution(eq(new JobId(jId)))).thenReturn(frozen);
 
         BacktestAssumptions assumptions = BacktestAssumptions.mvp(BigDecimal.valueOf(10000), BigDecimal.valueOf(0.001), BigDecimal.valueOf(0.0005));
         EquityCurveSummary summary = new EquityCurveSummary(100L, Money.of(BigDecimal.valueOf(12000)), Money.of(BigDecimal.valueOf(9500)), 10L, 50L, "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");

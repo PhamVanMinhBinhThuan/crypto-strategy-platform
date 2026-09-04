@@ -2,6 +2,7 @@ package com.cryptostrategy.platform.api.config;
 
 import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
 import com.cryptostrategy.platform.api.auth.AuthenticationFailureHandler;
+import com.cryptostrategy.platform.api.auth.AllowedOriginPolicy;
 import java.util.Collection;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,7 @@ import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2Error;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -25,6 +27,10 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration(proxyBeanMethods = false)
 public class SecurityConfiguration {
@@ -37,7 +43,12 @@ public class SecurityConfiguration {
         String requiredJwkSetUri = requireNonBlank("SUPABASE_JWT_JWKS_URI", jwkSetUri);
         String requiredAudience = requireNonBlank("SUPABASE_JWT_AUDIENCE", audience);
 
-        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(requiredJwkSetUri).build();
+        NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(requiredJwkSetUri)
+                .jwsAlgorithms(algorithms -> {
+                    algorithms.add(SignatureAlgorithm.RS256);
+                    algorithms.add(SignatureAlgorithm.ES256);
+                })
+                .build();
         OAuth2TokenValidator<Jwt> issuerAndTime = JwtValidators.createDefaultWithIssuer(requiredIssuer);
         OAuth2TokenValidator<Jwt> audienceValidator = new JwtClaimValidator<List<String>>(
                 "aud", audiences -> audiences != null && audiences.contains(requiredAudience));
@@ -76,7 +87,8 @@ public class SecurityConfiguration {
             HttpSecurity http,
             AuthenticationFailureHandler authenticationFailureHandler,
             Converter<Jwt, ? extends AbstractAuthenticationToken> authenticatedUserConverter) throws Exception {
-        http.csrf(csrf -> csrf.disable())
+        http.cors(withDefaults())
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
@@ -89,6 +101,25 @@ public class SecurityConfiguration {
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(authenticatedUserConverter)))
                 .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(authenticationFailureHandler));
         return http.build();
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource(AllowedOriginPolicy origins) {
+        CorsConfiguration cors = new CorsConfiguration();
+        cors.setAllowedOrigins(List.copyOf(origins.allowedOrigins()));
+        cors.setAllowedMethods(List.of("GET", "POST", "OPTIONS"));
+        cors.setAllowedHeaders(List.of(
+                "Accept", "Authorization", "Content-Type", "Idempotency-Key", "X-Correlation-Id"));
+        cors.setExposedHeaders(List.of("Location", "Retry-After", "X-Correlation-Id"));
+        cors.setAllowCredentials(false);
+        cors.setMaxAge(3600L);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration ticketCors = new CorsConfiguration(cors);
+        ticketCors.setAllowedOrigins(null);
+        ticketCors.setAllowedOriginPatterns(List.of("*"));
+        source.registerCorsConfiguration("/api/v1/realtime/ticket", ticketCors);
+        source.registerCorsConfiguration("/api/**", cors);
+        return source;
     }
 
     private static OAuth2TokenValidatorResult validUuidSubject(String subject) {

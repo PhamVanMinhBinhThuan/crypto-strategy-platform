@@ -27,7 +27,7 @@ class SearchMigrationContractTest {
         expected.put("20260827000100_create_database_baseline.sql", "c10b47d4081f059939ee3e3cda5c24fddfc07f7a46de2d9a8e7dffe1c87c0d8a");
         expected.put("20260828000100_add_user_strategies_and_jobs.sql", "6bd5fb3595e8dcf5f7cc373854a3db22b37aa41014cbec71633f8e270164935a");
         expected.put("20260830000100_add_news_sentiment_workflow.sql", "646167339a12e14883d032e450c4ee3814297d301dff4b39907971f3e9b4fca6");
-        expected.put("20260830000100_f005_schema_alignment.sql", "7c597abacb0b7779d92a10c958f5814cb91bb42726223b9ed4ab50b3fad49faf");
+        expected.put("20260830000150_f005_schema_alignment.sql", "a20bb4726942ee2495c0de17a9a3c101f8ff1d6bd9b6ffd67b80ea7b65f16e2f");
         expected.put("20260830000200_f005_legacy_attempt_backfill.sql", "7daec992357b76c99d00590f3a2aca5df48b11c3891b69594e03db2804c26309");
         expected.put("20260831000100_f006_prerequisite_integrity.sql", "28f26dd0987f3b2e25ab6bd500f4db4bc563feeb20fb600988c5ca54ac749869");
         expected.put("20260901000100_f006_backtest_evaluation_leaderboard.sql", "73684cf3cd20d45b03a0ae901194aae1c18e868664feba5dae4036d63ebed62d");

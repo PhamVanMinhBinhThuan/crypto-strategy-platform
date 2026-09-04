@@ -2,9 +2,20 @@ import { describe, expect, it } from "vitest";
 import { MockApiClient } from "@/src/foundation/testing/mock-api-client";
 import { createBacktestResultService } from "@/src/features/backtests/service/backtest-result-service";
 import { normalBacktestResult } from "@/src/features/backtests/fixtures/backtest-result-fixtures";
-import type { BacktestId } from "@/src/features/backtests/types/backtest-result";
+import type { BacktestId, BacktestResultId } from "@/src/features/backtests/types/backtest-result";
 const id = "backtest-013" as BacktestId;
 describe("F-009 backtest adapter", () => {
+  it("uses the canonical result path without translating its identity", async () => {
+    const api = new MockApiClient().respond(
+      "/api/v1/backtest-results/result-013",
+      normalBacktestResult
+    );
+    const result = await createBacktestResultService(api).readByResultId(
+      "result-013" as BacktestResultId
+    );
+    expect(api.requests[0]?.path).toBe("/api/v1/backtest-results/result-013");
+    expect(result.ok).toBe(true);
+  });
   it("uses the released standalone path and preserves exact DTO strings", async () => {
     const api = new MockApiClient().respond(
       "/api/v1/backtests/backtest-013/result",

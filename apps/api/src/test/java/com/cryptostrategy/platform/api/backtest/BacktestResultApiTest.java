@@ -21,6 +21,7 @@ import com.cryptostrategy.platform.experiment.api.error.ResourceInaccessibleExce
 import com.cryptostrategy.platform.experiment.api.job.AttemptId;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.port.in.GetStandaloneBacktestUseCase;
+import com.cryptostrategy.platform.experiment.api.port.in.GetExperimentUseCase;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
@@ -63,6 +64,37 @@ class BacktestResultApiTest {
         assertThatThrownBy(() -> controller.getResult(
                         new AuthenticatedUserContext(OWNER, NOW.plusSeconds(60)),
                         BACKTEST_ID.value()))
+                .isInstanceOf(ResourceInaccessibleException.class);
+    }
+
+    @Test
+    void readsAnOwnedResultByItsCanonicalResultIdWithoutInventingABacktestId() {
+        GetBacktestResultUseCase results = mock(GetBacktestResultUseCase.class);
+        GetExperimentUseCase experiments = mock(GetExperimentUseCase.class);
+        var result = result();
+        when(results.getByResultId(result.resultId())).thenReturn(Optional.of(result));
+        when(experiments.getExperiment(OWNER, EXPERIMENT_ID)).thenReturn(Optional.of(mock(
+                com.cryptostrategy.platform.experiment.api.Experiment.class)));
+        var controller = new BacktestResultByIdController(results, experiments);
+
+        var response = controller.getResult(
+                new AuthenticatedUserContext(OWNER, NOW.plusSeconds(60)), result.resultId().value());
+
+        assertThat(response.backtestResultId()).isEqualTo(result.resultId());
+        assertThat(response.backtestId()).isNull();
+    }
+
+    @Test
+    void concealsAResultWhenItsExperimentIsNotOwned() {
+        GetBacktestResultUseCase results = mock(GetBacktestResultUseCase.class);
+        var result = result();
+        when(results.getByResultId(result.resultId())).thenReturn(Optional.of(result));
+        var controller = new BacktestResultByIdController(
+                results, mock(GetExperimentUseCase.class));
+
+        assertThatThrownBy(() -> controller.getResult(
+                        new AuthenticatedUserContext(OWNER, NOW.plusSeconds(60)),
+                        result.resultId().value()))
                 .isInstanceOf(ResourceInaccessibleException.class);
     }
 

@@ -113,8 +113,17 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         searchConfig.put("maximumCandidates", maximumCandidates);
         searchConfig.put("maximumDurationSeconds", durationSeconds);
         searchConfig.put("topK", topK);
+        Map<String, Object> backtestConfig = Map.of(
+                "assumptionsVersion", "backtest-assumptions-v1",
+                "initialCapital", "10000",
+                "feeRate", "0.001",
+                "slippageRate", "0",
+                "executionPriceRule", "NEXT_CANDLE_OPEN",
+                "positionMode", "LONG_ONLY",
+                "forceCloseAtEnd", true,
+                "roundingMode", "HALF_EVEN");
         ExperimentManifest manifest = new ExperimentManifest(experimentId, "manifest-v1", datasetSnapshot,
-                strategySnapshot, Map.of("assumptionsVersion", "backtest-assumptions-v1"), Map.copyOf(searchConfig),
+                strategySnapshot, backtestConfig, Map.copyOf(searchConfig),
                 Map.of("metricVersion", "metric-v1", "rankingVersion", "ranking-v1"), null,
                 softwareVersion, gitCommit,
                 sha256(request.canonicalRequestHash() + '\n' + SearchModuleFactory.canonicalSearchSpaceFingerprint(searchSpace)), now);

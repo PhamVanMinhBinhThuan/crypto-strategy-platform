@@ -11,6 +11,10 @@ test.describe("Authentication Flows", () => {
     await page.goto("/register");
     await page.waitForLoadState("networkidle");
     await expect(page).toHaveTitle(/Register/i);
+    await expect(page.getByRole("form", { name: "Authentication form" })).toHaveAttribute(
+      "data-ready",
+      "true"
+    );
 
     // Register form elements should be present
     const emailInput = page.getByLabel("Email address");
@@ -49,6 +53,28 @@ test.describe("Authentication Flows", () => {
     // It should now show success
     await expect(page.getByText(/Check your email/i)).toBeVisible();
 
+    // Exercise password recovery before creating a mocked authenticated session. A deliberately
+    // incomplete access token must not be allowed to hold Supabase's browser auth lock.
+    await page.goto("/forgot-password");
+    await page.waitForLoadState("networkidle");
+    await expect(page).toHaveURL(/.*forgot-password/);
+
+    const forgotEmail = page.getByLabel("Email address");
+    const resetBtn = page.getByRole("button", { name: "Reset your password" });
+
+    await page.route("**/auth/v1/recover*", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({})
+      });
+    });
+
+    await forgotEmail.fill("test@example.com");
+    await expect(forgotEmail).toHaveValue("test@example.com");
+    await resetBtn.click();
+    await expect(page.getByText(/If an account can receive email/)).toBeVisible();
+
     // Navigate to login
     await page.goto("/login");
     await page.waitForLoadState("networkidle");
@@ -83,30 +109,5 @@ test.describe("Authentication Flows", () => {
     // We expect the middleware to bounce the user back to login since the session cookie isn't set.
     // Waiting for this URL change ensures the next test steps aren't interrupted by a delayed redirect.
     await page.waitForURL(/.*next=%2Fmarket/);
-
-    // Forgot password flow
-    await page.goto("/forgot-password");
-    await page.waitForLoadState("networkidle");
-    await expect(page).toHaveURL(/.*forgot-password/);
-
-    const forgotEmail = page.getByLabel("Email address");
-    const resetBtn = page.getByRole("button", { name: "Reset your password" });
-
-    // Mock reset route
-    await page.route("**/auth/v1/recover*", async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({})
-      });
-    });
-
-    await forgotEmail.fill("test@example.com");
-    await expect(forgotEmail).toHaveValue("test@example.com");
-
-    await resetBtn.click();
-
-    // Verify neutral recovery response
-    await expect(page.getByText(/If an account can receive email/)).toBeVisible();
   });
 });

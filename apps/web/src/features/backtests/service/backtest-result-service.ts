@@ -29,15 +29,7 @@ export const createBacktestResultService = (api: ApiClient) => ({
   async readByBacktestId(id: BacktestId) {
     return mapped(await api.request(`/api/v1/backtests/${encodeURIComponent(id)}/result`));
   },
-  async readByResultId(_id: BacktestResultId): Promise<ApiResult<BacktestResultViewModel>> {
-    void _id;
-    return {
-      ok: false,
-      error: {
-        code: "BLOCKED_BACKTEST_RESULT_READ_BY_RESULT_ID",
-        message: "Result navigation is awaiting the released result-ID API.",
-        retryable: false
-      }
-    };
+  async readByResultId(id: BacktestResultId): Promise<ApiResult<BacktestResultViewModel>> {
+    return mapped(await api.request(`/api/v1/backtest-results/${encodeURIComponent(id)}`));
   }
 });

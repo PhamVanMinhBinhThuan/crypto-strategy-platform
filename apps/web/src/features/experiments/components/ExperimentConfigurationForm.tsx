@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import type { ApiClient } from "@/src/foundation/http/contracts";
 import { useExperimentConfiguration } from "../hooks/useExperimentConfiguration";
 import { useExperimentCommands } from "../hooks/useExperimentCommands";
@@ -24,7 +25,7 @@ export function ExperimentConfigurationForm({
         <h2>Configure Experiment</h2>
         {fixture && <span className="fixture-badge">FIXTURE DATA</span>}
       </div>
-      <DependencyGateNotice />
+      {fixture && <DependencyGateNotice />}
       <form onSubmit={submit} noValidate>
         <div className="form-grid">
           <label>
@@ -165,18 +166,26 @@ export function ExperimentConfigurationForm({
           </button>
         )}
         {commands.start.status === "accepted" && (
-          <p role="status">Fixture request accepted. A predefined response was returned.</p>
+          <p role="status">
+            Experiment accepted with status {commands.start.acceptedStatus}.{" "}
+            <Link href={`/search?id=${encodeURIComponent(commands.start.experimentId)}`}>
+              Open Experiment {commands.start.experimentId}
+            </Link>
+          </p>
         )}
         {commands.start.status === "dependency-unavailable" && (
-          <p role="alert">Production start remains blocked by the Search Coordinator dependency.</p>
+          <p role="alert">The Search service is temporarily unavailable. Try again later.</p>
         )}
         {commands.reproduce.status === "accepted" && (
-          <p role="status">Fixture reproduction accepted as a new linked Experiment.</p>
+          <p role="status">
+            Reproduction accepted as a new linked Experiment.{" "}
+            <Link href={`/search?id=${encodeURIComponent(commands.reproduce.experimentId)}`}>
+              Open reproduced Experiment {commands.reproduce.experimentId}
+            </Link>
+          </p>
         )}
         {commands.reproduce.status === "dependency-unavailable" && (
-          <p role="alert">
-            Production reproduction remains blocked by the Search Coordinator dependency.
-          </p>
+          <p role="alert">The Search service is temporarily unavailable. Try again later.</p>
         )}
       </form>
     </section>

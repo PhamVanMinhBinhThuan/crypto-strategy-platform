@@ -15,6 +15,7 @@ import com.cryptostrategy.platform.search.api.model.GeneratorDescriptor;
 import com.cryptostrategy.platform.search.api.model.GeneratorState;
 import com.cryptostrategy.platform.search.api.model.SearchSpace;
 import com.cryptostrategy.platform.search.internal.CanonicalSearchSpace;
+import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 
 /** Framework-independent composition root for Search application components. */
 public final class SearchModuleFactory {
@@ -37,6 +38,10 @@ public final class SearchModuleFactory {
 
     public static String canonicalSearchSpaceFingerprint(SearchSpace searchSpace) {
         return CanonicalSearchSpace.fingerprint(searchSpace);
+    }
+
+    public static String canonicalCandidateFingerprint(StrategyParameterSet parameters) {
+        return CanonicalSearchSpace.candidateFingerprint(parameters);
     }
 
     public record BaselineDefinition(GeneratorDescriptor descriptor, GeneratorState initialState) {}

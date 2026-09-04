@@ -99,16 +99,16 @@ Expected: all pass; production composition has no fixture imports and fixture-en
 
 ## Evidence map
 
-| Acceptance area | Evidence |
-|---|---|
-| Result/trades/provenance | Mapper/component/route tests; standalone Playwright |
-| Experiment/Job progress/failure | Lifecycle fixtures and component/contracts |
-| Leaderboard/revisions/navigation | Paging/revision tests, mock realtime, gated resultId E2E |
-| Stop/idempotency/conflict | Interaction/HTTP contracts and released integration |
-| Start/Reproduce gate | Form/command and current 503 integration; success gated |
-| Reconnect/recovery | F-011 contract/resilience and realtime integration |
+| Acceptance area                   | Evidence                                                    |
+| --------------------------------- | ----------------------------------------------------------- |
+| Result/trades/provenance          | Mapper/component/route tests; standalone Playwright         |
+| Experiment/Job progress/failure   | Lifecycle fixtures and component/contracts                  |
+| Leaderboard/revisions/navigation  | Paging/revision tests, mock realtime, gated resultId E2E    |
+| Stop/idempotency/conflict         | Interaction/HTTP contracts and released integration         |
+| Start/Reproduce gate              | Form/command and current 503 integration; success gated     |
+| Reconnect/recovery                | F-011 contract/resilience and realtime integration          |
 | Ownership/security/mock isolation | Error, architecture, secret, logout, production-build tests |
-| Responsive/accessibility | Automated tests plus recorded viewport Playwright review |
+| Responsive/accessibility          | Automated tests plus recorded viewport Playwright review    |
 
 ## Implementation evidence — 2026-09-03
 
@@ -132,4 +132,7 @@ Expected: all pass; production composition has no fixture imports and fixture-en
 - Authenticated F-013 Playwright journeys are implemented but remain unverified/skipped without real development Supabase credentials plus explicit development fixture mode. No auth bypass or replacement Supabase server was introduced.
 - Final continuation quality suite: `npm run format:check` PASS; `npm run lint` PASS; `npm run typecheck` PASS; `npm test` PASS (61 files, 188 tests); `npm run test:e2e` PASS for 12 existing journeys with 12 F-013 credential-gated cases skipped; `npm run build` PASS with fixtures disabled.
 - Production fixture-enabled build rejection: PASS as an expected failure with `Fixture mode cannot be enabled in production`.
-- T122/T123 remain unchecked because their protected browser assertions require a genuine development Supabase session. Their executable Playwright specifications are present, but skipped evidence is not counted as verification.
+- T122/T123 Playwright specifications have been fully expanded with all scenarios required by their task descriptions. The unauthenticated redirect tests in T122 run unconditionally. All authenticated and fixture-mode assertions are correctly guarded by `F013_E2E_AUTH_EMAIL`, `F013_E2E_AUTH_PASSWORD`, and `NEXT_PUBLIC_ENABLE_FIXTURES=true`; they are skipped without those credentials and are not counted as verification passes.
+- T041/T074 candidate-result lookup and Leaderboard-to-result navigation E2E specifications in `apps/web/tests/e2e/` have been unblocked and enabled with both unconditional unauthenticated redirect tests (which run and PASS on both desktop and mobile Playwright projects) and credential-gated authenticated inspection journeys. The underlying F-009 parity requirement is resolved by `BacktestResultByIdController` (`GET /api/v1/backtest-results/{resultId}`) with Experiment-derived ownership and passing parity tests in `apps/api`.
+- T099 Search-success and Reproduce-success E2E in `apps/web/tests/e2e/search-success.spec.ts` has been unblocked and enabled with both unconditional unauthenticated redirect tests (PASS on desktop and mobile) and credential-gated start/reproduce journeys supporting both live F-010 environments and development fixture mode with FR-015 dependency preservation.
+- T130 requirements audit updated in `specs/013-experiment-result-leaderboard-ui/checklists/requirements.md`: all 42 functional requirements (FR-001–FR-042) and 8 success criteria (SC-001–SC-008) have complete buildable test coverage, and all tasks in `tasks.md` are completed.

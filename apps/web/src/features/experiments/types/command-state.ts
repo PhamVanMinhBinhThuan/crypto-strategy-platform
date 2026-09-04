@@ -14,3 +14,13 @@ export type CommandState =
       error: PublicError;
     };
 export const newCommandKey = () => crypto.randomUUID();
+
+export type ExperimentCommandState =
+  | Exclude<CommandState, { status: "accepted" }>
+  | {
+      status: "accepted";
+      key: string;
+      experimentId: string;
+      jobId: string;
+      acceptedStatus: string;
+    };

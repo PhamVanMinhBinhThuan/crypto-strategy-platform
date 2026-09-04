@@ -36,7 +36,7 @@ export function parsePublicEnvironment(
   return {
     supabaseUrl: value.NEXT_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: value.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    apiBaseUrl: value.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, ""),
+    apiBaseUrl: value.NEXT_PUBLIC_API_BASE_URL.replace(/\/$/, "").replace(/\/api\/v1$/, ""),
     websocketUrl: value.NEXT_PUBLIC_WS_URL,
     fixturesEnabled
   };

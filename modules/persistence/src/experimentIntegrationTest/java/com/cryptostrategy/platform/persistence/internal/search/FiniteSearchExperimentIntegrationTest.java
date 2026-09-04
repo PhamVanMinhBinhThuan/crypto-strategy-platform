@@ -67,6 +67,10 @@ public class FiniteSearchExperimentIntegrationTest {
                     SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(5), "finite-f010"));
 
             assertThat(outcome.status()).isEqualTo(SearchRunStatus.COMPLETED);
+            assertThat(jdbc.queryForObject(
+                    "select status from experiment.experiment where experiment_id=?",
+                    String.class, SearchAllocationConcurrencyIntegrationTest.EXPERIMENT))
+                    .isEqualTo("COMPLETED");
             assertThat(jdbc.queryForObject("select count(*) from experiment.leaderboard_entry le join experiment.leaderboard_revision lr using(leaderboard_revision_id) where lr.experiment_id=?",
                     Integer.class, SearchAllocationConcurrencyIntegrationTest.EXPERIMENT)).isEqualTo(1);
             assertThat(jdbc.queryForObject("select count(*) from platform.outbox_event where aggregate_id=? and event_type='BACKTEST_JOB'",

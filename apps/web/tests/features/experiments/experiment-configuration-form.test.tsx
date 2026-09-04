@@ -28,14 +28,11 @@ describe("Experiment configuration form", () => {
     expect(screen.getByRole("button", { name: "Start Experiment" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Reproduce Experiment" })).toBeEnabled();
   });
-  it("announces validation and preserves draft after dependency failure", async () => {
+  it("announces real acceptance and preserves the submitted draft", async () => {
     const api = new MockApiClient().respond("POST /api/v1/experiments", {
-      ok: false,
-      error: {
-        code: "DEPENDENCY_UNAVAILABLE",
-        message: "BLOCKED_SEARCH_COORDINATOR",
-        retryable: true
-      }
+      experimentId: "experiment-new",
+      jobId: "job-new",
+      status: "QUEUED"
     });
     render(<ExperimentConfigurationForm api={api} fixture={false} />);
     const user = userEvent.setup();
@@ -44,8 +41,35 @@ describe("Experiment configuration form", () => {
     await user.type(screen.getByLabelText("Name"), "My experiment");
     await user.type(screen.getByLabelText("Dataset ID", { exact: true }), "dataset-known");
     await user.click(screen.getByRole("button", { name: "Start Experiment" }));
-    await screen.findByText(/Production start remains blocked/);
+    expect(
+      await screen.findByRole("link", { name: /Open Experiment experiment-new/ })
+    ).toHaveAttribute("href", "/search?id=experiment-new");
     expect(screen.getByLabelText("Name")).toHaveValue("My experiment");
     expect(screen.getByLabelText("Dataset ID", { exact: true })).toHaveValue("dataset-known");
+  });
+
+  it("creates a real immutable dataset and selects it for the experiment", async () => {
+    const api = new MockApiClient().respond("POST /api/v1/datasets", {
+      datasetId: "01M1M383AJRDGS3BVC4KCE84Q2",
+      version: "candle-v1",
+      provider: "BINANCE",
+      pair: "BTC/USDT",
+      timeframe: "5m",
+      normalizationVersion: "binance-v1",
+      startTime: "2026-09-03T00:00:00Z",
+      endTime: "2026-09-04T00:00:00Z",
+      membershipCount: 288,
+      checksum: `sha256:${"a".repeat(64)}`,
+      status: "READY",
+      createdAt: "2026-09-04T00:00:01Z"
+    });
+    render(<ExperimentConfigurationForm api={api} fixture={false} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Create dataset" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("288 candles");
+    expect(screen.getByLabelText("Dataset ID", { exact: true })).toHaveValue(
+      "01M1M383AJRDGS3BVC4KCE84Q2"
+    );
   });
 });

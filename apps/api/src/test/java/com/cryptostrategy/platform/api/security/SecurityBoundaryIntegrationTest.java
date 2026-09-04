@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -80,6 +82,21 @@ class SecurityBoundaryIntegrationTest {
 
         verify(tickets).issue(USER_ID, ALLOWED_ORIGIN, AUTHENTICATION_EXPIRES_AT);
         verifyNoMoreInteractions(tickets);
+    }
+
+    @Test
+    void browserApiPreflightUsesTheConfiguredOriginAllowlistWithoutAuthentication() throws Exception {
+        mockMvc.perform(options("/api/v1/experiments/example")
+                        .header("Origin", ALLOWED_ORIGIN)
+                        .header("Access-Control-Request-Method", "GET")
+                        .header("Access-Control-Request-Headers", "authorization,x-correlation-id"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", ALLOWED_ORIGIN));
+
+        mockMvc.perform(options("/api/v1/experiments/example")
+                        .header("Origin", "https://dashboard.example.test.evil.invalid")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

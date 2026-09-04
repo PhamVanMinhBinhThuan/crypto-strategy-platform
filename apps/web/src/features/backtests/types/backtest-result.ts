@@ -24,7 +24,7 @@ export type TradeViewModel = Readonly<{
 }>;
 export type BacktestResultViewModel = Readonly<{
   backtestResultId: BacktestResultId;
-  backtestId: BacktestId;
+  backtestId?: BacktestId;
   status: "COMPLETED";
   metrics: Readonly<{
     totalReturn: string;

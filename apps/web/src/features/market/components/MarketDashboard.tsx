@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { RealtimeStatus } from "@/src/foundation/realtime/contracts";
 import { useClients } from "@/src/foundation/composition/client-provider";
 import { parseMarketSelection, marketSelectionQuery } from "../model/market-selection";
+import { marketRangeEndingAt } from "../model/market-range";
 import type { MarketPair, MarketTimeframe } from "../model/market-catalog";
 import type { Candle } from "../model/candle";
 import { listCandles } from "../api/market-api";
@@ -33,18 +34,19 @@ export function MarketDashboard() {
     const request = requests.current.next();
     setLoading(true);
     setError(undefined);
-    const end = new Date(),
-      start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
+    const now = new Date();
     const results = await Promise.all(
-      selection.panels.map(async (panel) => ({
-        panel,
-        result: await listCandles(api, {
-          pair: selection.pair,
-          timeframe: panel.timeframe,
-          startTime: start.toISOString(),
-          endTime: end.toISOString()
-        })
-      }))
+      selection.panels.map(async (panel) => {
+        const range = marketRangeEndingAt(now, panel.timeframe);
+        return {
+          panel,
+          result: await listCandles(api, {
+            pair: selection.pair,
+            timeframe: panel.timeframe,
+            ...range
+          })
+        };
+      })
     );
     if (!requests.current.isLatest(request.generation)) return;
     const next: Record<string, CandleState> = {};

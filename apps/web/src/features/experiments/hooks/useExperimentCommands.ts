@@ -3,10 +3,10 @@ import { useRef, useState } from "react";
 import type { ApiClient } from "@/src/foundation/http/contracts";
 import type { ExperimentDraft } from "../types/experiment-configuration";
 import { createExperimentCommandService } from "../service/experiment-command-service";
-import { newCommandKey, type CommandState } from "../types/command-state";
+import { newCommandKey, type ExperimentCommandState } from "../types/command-state";
 export function useExperimentCommands(api: ApiClient) {
-  const [start, setStart] = useState<CommandState>({ status: "idle" });
-  const [reproduce, setReproduce] = useState<CommandState>({ status: "idle" });
+  const [start, setStart] = useState<ExperimentCommandState>({ status: "idle" });
+  const [reproduce, setReproduce] = useState<ExperimentCommandState>({ status: "idle" });
   const startKey = useRef<string | undefined>(undefined),
     reproduceKey = useRef<string | undefined>(undefined),
     busy = useRef({ start: false, reproduce: false });
@@ -29,7 +29,13 @@ export function useExperimentCommands(api: ApiClient) {
         : await service.reproduce(id!, ref.current);
     busy.current[kind] = false;
     if (r.ok) {
-      setter({ status: "accepted", key: ref.current });
+      setter({
+        status: "accepted",
+        key: ref.current,
+        experimentId: r.data.experimentId,
+        jobId: r.data.jobId,
+        acceptedStatus: r.data.status
+      });
       return;
     }
     const status =

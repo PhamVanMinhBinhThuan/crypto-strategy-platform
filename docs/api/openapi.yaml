@@ -1450,10 +1450,13 @@ components:
     BacktestResult:
       type: object
       additionalProperties: false
-      required: [backtestResultId, backtestId, status, metrics, trades, provenance, assumptions, initialCapital, finalCapital, totalFees, completedAt]
+      required: [backtestResultId, status, metrics, trades, provenance, assumptions, initialCapital, finalCapital, totalFees, completedAt]
       properties:
         backtestResultId: { $ref: '#/components/schemas/OpaqueId' }
-        backtestId: { $ref: '#/components/schemas/OpaqueId' }
+        backtestId:
+          allOf: [{ $ref: '#/components/schemas/OpaqueId' }]
+          nullable: true
+          description: Present for standalone Backtests; null for Search-produced candidate results.
         status: { type: string, const: COMPLETED }
         metrics: { $ref: '#/components/schemas/BacktestMetrics' }
         trades:
