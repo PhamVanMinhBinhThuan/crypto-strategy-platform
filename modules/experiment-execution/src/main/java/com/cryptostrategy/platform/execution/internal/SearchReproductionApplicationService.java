@@ -3,6 +3,7 @@ package com.cryptostrategy.platform.execution.internal;
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.search.api.model.SearchRunId;
 import com.cryptostrategy.platform.domain.api.identity.Ulids;
+import com.cryptostrategy.platform.execution.api.ReproductionVerificationId;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchReproductionUseCase;
 import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionGateway;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
@@ -10,7 +11,6 @@ import com.cryptostrategy.platform.experiment.api.error.IdempotencyConflictExcep
 import com.cryptostrategy.platform.experiment.api.error.ResourceInaccessibleException;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import java.util.Objects;
-import com.cryptostrategy.platform.search.api.model.ReproductionVerificationId;
 
 /** Validate owner/terminal/evidence trước khi yêu cầu một atomic immutable-source copy. */
 public final class SearchReproductionApplicationService implements StartSearchReproductionUseCase {

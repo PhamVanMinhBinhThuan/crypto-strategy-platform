@@ -80,6 +80,7 @@ class StartExperimentReadinessIntegrationTest {
                         "61000000000000000000000004"),
                 new CommandDtos.GeneratorSelectionRequest(
                         new CommandDtos.GeneratorId("random-search"), "1.0.0", 42L),
+                null,
                 new CommandDtos.SearchSpaceRequest(
                         new com.cryptostrategy.platform.strategy.api.model.StrategyPluginId("momentum"),
                         "1.0.0",

@@ -12,12 +12,16 @@ import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
 import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenanceSnapshot;
+import com.cryptostrategy.platform.experiment.api.provenance.StrategyComponentSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.search.api.model.*;
 import com.cryptostrategy.platform.search.api.SearchModuleFactory;
 import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
+import com.cryptostrategy.platform.strategy.api.model.user.*;
+import com.cryptostrategy.platform.strategy.api.model.user.query.ResolveStrategySnapshotQuery;
 import com.cryptostrategy.platform.strategy.api.model.parameter.*;
+import com.cryptostrategy.platform.strategy.api.port.in.ResolveStrategySnapshotUseCase;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyFingerprintCalculator;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyRegistry;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -32,6 +36,7 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
     private static final int MAX_INTEGER_DOMAIN_SIZE = 10_000;
     private final GetDatasetUseCase datasets;
     private final StrategyRegistry strategies;
+    private final ResolveStrategySnapshotUseCase userStrategies;
     private final StrategyFingerprintCalculator fingerprints;
     private final ObjectMapper json;
     private final String softwareVersion;
@@ -39,10 +44,11 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
     private final Clock clock;
 
     public SearchStartCommandFactoryService(GetDatasetUseCase datasets, StrategyRegistry strategies,
-            StrategyFingerprintCalculator fingerprints, ObjectMapper json, String softwareVersion,
-            String gitCommit, Clock clock) {
+            ResolveStrategySnapshotUseCase userStrategies, StrategyFingerprintCalculator fingerprints,
+            ObjectMapper json, String softwareVersion, String gitCommit, Clock clock) {
         this.datasets = Objects.requireNonNull(datasets);
         this.strategies = Objects.requireNonNull(strategies);
+        this.userStrategies = Objects.requireNonNull(userStrategies);
         this.fingerprints = Objects.requireNonNull(fingerprints);
         this.json = Objects.requireNonNull(json);
         this.softwareVersion = Objects.requireNonNull(softwareVersion);
@@ -52,8 +58,14 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
 
     @Override public StartCommand create(Request request) {
         Objects.requireNonNull(request, "request");
-        if (request.datasetId() == null || request.strategyId() == null || request.parameters() == null) {
+        if (request.datasetId() == null || request.parameters() == null) {
             throw new IllegalArgumentException("Dataset, generator, search space and stop condition are required");
+        }
+        boolean userStrategy = request.userStrategyVersionId() != null;
+        boolean systemStrategy = request.strategyId() != null;
+        if (userStrategy == systemStrategy) {
+            throw new IllegalArgumentException(
+                    "Choose exactly one published User Strategy or system Strategy Search Space");
         }
         if (request.generatorId() == null || !"random-search".equals(request.generatorId().value())
                 || !"1.0.0".equals(request.generatorVersion())) {
@@ -72,23 +84,11 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 dataset.checksum(), dataset.provider().value(), dataset.tradingPair().canonicalSymbol(),
                 dataset.timeframe().code(), dataset.normalizationVersion(), dataset.rangeStart(),
                 dataset.rangeEnd(), dataset.candleCount());
-        SemanticVersion strategyVersion = SemanticVersion.parse(request.strategyVersion());
-        var descriptor = strategies.descriptor(request.strategyId(), strategyVersion);
-        Map<String, ParameterDefinition> definitions = new TreeMap<>();
-        descriptor.parameterSchema().definitions().forEach(value -> definitions.put(value.name(), value));
-        Map<String, SearchParameterDomain> domains = new TreeMap<>();
-        Map<String, StrategyParameterValue> representative = new TreeMap<>();
-        request.parameters().forEach((name, range) -> {
-            ParameterDefinition definition = definitions.get(name);
-            if (definition == null) throw new IllegalArgumentException("Unknown Strategy parameter: " + name);
-            SearchParameterDomain domain = domain(definition.type(), range);
-            domains.put(name, domain);
-            representative.put(name, domain.options().getFirst());
-        });
-        SearchSpace searchSpace = new SearchSpace(domains);
-        var frozenParameters = strategies.resolveParameters(request.strategyId(), strategyVersion, representative);
-        var strategySnapshot = StrategyProvenanceSnapshot.single(descriptor.reference(), frozenParameters,
-                Optional.empty(), fingerprints.single(descriptor.reference(), frozenParameters));
+        ResolvedStrategyInput strategyInput = userStrategy
+                ? resolveUserStrategy(request)
+                : resolveSystemStrategy(request);
+        SearchSpace searchSpace = strategyInput.searchSpace();
+        StrategyProvenanceSnapshot strategySnapshot = strategyInput.provenance();
         ExperimentId experimentId = ExperimentId.generate();
         JobId searchJobId = JobId.generate();
         SearchRunId searchRunId = SearchRunId.generate();
@@ -104,8 +104,7 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 Math.min(maximumCandidates, SearchRequestPayload.MAX_CONCURRENCY_HINT), now);
         Map<String, Object> searchConfig = new LinkedHashMap<>();
         searchConfig.put("contractVersion", "search-config-v1");
-        searchConfig.put("strategyId", request.strategyId().value());
-        searchConfig.put("strategyVersion", strategyVersion.toString());
+        searchConfig.putAll(strategyInput.identity());
         searchConfig.put("generatorId", "random-search");
         searchConfig.put("generatorVersion", "1.0.0");
         searchConfig.put("seed", seed);
@@ -113,8 +112,17 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         searchConfig.put("maximumCandidates", maximumCandidates);
         searchConfig.put("maximumDurationSeconds", durationSeconds);
         searchConfig.put("topK", topK);
+        Map<String, Object> backtestConfig = Map.of(
+                "assumptionsVersion", "backtest-assumptions-v1",
+                "initialCapital", "10000",
+                "feeRate", "0.001",
+                "slippageRate", "0",
+                "executionPriceRule", "NEXT_CANDLE_OPEN",
+                "positionMode", "LONG_ONLY",
+                "forceCloseAtEnd", true,
+                "roundingMode", "HALF_EVEN");
         ExperimentManifest manifest = new ExperimentManifest(experimentId, "manifest-v1", datasetSnapshot,
-                strategySnapshot, Map.of("assumptionsVersion", "backtest-assumptions-v1"), Map.copyOf(searchConfig),
+                strategySnapshot, backtestConfig, Map.copyOf(searchConfig),
                 Map.of("metricVersion", "metric-v1", "rankingVersion", "ranking-v1"), null,
                 softwareVersion, gitCommit,
                 sha256(request.canonicalRequestHash() + '\n' + SearchModuleFactory.canonicalSearchSpaceFingerprint(searchSpace)), now);
@@ -127,6 +135,60 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 Map.of("correlationId", request.correlationId()), now);
         return new StartCommand(request.ownerUserId(), request.idempotencyKey(), request.canonicalRequestHash(),
                 now.plus(Duration.ofHours(24)), experiment, manifest, searchJob, run, outbox);
+    }
+
+    private ResolvedStrategyInput resolveSystemStrategy(Request request) {
+        SemanticVersion strategyVersion = SemanticVersion.parse(request.strategyVersion());
+        var descriptor = strategies.descriptor(request.strategyId(), strategyVersion);
+        Map<String, ParameterDefinition> definitions = new TreeMap<>();
+        descriptor.parameterSchema().definitions().forEach(value -> definitions.put(value.name(), value));
+        Map<String, SearchParameterDomain> domains = new TreeMap<>();
+        Map<String, StrategyParameterValue> representative = new TreeMap<>();
+        request.parameters().forEach((name, range) -> {
+            ParameterDefinition definition = definitions.get(name);
+            if (definition == null) throw new IllegalArgumentException("Unknown Strategy parameter: " + name);
+            SearchParameterDomain resolvedDomain = domain(definition.type(), range);
+            domains.put(name, resolvedDomain);
+            representative.put(name, resolvedDomain.options().getFirst());
+        });
+        SearchSpace searchSpace = new SearchSpace(domains);
+        var frozenParameters = strategies.resolveParameters(
+                request.strategyId(), strategyVersion, representative);
+        var provenance = StrategyProvenanceSnapshot.single(
+                descriptor.reference(), frozenParameters, Optional.empty(),
+                fingerprints.single(descriptor.reference(), frozenParameters));
+        return new ResolvedStrategyInput(searchSpace, provenance, Map.of(
+                "strategyKind", "SINGLE",
+                "strategyId", request.strategyId().value(),
+                "strategyVersion", strategyVersion.toString()));
+    }
+
+    private ResolvedStrategyInput resolveUserStrategy(Request request) {
+        if (!request.parameters().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Published User Strategy Search uses its frozen parameters");
+        }
+        StrategySnapshot snapshot = userStrategies.resolveSnapshot(
+                request.ownerUserId(), new ResolveStrategySnapshotQuery(request.userStrategyVersionId()));
+        StrategyProvenanceSnapshot provenance;
+        if (snapshot instanceof SingleStrategySnapshot single) {
+            provenance = StrategyProvenanceSnapshot.single(
+                    single.source().strategyReference(), single.source().parameters(),
+                    Optional.of(single.userStrategyVersionId()), single.fingerprint());
+        } else {
+            CompositeStrategySnapshot composite = (CompositeStrategySnapshot) snapshot;
+            provenance = StrategyProvenanceSnapshot.composite(
+                    composite.source().policyId(), composite.source().policyVersion(),
+                    composite.source().policyParameters(),
+                    composite.source().components().stream()
+                            .map(component -> new StrategyComponentSnapshot(
+                                    component.strategyReference(), component.parameters()))
+                            .toList(),
+                    Optional.of(composite.userStrategyVersionId()), composite.fingerprint());
+        }
+        return new ResolvedStrategyInput(new SearchSpace(Map.of()), provenance, Map.of(
+                "strategyKind", provenance.kind().name(),
+                "userStrategyVersionId", request.userStrategyVersionId().value()));
     }
 
     private static SearchParameterDomain domain(ParameterType type, ParameterDomain request) {
@@ -153,6 +215,11 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 Map.of("type", domain.type().name(), "options", domain.options().stream().map(StrategyParameterValue::canonicalText).toList())));
         return Map.copyOf(result);
     }
+
+    private record ResolvedStrategyInput(
+            SearchSpace searchSpace,
+            StrategyProvenanceSnapshot provenance,
+            Map<String, Object> identity) {}
 
     private String writeJson(Object value) {
         try { return json.writeValueAsString(value); }

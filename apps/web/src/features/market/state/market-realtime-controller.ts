@@ -30,9 +30,9 @@ export function observeMarket(
     )
       handlers.onCandle(panel.id, parsed.data, event.occurredAt);
   };
-  const removeStatus = realtime.onStatus((status) => {
-    handlers.onTransport(status);
-    if (status === "connected") handlers.onRecovery();
+  const removeStatus = realtime.onStatus((metadata) => {
+    handlers.onTransport(metadata.status);
+    if (metadata.status === "connected") handlers.onRecovery();
   });
   const removeEvent = realtime.onEvent((event: RealtimeEnvelope) => {
     const panel = ids.get(event.subscriptionId);

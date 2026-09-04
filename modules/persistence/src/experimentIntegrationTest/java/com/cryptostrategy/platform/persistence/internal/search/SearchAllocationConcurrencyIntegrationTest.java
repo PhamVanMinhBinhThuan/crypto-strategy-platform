@@ -109,7 +109,7 @@ public class SearchAllocationConcurrencyIntegrationTest {
                     "candidate-" + suffix, NOW.plusSeconds(2));
             Job job = Job.createBacktestJob(
                     new JobId(backtestJobId), new ExperimentId(EXPERIMENT), candidate.candidateId(),
-                    "correlation-" + suffix, NOW.plusSeconds(2));
+                    "6200000000000000000000006" + suffix, NOW.plusSeconds(2));
             GeneratorState nextState = new GeneratorState(
                     "random-state-v1", "{\"drawIndex\":1,\"branch\":\"" + suffix + "\"}", "state-" + suffix);
             SearchRun replacement = claim.snapshot().advance(nextState, 1, NOW.plusSeconds(2));
@@ -147,7 +147,7 @@ public class SearchAllocationConcurrencyIntegrationTest {
         jdbc.update("insert into experiment.experiment(experiment_id,owner_user_id,name,status) values (?,?,'F010 allocation','RUNNING')",
                 EXPERIMENT, OWNER);
         jdbc.update("insert into experiment.job(job_id,experiment_id,job_type,status,correlation_id,total_work,completed_work,failed_work) "
-                + "values (?,?,'SEARCH','RUNNING','correlation-search',2,0,0)", SEARCH_JOB, EXPERIMENT);
+                + "values (?,?,'SEARCH','RUNNING','62000000000000000000000009',2,0,0)", SEARCH_JOB, EXPERIMENT);
         SearchRun running = initialRun().start(NOW.plusSeconds(1));
         jdbc.update("insert into search.search_run(search_run_id,experiment_id,search_job_id,mode,generator_id,generator_version,seed,"
                 + "search_space_fingerprint,generator_state_contract_version,generator_state,generator_state_fingerprint,"

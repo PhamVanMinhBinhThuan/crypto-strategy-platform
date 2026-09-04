@@ -2,6 +2,7 @@ import type { NewsItem } from "../model/news";
 import type { AsyncState } from "@/src/foundation/ui/async-state";
 import { FeatureState } from "../../shared/FeatureState";
 import { SentimentStatus } from "./SentimentStatus";
+import { DegradedState } from "@/src/components/states/DegradedState";
 export function NewsFeed({
   items,
   loading,
@@ -35,12 +36,19 @@ export function NewsFeed({
         {() => null}
       </FeatureState>
     );
+  const degradedCount = items.filter((item) => item.analysisStatus !== "ANALYZED").length;
   return (
     <section className="news-feed" aria-busy={loading}>
       {error && (
         <div role="alert">
           {error} <button onClick={onRetry}>Thử lại</button>
         </div>
+      )}
+      {degradedCount > 0 && (
+        <DegradedState
+          state="degraded"
+          message={`News content is available. Sentiment is pending or unavailable for ${degradedCount} ${degradedCount === 1 ? "item" : "items"}; technical research remains usable.`}
+        />
       )}
       {items.map((item) => (
         <article key={item.newsId} className="news-card">

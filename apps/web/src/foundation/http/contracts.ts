@@ -3,6 +3,7 @@ export type PublicError = Readonly<{
   message: string;
   correlationId?: string;
   retryable: boolean;
+  retryAfterSeconds?: number;
 }>;
 export type ApiResult<T> =
   { ok: true; data: T; correlationId?: string } | { ok: false; error: PublicError };

@@ -79,6 +79,9 @@ public class BacktestJobHandler implements MessageHandler {
         String streamKey = record.getStream();
         String consumerGroup = workerProperties.consumer().backtestGroup();
         String consumerName = workerProperties.consumer().consumerName();
+        // The group is the stable logical consumer identity. Instance names change
+        // after failover and therefore cannot be used as the durable dedup key.
+        String idempotencyConsumer = consumerGroup;
 
         String rawMessageId = record.getValue().get("messageId");
         String rawPayload = record.getValue().get("payload");
@@ -118,7 +121,7 @@ public class BacktestJobHandler implements MessageHandler {
             return;
         }
 
-        if (messageId != null && idempotencyGuard.isAlreadyProcessed(consumerName, messageId)) {
+        if (messageId != null && idempotencyGuard.isAlreadyProcessed(idempotencyConsumer, messageId)) {
             log.debug("Skipping already processed message '{}'", messageId);
             messageReader.ack(streamKey, consumerGroup, record.getId());
             return;
@@ -131,7 +134,9 @@ public class BacktestJobHandler implements MessageHandler {
         ExecutionAttempt attempt = null;
         try {
             attempt = experimentUseCase.startNextAttempt(jobId, new com.cryptostrategy.platform.experiment.api.job.WorkerId(consumerName));
-            UUID ownerUserId = UUID.fromString("00000000-0000-0000-0000-000000000000"); // resolved by port
+            UUID ownerUserId = experimentUseCase.getFrozenExecution(jobId)
+                    .experiment()
+                    .ownerUserId();
 
             BacktestRunCommand command = new BacktestRunCommand(
                     ownerUserId,
@@ -165,7 +170,7 @@ public class BacktestJobHandler implements MessageHandler {
 
             // Step 4: Dual-layer idempotency mark & ACK
             if (messageId != null) {
-                idempotencyGuard.markProcessed(consumerName, messageId, workerProperties.processedMessage().ttl());
+                idempotencyGuard.markProcessed(idempotencyConsumer, messageId, workerProperties.processedMessage().ttl());
             }
             messageReader.ack(streamKey, consumerGroup, record.getId());
             log.info("Successfully completed backtest job '{}' for candidate '{}'", jobId, candidateId);

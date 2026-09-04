@@ -9,8 +9,11 @@ const valid = {
   NEXT_PUBLIC_ENABLE_FIXTURES: "false"
 };
 describe("public environment", () => {
-  it("parses public values", () =>
-    expect(parsePublicEnvironment(valid, false).fixturesEnabled).toBe(false));
+  it("normalizes the documented API prefix to the server origin", () => {
+    const environment = parsePublicEnvironment(valid, false);
+    expect(environment.fixturesEnabled).toBe(false);
+    expect(environment.apiBaseUrl).toBe("http://localhost:8080");
+  });
   it("rejects production fixtures", () =>
     expect(() =>
       parsePublicEnvironment({ ...valid, NEXT_PUBLIC_ENABLE_FIXTURES: "true" }, true)

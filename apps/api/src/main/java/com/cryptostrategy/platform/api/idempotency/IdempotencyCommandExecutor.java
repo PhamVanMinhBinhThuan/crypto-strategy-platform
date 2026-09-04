@@ -9,7 +9,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 /** Prepares the canonical receipt identity and executes the command if acquired. */
 @Component
@@ -23,7 +22,6 @@ public class IdempotencyCommandExecutor {
         this.json = Objects.requireNonNull(json, "json");
     }
 
-    @Transactional
     public <T> T execute(
             UUID ownerUserId,
             String operation,

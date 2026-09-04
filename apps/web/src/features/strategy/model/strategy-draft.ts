@@ -1,7 +1,7 @@
 export type StrategySelectionDraft = Readonly<{
   strategyId: string;
   version: string;
-  parameters: Readonly<Record<string, string>>;
+  parameters: Readonly<Record<string, string | number | boolean>>;
 }>;
 export type StrategySourceDraft =
   | Readonly<{ type: "SINGLE"; strategy: StrategySelectionDraft }>
@@ -9,7 +9,7 @@ export type StrategySourceDraft =
       type: "COMPOSITE";
       policyId: string;
       policyVersion: string;
-      policyParameters: Readonly<Record<string, string>>;
+      policyParameters: Readonly<Record<string, string | number | boolean>>;
       components: readonly StrategySelectionDraft[];
     }>;
 export type StrategyDraft = Readonly<{

@@ -96,6 +96,21 @@ public final class JdbcTrustedSearchCoordinationGateway implements TrustedSearch
                 """, change.completedWork(), change.failedWork(), jobStatus,
                 timestamp(run.startedAt()), run.status().isTerminal() ? timestamp(run.finishedAt()) : null,
                 Timestamp.from(run.updatedAt()), run.searchJobId().value(), run.experimentId().value());
+        String experimentStatus = switch (run.status()) {
+            case PENDING -> "QUEUED";
+            case RUNNING -> "RUNNING";
+            case STOPPING -> "STOP_REQUESTED";
+            case COMPLETED -> "COMPLETED";
+            case STOPPED -> "STOPPED";
+            case FAILED -> "FAILED";
+        };
+        jdbc.update("""
+                update experiment.experiment set status=?,
+                    started_at=coalesce(started_at,?), completed_at=?,
+                    failure_code=?, failure_message=? where experiment_id=?
+                """, experimentStatus, timestamp(run.startedAt()),
+                run.status().isTerminal() ? timestamp(run.finishedAt()) : null,
+                run.failureCode(), run.failureMessage(), run.experimentId().value());
         return true;
     }
 

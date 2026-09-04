@@ -22,7 +22,7 @@ public final class DeterministicBacktestEngine {
         new DatasetBatchCursor(command,reader).forEach((candle,last)->{
             if(state.pending==StrategySignal.BUY&&state.position==null){state.position=execution.open(candle,state.cash,command.assumptions());state.cash=BigDecimal.ZERO.setScale(12);}
             else if(state.pending==StrategySignal.SELL&&state.position!=null){TradeExecutionPolicy.ClosedTrade closed=execution.close(resultId,trades.size(),state.position,candle.open(),candle.key().openTime(),ExitReason.STRATEGY_SELL,command.assumptions());trades.add(closed.trade());state.cash=closed.cash();state.position=null;}
-            state.pending=session.evaluate(candle).signal();
+            session.evaluate(candle).ifPresent(decision -> state.pending=decision.signal());
             if(last&&state.position!=null&&command.assumptions().forceCloseAtEnd()){TradeExecutionPolicy.ClosedTrade closed=execution.close(resultId,trades.size(),state.position,candle.close(),candle.closeTime(),ExitReason.FORCED_FINAL_CLOSE,command.assumptions());trades.add(closed.trade());state.cash=closed.cash();state.position=null;}
             BigDecimal marked=state.position==null?state.cash:state.cash.add(state.position.quantity().value().multiply(candle.close()));equity.add(marked);
         });

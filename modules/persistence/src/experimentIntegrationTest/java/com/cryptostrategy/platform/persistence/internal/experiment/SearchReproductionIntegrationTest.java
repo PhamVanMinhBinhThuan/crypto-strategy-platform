@@ -30,6 +30,7 @@ class SearchReproductionIntegrationTest {
             tx.setRollbackOnly();
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
             Source source = seedCompletedSource(jdbc, dataSource);
+            SourceGraphSnapshot sourceBefore = snapshotSourceGraph(jdbc);
             var service = new SearchReproductionApplicationService(new JdbcSearchExperimentTransaction(dataSource));
 
             var accepted = service.start(command("reproduce-key", "same-hash"));
@@ -37,6 +38,12 @@ class SearchReproductionIntegrationTest {
 
             assertThat(replay.replay()).isTrue();
             assertThat(replay.experimentId()).isEqualTo(accepted.experimentId());
+            assertThat(accepted.experimentId().value())
+                    .isNotEqualTo(SearchAllocationConcurrencyIntegrationTest.EXPERIMENT);
+            assertThat(jdbc.queryForObject(
+                    "select reproduces_experiment_id from experiment.experiment where experiment_id=?",
+                    String.class, accepted.experimentId().value()))
+                    .isEqualTo(SearchAllocationConcurrencyIntegrationTest.EXPERIMENT);
             assertThat(jdbc.queryForObject("select count(*) from experiment.candidate_definition where experiment_id=?",
                     Integer.class, accepted.experimentId().value())).isEqualTo(1);
             assertThat(jdbc.queryForObject("select definition::text from experiment.candidate_definition where experiment_id=?",
@@ -45,6 +52,7 @@ class SearchReproductionIntegrationTest {
                     String.class, accepted.experimentId().value())).isEqualTo("PENDING");
             assertThat(jdbc.queryForObject("select definition::text from experiment.candidate_definition where candidate_id=?",
                     String.class, source.candidateId())).isEqualTo(source.definition());
+            assertThat(snapshotSourceGraph(jdbc)).isEqualTo(sourceBefore);
             assertThatThrownBy(() -> service.start(command("reproduce-key", "different-hash")))
                     .isInstanceOf(IdempotencyConflictException.class);
 
@@ -74,6 +82,24 @@ class SearchReproductionIntegrationTest {
                     SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(15))).isEmpty();
             assertThat(jdbc.queryForObject("select status from search.reproduction_verification where reproduction_experiment_id=?",
                     String.class, accepted.experimentId().value())).isEqualTo("MATCHED");
+            assertThat(snapshotSourceGraph(jdbc)).isEqualTo(sourceBefore);
+            String verificationId = jdbc.queryForObject(
+                    "select verification_id from search.reproduction_verification where reproduction_experiment_id=?",
+                    String.class, accepted.experimentId().value());
+            System.out.printf(
+                    "F014_REPRODUCTION_EVIDENCE sourceExperimentId=%s reproductionExperimentId=%s "
+                            + "verificationId=%s originalResultId=%s reproducedResultId=%s "
+                            + "originalEvaluationId=%s reproducedEvaluationId=%s "
+                            + "originalLeaderboardRevisionId=%s reproducedLeaderboardRevisionId=%s verdict=MATCHED%n",
+                    SearchAllocationConcurrencyIntegrationTest.EXPERIMENT,
+                    accepted.experimentId().value(),
+                    verificationId,
+                    "62000000000000000000000075",
+                    "62000000000000000000000085",
+                    "62000000000000000000000076",
+                    "62000000000000000000000086",
+                    "62000000000000000000000077",
+                    "62000000000000000000000087");
         });
     }
 
@@ -168,11 +194,12 @@ class SearchReproductionIntegrationTest {
         Instant now = SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(10);
         return new StartSearchReproductionUseCase.Command(SearchAllocationConcurrencyIntegrationTest.OWNER,
                 new ExperimentId(SearchAllocationConcurrencyIntegrationTest.EXPERIMENT), "Reproduction", key, hash,
-                "reproduce-f010", now, now.plusSeconds(3600));
+                "62000000000000000000000090", now, now.plusSeconds(3600));
     }
 
     private static void seedReproducedEvidence(JdbcTemplate jdbc, String experiment, String candidate, String job) {
         Instant completed = SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(12);
+        Instant sourceEvidenceCompleted = SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(4);
         jdbc.update("update experiment.job set status='SUCCEEDED',completed_work=1,finished_at=? where job_id=?",
                 java.sql.Timestamp.from(completed), job);
         jdbc.update("insert into experiment.execution_attempt(attempt_id,job_id,candidate_id,attempt_no,status,started_at,finished_at) values ('62000000000000000000000084',?,?,1,'SUCCEEDED',?,?)",
@@ -181,6 +208,12 @@ class SearchReproductionIntegrationTest {
                 candidate, java.sql.Timestamp.from(completed), experiment, job, "manifest-f010",
                 "sha256:" + "7".repeat(64), FiniteSearchExperimentIntegrationTest.assumptions(),
                 "sha256:" + "8".repeat(64));
+        jdbc.update("insert into experiment.trade(trade_id,backtest_result_id,sequence_no,side,entry_time,exit_time,entry_price,exit_price,quantity,entry_fee,exit_fee,fee,profit_loss,post_trade_cash,exit_reason) values ('62000000000000000000000088','62000000000000000000000085',0,'BUY',?,?,?,?,?,?,?,?,?,?,?)",
+                java.sql.Timestamp.from(sourceEvidenceCompleted.minusSeconds(3)),
+                java.sql.Timestamp.from(sourceEvidenceCompleted.minusSeconds(2)), 100, 110, 1,
+                new java.math.BigDecimal("0.1"), new java.math.BigDecimal("0.1"),
+                new java.math.BigDecimal("0.2"), new java.math.BigDecimal("9.8"),
+                new java.math.BigDecimal("1009.8"), "STRATEGY_SELL");
         jdbc.update("insert into experiment.evaluation_result(evaluation_result_id,backtest_result_id,metric_version,ranking_version,total_return,win_rate,maximum_drawdown,number_of_trades,overall_score,evaluated_at,experiment_id,return_score,win_rate_score,drawdown_score,leaderboard_eligible,evaluation_fingerprint) values ('62000000000000000000000086','62000000000000000000000085','metric-v1','ranking-v1',0.01,0.5,0.1,1,0.5,?,?,0.5,0.5,0.5,true,?)",
                 java.sql.Timestamp.from(completed), experiment, "sha256:" + "9".repeat(64));
         jdbc.update("insert into experiment.leaderboard_revision(leaderboard_revision_id,experiment_id,revision_no,top_k,ranking_version,revision_fingerprint) values ('62000000000000000000000087',?,1,1,'ranking-v1',?)",
@@ -189,5 +222,27 @@ class SearchReproductionIntegrationTest {
                 "sha256:" + "9".repeat(64), experiment);
     }
 
+    private static SourceGraphSnapshot snapshotSourceGraph(JdbcTemplate jdbc) {
+        String experiment = SearchAllocationConcurrencyIntegrationTest.EXPERIMENT;
+        return new SourceGraphSnapshot(
+                singleJson(jdbc, "select to_jsonb(value)::text from experiment.experiment_manifest value where experiment_id=?", experiment),
+                singleJson(jdbc, "select to_jsonb(value)::text from experiment.candidate_definition value where experiment_id=?", experiment),
+                singleJson(jdbc, "select to_jsonb(value)::text from experiment.backtest_result value where experiment_id=?", experiment),
+                jdbc.queryForList("select to_jsonb(value)::text from experiment.trade value where backtest_result_id in (select backtest_result_id from experiment.backtest_result where experiment_id=?) order by sequence_no", String.class, experiment),
+                singleJson(jdbc, "select to_jsonb(value)::text from experiment.evaluation_result value where experiment_id=?", experiment),
+                singleJson(jdbc, "select to_jsonb(value)::text from experiment.leaderboard_revision value where experiment_id=?", experiment));
+    }
+
+    private static String singleJson(JdbcTemplate jdbc, String sql, String experimentId) {
+        return jdbc.queryForObject(sql, String.class, experimentId);
+    }
+
     private record Source(String candidateId, String definition) {}
+
+    private record SourceGraphSnapshot(String manifest, String candidate, String acceptedResult,
+            java.util.List<String> trades, String evaluation, String leaderboardRevision) {
+        private SourceGraphSnapshot {
+            trades = java.util.List.copyOf(trades);
+        }
+    }
 }

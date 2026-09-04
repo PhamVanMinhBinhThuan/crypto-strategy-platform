@@ -54,7 +54,7 @@ public final class FrozenBacktestExecutionService implements GetFrozenBacktestEx
                 && job.jobType() == JobType.BACKTEST
                 && attempt.jobId().equals(jobId)
                 && attempt.candidateId().equals(candidateId)
-                && attempt.status() == AttemptStatus.SUCCEEDED;
+                && attempt.status() == AttemptStatus.RUNNING;
         if (!valid) {
             throw inaccessible();
         }

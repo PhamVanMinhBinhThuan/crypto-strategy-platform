@@ -1,4 +1,4 @@
--- Migration: 20260830000100_f005_schema_alignment.sql
+-- Migration: 20260830000150_f005_schema_alignment.sql
 -- Description: F-005 schema alignment:
 -- (a) Tighten execution_attempt.status to remove RETRY_SCHEDULED;
 -- (b) Add reproduces_experiment_id self-reference to experiment.experiment;

@@ -299,6 +299,7 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
                         new ExperimentId(rs.getString("experiment_id")),
                         new CandidateId(rs.getString("candidate_id")),
                         rs.getString("worker_id"),
+                        rs.getInt("attempt_no"),
                         rs.getTimestamp("started_at").toInstant()
                 ),
                 toTimestamp(startedBefore),

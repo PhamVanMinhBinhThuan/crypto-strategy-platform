@@ -12,6 +12,6 @@ final class StrategyExecutionSession {
     private final DatasetSnapshot dataset; private final Strategy strategy; private final int lookback;
     private final ArrayDeque<Candle> window=new ArrayDeque<>();
     StrategyExecutionSession(DatasetSnapshot dataset,Strategy strategy,int lookback){this.dataset=Objects.requireNonNull(dataset);this.strategy=Objects.requireNonNull(strategy);if(lookback<1)throw new IllegalArgumentException("lookback");this.lookback=lookback;}
-    StrategyDecision evaluate(Candle candle){window.addLast(candle);while(window.size()>lookback)window.removeFirst();StrategyDecision decision=strategy.evaluate(new StrategyContext(dataset.tradingPair(),dataset.timeframe(),List.copyOf(window),candle.closeTime()));if(decision==null||!decision.occurredAt().equals(candle.closeTime()))throw new BacktestException(BacktestErrorCode.INVALID_STRATEGY,"Decision time mismatch");return decision;}
+    Optional<StrategyDecision> evaluate(Candle candle){window.addLast(candle);while(window.size()>lookback)window.removeFirst();if(window.size()<lookback)return Optional.empty();StrategyDecision decision=strategy.evaluate(new StrategyContext(dataset.tradingPair(),dataset.timeframe(),List.copyOf(window),candle.closeTime()));if(decision==null||!decision.occurredAt().equals(candle.closeTime()))throw new BacktestException(BacktestErrorCode.INVALID_STRATEGY,"Decision time mismatch");return Optional.of(decision);}
     int retainedCandleCount(){return window.size();}
 }

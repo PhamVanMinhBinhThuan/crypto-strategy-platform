@@ -300,7 +300,8 @@ public final class ExperimentSql {
             """;
 
     public static final String SELECT_STALE_RUNNING_ATTEMPTS = """
-            SELECT ea.job_id, ea.attempt_id, j.experiment_id, ea.candidate_id, ea.worker_id, ea.started_at
+            SELECT ea.job_id, ea.attempt_id, j.experiment_id, ea.candidate_id, ea.worker_id,
+                   ea.attempt_no, ea.started_at
             FROM experiment.execution_attempt ea
             JOIN experiment.job j ON j.job_id = ea.job_id
             WHERE ea.status = 'RUNNING' AND ea.started_at < ?

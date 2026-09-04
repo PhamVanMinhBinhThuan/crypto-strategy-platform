@@ -108,7 +108,7 @@ class DualLayerDedupIntegrationTest {
         jdbc.update("""
             INSERT INTO platform.processed_message (consumer_name, message_id, processed_at, expires_at)
             VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP + INTERVAL '7' DAY)
-        """, workerProperties.consumer().consumerName(), msgId);
+        """, workerProperties.consumer().backtestGroup(), msgId);
 
         BacktestJobPayload payload = new BacktestJobPayload(expId, jId, candId);
         MessageEnvelope<BacktestJobPayload> envelope = new MessageEnvelope<>(

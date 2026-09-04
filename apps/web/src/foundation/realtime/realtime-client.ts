@@ -3,137 +3,166 @@ import type {
   LogicalSubscription,
   RealtimeClient,
   RealtimeEnvelope,
-  RealtimeStatus
+  RealtimeStatus,
+  RealtimeStatusMetadata
 } from "./contracts";
-import { reconnectDelay } from "./reconnect-policy";
+import { DEFAULT_MAX_RECONNECT_ATTEMPTS, reconnectDelay } from "./reconnect-policy";
 import { SubscriptionRegistry } from "./subscription-registry";
 import { registerPrivateStateCleanup } from "../auth/logout";
+
+type SocketLike = Pick<WebSocket, "send" | "close"> & {
+  onopen: ((event: Event) => void) | null;
+  onclose: ((event: CloseEvent) => void) | null;
+  onmessage: ((event: MessageEvent) => void) | null;
+};
+export type RealtimeOptions = Readonly<{
+  maxAttempts?: number;
+  random?: () => number;
+  setTimer?: typeof setTimeout;
+  clearTimer?: typeof clearTimeout;
+}>;
+
 export function createRealtimeClient(
   url: string,
   api: ApiClient,
-  onRecovery: () => void,
-  socketFactory = (value: string) => new WebSocket(value)
+  recoverAuthentication: () => Promise<unknown> | unknown,
+  socketFactory: (value: string) => SocketLike = (value) => new WebSocket(value),
+  options: RealtimeOptions = {}
 ): RealtimeClient {
-  let socket: WebSocket | null = null,
-    state: RealtimeStatus = "disconnected",
-    attempt = 0,
-    timer: ReturnType<typeof setTimeout> | null = null,
-    manuallyClosed = false;
+  let socket: SocketLike | null = null;
+  let state: RealtimeStatus = "disconnected";
+  let attempt = 0;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let intentional = false;
+  let generation = 0;
   const registry = new SubscriptionRegistry();
-  const eventListeners = new Set<(event: RealtimeEnvelope) => void>();
-  const statusListeners = new Set<(status: RealtimeStatus) => void>();
-  function setStatus(next: RealtimeStatus) {
-    state = next;
-    statusListeners.forEach((listener) => listener(next));
-  }
-  function isEnvelope(value: unknown): value is RealtimeEnvelope {
-    if (!value || typeof value !== "object") return false;
-    const candidate = value as Record<string, unknown>;
-    return (
-      typeof candidate.eventType === "string" &&
-      typeof candidate.eventVersion === "number" &&
-      typeof candidate.eventId === "string" &&
-      typeof candidate.occurredAt === "string" &&
-      typeof candidate.correlationId === "string" &&
-      typeof candidate.subscriptionId === "string" &&
-      "payload" in candidate
-    );
-  }
-  async function connect() {
-    manuallyClosed = false;
-    setStatus(attempt ? "reconnecting" : "connecting");
+  const envelopes = new Set<(value: RealtimeEnvelope) => void>();
+  const statuses = new Set<(value: RealtimeStatusMetadata) => void>();
+  const maxAttempts = options.maxAttempts ?? DEFAULT_MAX_RECONNECT_ATTEMPTS;
+  const schedule = options.setTimer ?? setTimeout;
+  const cancel = options.clearTimer ?? clearTimeout;
+  const transition = (status: RealtimeStatus, extra: Partial<RealtimeStatusMetadata> = {}) => {
+    state = status;
+    statuses.forEach((listener) => listener({ status, attempt, ...extra }));
+  };
+  const serialize = (value: LogicalSubscription, eventType = value.eventType) =>
+    JSON.stringify({
+      eventType,
+      eventVersion: 1,
+      eventId: crypto.randomUUID(),
+      occurredAt: new Date().toISOString(),
+      correlationId: crypto.randomUUID(),
+      subscriptionId: value.subscriptionId,
+      payload: eventType.startsWith("UNSUBSCRIBE_") ? {} : value.payload
+    });
+  const sendSubscribe = (value: LogicalSubscription) => socket?.send(serialize(value));
+
+  async function connect(): Promise<void> {
+    intentional = false;
+    if (socket && (state === "connecting" || state === "connected")) return;
+    const current = ++generation;
+    transition(attempt ? "reconnecting" : "connecting");
     const ticket = await api.request<{ ticket: string }>("/api/v1/realtime/ticket", {
       method: "POST"
     });
+    if (current !== generation || intentional) return;
     if (!ticket.ok) {
-      setStatus("disconnected");
+      transition("disconnected", { exhausted: true });
       return;
     }
-    socket = socketFactory(`${url}?ticket=${encodeURIComponent(ticket.data.ticket)}`);
-    socket.onopen = () => {
-      setStatus("connected");
-      attempt = 0;
-      registry.all().forEach(sendSubscribe);
-      if (registry.all().length) onRecovery();
-    };
-    socket.onmessage = (message) => {
-      if (typeof message.data !== "string") return;
+    const created = socketFactory(`${url}?ticket=${encodeURIComponent(ticket.data.ticket)}`);
+    socket = created;
+    created.onmessage = (event) => {
       try {
-        const envelope: unknown = JSON.parse(message.data);
-        if (isEnvelope(envelope)) eventListeners.forEach((listener) => listener(envelope));
+        const parsed = JSON.parse(String(event.data)) as RealtimeEnvelope;
+        if (parsed && typeof parsed.eventType === "string")
+          envelopes.forEach((listener) => listener(parsed));
       } catch {
-        // Invalid transport messages are ignored; feature adapters validate typed payloads.
+        /* malformed transport input is not trusted */
       }
     };
-    socket.onclose = () => {
-      if (manuallyClosed) return;
-      setStatus("reconnecting");
-      timer = setTimeout(() => {
-        attempt++;
-        void connect();
-      }, reconnectDelay(attempt));
+    created.onopen = () => {
+      if (created !== socket) return;
+      attempt = 0;
+      transition("connected");
+      registry.all().forEach(sendSubscribe);
+    };
+    created.onclose = (event) => {
+      if (created !== socket || intentional) return;
+      socket = null;
+      void handleClose(event);
     };
   }
-  function sendSubscribe(v: LogicalSubscription) {
-    socket?.send(
-      JSON.stringify({
-        eventType: v.eventType,
-        eventVersion: 1,
-        eventId: crypto.randomUUID(),
-        occurredAt: new Date().toISOString(),
-        correlationId: crypto.randomUUID(),
-        subscriptionId: v.subscriptionId,
-        payload: v.payload
-      })
-    );
+  async function handleClose(event?: CloseEvent) {
+    const closeCode = event?.code ?? 1006;
+    const closeReason = event?.reason ?? "";
+    transition("reconnecting", { closeCode, closeReason });
+    if (closeCode === 4001 && !(await recoverAuthentication())) {
+      disconnect();
+      return;
+    }
+    if (attempt >= maxAttempts) {
+      transition("disconnected", {
+        exhausted: true,
+        closeCode,
+        closeReason
+      });
+      return;
+    }
+    const delay = reconnectDelay(attempt, options.random);
+    attempt += 1;
+    timer = schedule(() => {
+      timer = null;
+      void connect();
+    }, delay);
   }
   function disconnect() {
-    manuallyClosed = true;
-    if (timer) clearTimeout(timer);
-    socket?.close();
+    intentional = true;
+    generation += 1;
+    if (timer) cancel(timer);
+    timer = null;
+    const current = socket;
     socket = null;
+    current?.close();
     registry.clear();
-    setStatus("disconnected");
-    eventListeners.clear();
-    statusListeners.clear();
+    transition("disconnected");
+    envelopes.clear();
+    statuses.clear();
+    attempt = 0;
   }
   registerPrivateStateCleanup(disconnect);
   return {
     connect,
     disconnect,
-    subscribe(v) {
-      registry.set(v);
-      if (state === "connected") sendSubscribe(v);
+    subscribe(value) {
+      registry.set(value);
+      if (state === "connected") sendSubscribe(value);
     },
     unsubscribe(id) {
-      const sub = registry.get(id);
+      const value = registry.get(id);
       registry.delete(id);
-      if (state === "connected" && sub) {
-        const unsubscribeType = sub.eventType.startsWith("SUBSCRIBE_")
-          ? sub.eventType.replace("SUBSCRIBE_", "UNSUBSCRIBE_")
-          : "UNSUBSCRIBE_" + sub.eventType;
-
+      if (state === "connected" && value)
         socket?.send(
-          JSON.stringify({
-            eventType: unsubscribeType,
-            eventVersion: 1,
-            eventId: crypto.randomUUID(),
-            occurredAt: new Date().toISOString(),
-            correlationId: crypto.randomUUID(),
-            subscriptionId: id,
-            payload: {}
-          })
+          serialize(
+            value,
+            value.eventType.startsWith("SUBSCRIBE_")
+              ? value.eventType.replace("SUBSCRIBE_", "UNSUBSCRIBE_")
+              : `UNSUBSCRIBE_${value.eventType}`
+          )
         );
-      }
     },
     status: () => state,
+    onEnvelope(listener) {
+      envelopes.add(listener);
+      return () => envelopes.delete(listener);
+    },
     onEvent(listener) {
-      eventListeners.add(listener);
-      return () => eventListeners.delete(listener);
+      envelopes.add(listener);
+      return () => envelopes.delete(listener);
     },
     onStatus(listener) {
-      statusListeners.add(listener);
-      return () => statusListeners.delete(listener);
+      statuses.add(listener);
+      return () => statuses.delete(listener);
     }
   };
 }

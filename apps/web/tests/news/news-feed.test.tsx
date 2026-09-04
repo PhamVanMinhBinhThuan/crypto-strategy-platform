@@ -41,6 +41,9 @@ describe("News feed states", () => {
       />
     );
     expect(screen.getByRole("link")).toBeInTheDocument();
+    expect(screen.getByText(/News content is available/)).toHaveTextContent(
+      /Sentiment is pending or unavailable/
+    );
     await userEvent.click(screen.getByRole("button", { name: "Tải thêm" }));
     expect(load).toHaveBeenCalledOnce();
   });

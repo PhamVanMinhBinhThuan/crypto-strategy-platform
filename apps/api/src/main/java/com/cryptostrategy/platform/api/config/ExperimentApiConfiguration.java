@@ -15,12 +15,14 @@ import javax.sql.DataSource;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUseCase;
 import com.cryptostrategy.platform.execution.api.port.out.SearchExperimentTransactionGateway;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchReproductionUseCase;
+import com.cryptostrategy.platform.execution.api.port.in.GetSearchReproductionVerificationUseCase;
 import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionGateway;
 import com.cryptostrategy.platform.execution.api.port.in.SearchStartCommandFactory;
 import com.cryptostrategy.platform.execution.api.ExperimentExecutionModuleFactory;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyFingerprintCalculator;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyRegistry;
+import com.cryptostrategy.platform.strategy.api.port.in.ResolveStrategySnapshotUseCase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,12 +41,14 @@ public class ExperimentApiConfiguration {
     SearchStartCommandFactory searchStartCommandFactory(
             GetDatasetUseCase datasets,
             StrategyRegistry strategies,
+            ResolveStrategySnapshotUseCase userStrategies,
             StrategyFingerprintCalculator fingerprints,
             ObjectMapper objectMapper,
             @Value("${platform.build.version:development}") String softwareVersion,
             @Value("${platform.build.git-commit:unknown}") String gitCommit) {
         return ExperimentExecutionModuleFactory.startCommands(
-                datasets, strategies, fingerprints, objectMapper, softwareVersion, gitCommit, Clock.systemUTC());
+                datasets, strategies, userStrategies, fingerprints, objectMapper, softwareVersion,
+                gitCommit, Clock.systemUTC());
     }
 
     @Bean
@@ -74,6 +78,13 @@ public class ExperimentApiConfiguration {
     StartSearchReproductionUseCase startSearchReproductionUseCase(
             @Qualifier("searchReproductionGateway") SearchReproductionGateway gateway) {
         return ExperimentExecutionModuleFactory.reproduce(gateway);
+    }
+
+    @Bean
+    GetSearchReproductionVerificationUseCase getSearchReproductionVerificationUseCase(
+            DataSource dataSource, ObjectMapper objectMapper) {
+        return new SearchPersistenceFactory(dataSource)
+                .createReproductionVerificationQuery(objectMapper);
     }
 
     @Bean

@@ -1,6 +1,6 @@
 package com.cryptostrategy.platform.execution.internal;
 
-import com.cryptostrategy.platform.search.api.model.ReproductionVerificationId;
+import com.cryptostrategy.platform.execution.api.ReproductionVerificationId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;

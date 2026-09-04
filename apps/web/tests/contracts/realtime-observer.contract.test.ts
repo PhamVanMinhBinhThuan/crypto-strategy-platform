@@ -38,7 +38,7 @@ describe("RealtimeClient observer extension", () => {
     socket.onclose?.();
     client.disconnect();
 
-    expect(listener.mock.calls.map(([status]) => status)).toEqual([
+    expect(listener.mock.calls.map(([metadata]) => metadata.status)).toEqual([
       "connecting",
       "connected",
       "reconnecting",

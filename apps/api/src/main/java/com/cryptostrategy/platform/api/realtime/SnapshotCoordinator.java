@@ -43,8 +43,17 @@ public final class SnapshotCoordinator {
                 "snapshotUrl", "/api/v1/experiments/" + experimentId + "/leaderboard");
     }
 
-    String candleMarker() {
-        return Ulids.generate();
+    Map<String, Object> candleRecovery(String pair, String timeframe) {
+        String safePair = required(pair, "pair");
+        String safeTimeframe = required(timeframe, "timeframe");
+        return Map.of(
+                "syncMarker", Ulids.generate(),
+                "snapshotUrl", "/api/v1/candles",
+                "snapshotQuery", Map.of(
+                        "pair", safePair,
+                        "timeframe", safeTimeframe),
+                "freshness", "STALE_UNTIL_RECONCILED",
+                "reconciliation", "REST_BACKFILL_THEN_REALTIME");
     }
 
     private static ExperimentId parse(String value) {
@@ -57,5 +66,13 @@ public final class SnapshotCoordinator {
 
     private static RealtimeProtocolException inaccessible(String code) {
         return new RealtimeProtocolException(code, "The requested resource was not found", false);
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new RealtimeProtocolException(
+                    "INVALID_MARKET_QUERY", "The requested market subscription is invalid", false);
+        }
+        return value.trim();
     }
 }

@@ -87,6 +87,7 @@ class StaleAttemptAndRecoveryIntegrationTest {
                 new ExperimentId("01J7K8M9N0P1Q2R3S4T5A6V7W2"),
                 new CandidateId("01J7K8M9N0P1Q2R3S4T5A6V7W7"),
                 "crashed-worker",
+                1,
                 Instant.now().minusSeconds(360)
         );
         when(recoveryQueryUseCase.findStaleRunningAttempts(any(), anyInt())).thenReturn(List.of(stale));

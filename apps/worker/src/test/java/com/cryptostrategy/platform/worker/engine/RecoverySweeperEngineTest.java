@@ -28,6 +28,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 class RecoverySweeperEngineTest {
@@ -76,7 +77,11 @@ class RecoverySweeperEngineTest {
         int count = engine.sweepUnqueuedJobs();
 
         assertThat(count).isEqualTo(1);
-        verify(streamPublisher).publish(eq(workerProperties.streams().getBacktestJobsStream()), any(), any(), any());
+        verify(streamPublisher).publish(
+                eq(workerProperties.streams().getBacktestJobsStream()),
+                eq(job.jobId().value()),
+                any(),
+                any());
     }
 
     @Test
@@ -93,7 +98,7 @@ class RecoverySweeperEngineTest {
 
         assertThat(count).isEqualTo(1);
         verify(experimentUseCase).requeueDueRetry(eq(due.jobId()));
-        verify(streamPublisher).publish(eq(workerProperties.streams().getBacktestJobsStream()), any(), any(), any());
+        verify(streamPublisher, never()).publish(any(), any(), any(), any());
     }
 
     @Test
@@ -104,6 +109,7 @@ class RecoverySweeperEngineTest {
                 new ExperimentId("01J7K8M9N0P1Q2R3S4T5A6V7W2"),
                 new CandidateId("01J7K8M9N0P1Q2R3S4T5A6V7W3"),
                 "worker-old",
+                1,
                 Instant.now().minusSeconds(300)
         );
         when(recoveryQueryUseCase.findStaleRunningAttempts(any(), anyInt())).thenReturn(List.of(stale));
@@ -112,6 +118,30 @@ class RecoverySweeperEngineTest {
 
         assertThat(count).isEqualTo(1);
         verify(experimentUseCase).finalizeFailure(eq(stale.jobId()), eq(stale.attemptId()), eq("STALE_TIMEOUT"), any(), any(), any());
+    }
+
+    @Test
+    void staleAttemptBecomesTerminalWhenRetryBudgetIsExhausted() {
+        StaleRunningAttempt stale = new StaleRunningAttempt(
+                new JobId("01J7K8M9N0P1Q2R3S4T5A6V7W1"),
+                AttemptId.generate(),
+                new ExperimentId("01J7K8M9N0P1Q2R3S4T5A6V7W2"),
+                new CandidateId("01J7K8M9N0P1Q2R3S4T5A6V7W3"),
+                "worker-old",
+                workerProperties.retry().maxAttempts(),
+                Instant.now().minusSeconds(300)
+        );
+        when(recoveryQueryUseCase.findStaleRunningAttempts(any(), anyInt())).thenReturn(List.of(stale));
+
+        assertThat(engine.sweepStaleAttempts()).isEqualTo(1);
+
+        verify(experimentUseCase).finalizeFailure(
+                eq(stale.jobId()),
+                eq(stale.attemptId()),
+                eq("STALE_RETRY_EXHAUSTED"),
+                any(),
+                eq(com.cryptostrategy.platform.experiment.api.job.FailureClassification.UNKNOWN_ERROR),
+                eq(null));
     }
 
     @Test

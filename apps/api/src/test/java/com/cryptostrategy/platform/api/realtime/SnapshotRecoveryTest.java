@@ -78,7 +78,16 @@ class SnapshotRecoveryTest {
                 com.cryptostrategy.platform.leaderboard.api.port.in.GetLeaderboardUseCase.class);
         var coordinator = new SnapshotCoordinator(experiments, leaderboards);
 
-        assertThat(coordinator.candleMarker()).isNotEqualTo(coordinator.candleMarker());
+        Map<String, Object> first = coordinator.candleRecovery("BTC/USDT", "5m");
+        Map<String, Object> second = coordinator.candleRecovery("BTC/USDT", "5m");
+
+        assertThat(first.get("syncMarker")).isNotEqualTo(second.get("syncMarker"));
+        assertThat(first)
+                .containsEntry("snapshotUrl", "/api/v1/candles")
+                .containsEntry("freshness", "STALE_UNTIL_RECONCILED")
+                .containsEntry("reconciliation", "REST_BACKFILL_THEN_REALTIME");
+        assertThat(first.get("snapshotQuery"))
+                .isEqualTo(Map.of("pair", "BTC/USDT", "timeframe", "5m"));
     }
 
     private static RealtimeMessageMapper.ServerEvent event(String key) {

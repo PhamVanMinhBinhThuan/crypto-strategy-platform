@@ -10,6 +10,7 @@ export type AuthResult =
 
 export interface AuthClient {
   session(): Promise<AuthSession | null>;
+  refreshSession?(): Promise<AuthSession | null>;
   signUp(email: string, password: string, redirectTo: string): Promise<AuthResult>;
   signIn(email: string, password: string): Promise<AuthResult>;
   requestPasswordReset(email: string, redirectTo: string): Promise<AuthResult>;

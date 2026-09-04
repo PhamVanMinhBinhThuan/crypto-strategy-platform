@@ -22,8 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.cryptostrategy.platform.strategy.api.error.StrategyErrorCode;
 import com.cryptostrategy.platform.strategy.api.error.StrategyException;
-import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
-import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
+import com.cryptostrategy.platform.strategy.api.model.StrategyDescriptor;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue;
 import com.cryptostrategy.platform.strategy.api.model.user.SingleStrategyDraftSource;
 import com.cryptostrategy.platform.strategy.api.model.user.command.CreateUserStrategyCommand;
@@ -39,7 +38,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -70,15 +71,11 @@ class StrategyApiIntegrationTest {
     @MockitoBean
     private UserStrategyApplication strategies;
 
-    @MockitoBean
+    @Autowired
     private StrategyRegistry registry;
 
     @BeforeEach
     void publishStrategyFixtures() {
-        when(registry.descriptor(
-                        new StrategyPluginId("ma-crossover"),
-                        new SemanticVersion(1, 0, 0)))
-                .thenReturn(DESCRIPTOR);
         when(strategies.listUsableStrategies(any(), any()))
                 .thenAnswer(invocation -> catalog(
                         invocation.getArgument(0), invocation.getArgument(1)));
@@ -95,6 +92,58 @@ class StrategyApiIntegrationTest {
                 .thenReturn(PUBLISHED);
         when(strategies.archive(eq(USER_A_ID), any()))
                 .thenReturn(StrategyApiFixtures.archivedDetails());
+    }
+
+    @Test
+    void exposesAndValidatesAllFourStrategiesFromTheProductionRegistryContract()
+            throws Exception {
+        List<StrategyDescriptor> descriptors = registry.listAvailable();
+        org.mockito.Mockito.doAnswer(invocation -> catalogFromDescriptors(
+                        invocation.getArgument(0),
+                        descriptors))
+                .when(strategies)
+                .listUsableStrategies(any(), any());
+
+        String response = mockMvc.perform(get("/api/v1/strategies")
+                        .with(authenticatedAs(USER_A_ID))
+                        .queryParam("limit", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(4))
+                .andExpect(jsonPath("$.hasMore").value(false))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Set<String> publishedIds = new java.util.HashSet<>();
+        json.readTree(response)
+                .path("items")
+                .forEach(item -> publishedIds.add(item.path("strategyId").asText()));
+        assertThat(publishedIds)
+                .containsExactlyInAnyOrder(
+                        "ma-crossover",
+                        "rsi-threshold",
+                        "bollinger-bands",
+                        "support-resistance");
+
+        for (StrategyDescriptor descriptor : descriptors) {
+            String invalidRequest = json.writeValueAsString(Map.of(
+                    "name", "Invalid " + descriptor.displayName(),
+                    "description", "Contract validation probe",
+                    "kind", "SINGLE",
+                    "source", Map.of(
+                            "type", "SINGLE",
+                            "strategy", Map.of(
+                                    "strategyId", descriptor.reference().pluginId().value(),
+                                    "version", descriptor.reference().implementationVersion().toString(),
+                                    "parameters", Map.of("unknownParameter", 1)))));
+
+            mockMvc.perform(post("/api/v1/user-strategies")
+                            .with(authenticatedAs(USER_A_ID))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(invalidRequest))
+                    .andExpect(status().isUnprocessableEntity())
+                    .andExpect(jsonPath("$.code").value("STRATEGY_PARAMETERS_INVALID"));
+        }
     }
 
     @Test
@@ -144,18 +193,18 @@ class StrategyApiIntegrationTest {
             throws Exception {
         String createRequest = """
                 {
-                  "name": "Private MA",
+                  "name": "Private Bollinger",
                   "description": "Exact private parameters",
                   "kind": "SINGLE",
                   "source": {
                     "type": "SINGLE",
                     "strategy": {
-                      "strategyId": "ma-crossover",
+                      "strategyId": "bollinger-bands",
                       "version": "1.0.0",
                       "parameters": {
-                        "fastPeriod": 5,
-                        "slowPeriod": 25,
-                        "threshold": "0.100000000001"
+                        "period": 20,
+                        "standardDeviation": "2.000000000001",
+                        "ruleMode": "MEAN_REVERSION"
                       }
                     }
                   }
@@ -181,9 +230,9 @@ class StrategyApiIntegrationTest {
         verify(strategies).createUserStrategy(eq(USER_A_ID), commands.capture());
         var supplied = ((SingleStrategyDraftSource) commands.getValue().source())
                 .parameters()
-                .require("threshold");
+                .require("standardDeviation");
         assertThat(supplied).isInstanceOf(StrategyParameterValue.DecimalValue.class);
-        assertThat(supplied.canonicalText()).isEqualTo("0.100000000001");
+        assertThat(supplied.canonicalText()).isEqualTo("2.000000000001");
 
         mockMvc.perform(get("/api/v1/user-strategies/{id}", STRATEGY_ID.value())
                         .with(authenticatedAs(USER_A_ID)))
@@ -278,6 +327,15 @@ class StrategyApiIntegrationTest {
         UserStrategyPage privatePage = new UserStrategyPage(
                 firstPrivatePage ? List.of(StrategyApiFixtures.summary()) : List.of(),
                 firstPrivatePage ? Optional.of(STRATEGY_ID.value()) : Optional.empty());
+        return new UsableStrategyCatalog(system, privatePage);
+    }
+
+    private static UsableStrategyCatalog catalogFromDescriptors(
+            java.util.UUID owner, List<StrategyDescriptor> descriptors) {
+        StrategyCatalogPage system = new StrategyCatalogPage(descriptors, Optional.empty());
+        UserStrategyPage privatePage = new UserStrategyPage(
+                owner.equals(USER_A_ID) ? List.of(StrategyApiFixtures.summary()) : List.of(),
+                Optional.empty());
         return new UsableStrategyCatalog(system, privatePage);
     }
 }

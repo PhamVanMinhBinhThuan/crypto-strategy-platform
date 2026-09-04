@@ -1,6 +1,6 @@
 package com.cryptostrategy.platform.persistence.internal.search;
 
-import com.cryptostrategy.platform.search.api.model.ReproductionVerificationId;
+import com.cryptostrategy.platform.execution.api.ReproductionVerificationId;
 
 import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionVerificationGateway;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;

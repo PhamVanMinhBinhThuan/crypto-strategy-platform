@@ -179,12 +179,15 @@ public final class ExperimentController {
         if (!searchReproduceEnabled) throw searchCoordinatorUnavailable();
         CommandDtos.ReproduceExperimentRequest body = request == null
                 ? new CommandDtos.ReproduceExperimentRequest("Reproduction of " + id) : request;
+        String reproductionName = body.name() == null || body.name().isBlank()
+                ? "Reproduction of " + id
+                : body.name();
         Instant now = clock.instant();
         String correlationId = correlationId();
         var accepted = idempotency.execute(user.userId(), "REPRODUCE_SEARCH", idempotencyKey,
-                Map.of("sourceExperimentId", id, "name", body.name()),
+                Map.of("sourceExperimentId", id, "name", reproductionName),
                 (key, hash) -> reproduceSearch.start(new StartSearchReproductionUseCase.Command(
-                        user.userId(), new ExperimentId(id), body.name(), key, hash,
+                        user.userId(), new ExperimentId(id), reproductionName, key, hash,
                         correlationId, now, now.plus(Duration.ofHours(24)))));
         var response = new CommandDtos.ExperimentAcceptedResponse(
                 accepted.experimentId(), accepted.searchJobId(), accepted.status());

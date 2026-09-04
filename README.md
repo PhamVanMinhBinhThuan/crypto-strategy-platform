@@ -25,7 +25,9 @@ Trọng tâm của dự án là **khả năng thay đổi, mở rộng và vận
 
 ## Trạng thái dự án
 
-🚧 **Đang triển khai Java Backend Foundation theo feature F-002.**
+🚧 **Đang harden luồng demo end-to-end theo feature F-014.** Các capability từ Market,
+Strategy, Search, Backtest, Evaluation, Leaderboard đến News/Sentiment đã có source và test;
+trạng thái live/release phải đọc từ bộ evidence F-014, không suy diễn từ checklist tính năng bên dưới.
 
 Tài liệu đề bài gốc: [Crypto Strategy Lab – Đồ án cuối kỳ](docs/Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf)
 
@@ -238,13 +240,14 @@ Strategy definition là **immutable theo version**; thay đổi logic hoặc par
 - [ ] Pipeline thu thập, lưu trữ và phân tích sentiment tin tức
 - [ ] Logging, error handling và trạng thái job cơ bản
 
-## Cài đặt và chạy Java Backend Foundation
+## Cài đặt và chạy
 
 Prerequisite:
 
 - JDK 21;
 - network ở lần chạy đầu để Gradle Wrapper tải distribution/dependency;
-- không cần Docker, Redis, database hoặc provider cho lệnh kiểm thử mặc định.
+- PostgreSQL/Supabase, Redis, Docker và credential local chỉ cần cho integration/live demo;
+  lệnh unit test mặc định không tự dựng các dependency này.
 
 ```bash
 # 1. Clone repository
@@ -278,6 +281,44 @@ SUPABASE_JWT_AUDIENCE=
 ```
 
 Không commit API key, credential hoặc file `.env` lên repository.
+
+Web yêu cầu Node.js 22:
+
+```bash
+cd apps/web
+npm ci
+npm run dev
+```
+
+Sentiment là FastAPI runtime độc lập. Live inference cần model bundle và optional ML
+dependencies; cách khởi động bằng image, health gate và startup order đầy đủ nằm trong
+[F014 demo runbook](docs/demo/f014/runbook.md).
+
+## Demo end-to-end F014
+
+Điểm vào duy nhất cho buổi demo:
+
+- [Runbook startup/main/failure/fallback/cleanup](docs/demo/f014/runbook.md)
+- [Checklist thao tác, owner và 10 ảnh nên thu](docs/demo/f014/demo-checklist.md)
+- [Evidence guide và quy tắc LIVE/CONTROLLED](docs/evidence/f014/README.md)
+- [Rubric evidence matrix](docs/evidence/f014/rubric-matrix.md)
+- [Main-flow evidence](docs/evidence/f014/main-flow.md)
+- [Failure/recovery evidence](docs/evidence/f014/failure-recovery.md)
+- [Provenance/reproduction evidence](docs/evidence/f014/reproduction.md)
+
+Luồng chính:
+
+```text
+Market → Dataset → Strategy → Random Search → Backtest → Evaluation
+       → Top-K Leaderboard → Result/Trades/Provenance → Reproduction → News/Sentiment
+```
+
+`NEXT_PUBLIC_ENABLE_FIXTURES=false` là điều kiện của profile LIVE. Playwright controlled
+profile chỉ dùng để rehearsal UI/contract và mọi ảnh từ profile này phải ghi
+`CONTROLLED/TEST`; nó không chứng minh Binance, PostgreSQL, Redis hoặc model ML thật.
+
+Các blocker và gate chưa đạt luôn được giữ trong Evidence Record. Không đánh dấu feature
+hoàn tất chỉ vì một runtime health check hoặc fixture test pass.
 
 ### Thêm Java module mới
 
@@ -313,6 +354,7 @@ Một backtest chỉ được xem là có thể tái lập khi cùng strategy ve
 - [Quality Attribute Scenarios](docs/architecture/quality-attributes.md)
 - [Architecture Evidence](docs/architecture/architecture-evidence.md)
 - [Architecture Decision Records](docs/adr/README.md)
+- [F014 integration/failure runbook](docs/demo/f014/runbook.md)
 
 Các view mô tả target MVP architecture. Benchmark và runtime evidence chỉ được cập nhật sau khi có implementation và phép đo thật.
 

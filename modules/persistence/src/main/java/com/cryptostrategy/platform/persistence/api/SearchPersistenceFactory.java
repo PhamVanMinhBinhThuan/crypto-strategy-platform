@@ -11,6 +11,9 @@ import com.cryptostrategy.platform.persistence.internal.execution.JdbcSearchExpe
 import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionVerificationGateway;
 import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionGateway;
 import com.cryptostrategy.platform.persistence.internal.search.JdbcSearchReproductionVerificationGateway;
+import com.cryptostrategy.platform.execution.api.port.in.GetSearchReproductionVerificationUseCase;
+import com.cryptostrategy.platform.persistence.internal.search.JdbcSearchReproductionVerificationQuery;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 import javax.sql.DataSource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -69,6 +72,11 @@ public final class SearchPersistenceFactory {
             throw new IllegalStateException("Reproduction verification requires a DataSource");
         }
         return new JdbcSearchReproductionVerificationGateway(dataSource);
+    }
+
+    public GetSearchReproductionVerificationUseCase createReproductionVerificationQuery(
+            ObjectMapper objectMapper) {
+        return new JdbcSearchReproductionVerificationQuery(jdbc, objectMapper);
     }
 
 }

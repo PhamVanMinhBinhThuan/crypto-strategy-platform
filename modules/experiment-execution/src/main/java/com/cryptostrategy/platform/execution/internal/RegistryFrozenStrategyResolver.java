@@ -7,6 +7,7 @@ import com.cryptostrategy.platform.backtesting.api.port.out.ResolvedStrategy;
 import com.cryptostrategy.platform.combination.api.CombinationPolicyReference;
 import com.cryptostrategy.platform.combination.api.CompositeStrategyMaterializer;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
+import com.cryptostrategy.platform.search.api.SearchModuleFactory;
 import com.cryptostrategy.platform.strategy.api.Strategy;
 import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
 import com.cryptostrategy.platform.strategy.api.model.StrategyReference;
@@ -33,8 +34,10 @@ public final class RegistryFrozenStrategyResolver implements FrozenStrategyResol
             var merged = new java.util.HashMap<>(provenance.parameters().values());
             merged.putAll(overrides);
             var mergedSet = com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.of(merged);
+            requireFingerprint(candidate.fingerprint(),
+                    SearchModuleFactory.canonicalCandidateFingerprint(
+                            com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.of(overrides)));
             String actual = fingerprints.single(reference, mergedSet);
-            requireFingerprint(candidate.fingerprint(), actual);
             Strategy strategy = registry.create(reference.pluginId(), reference.implementationVersion(), merged);
             int lookback = registry.requiredLookback(reference.pluginId(), reference.implementationVersion(), merged);
             return new ResolvedStrategy(strategy, lookback, actual);
@@ -45,6 +48,9 @@ public final class RegistryFrozenStrategyResolver implements FrozenStrategyResol
         var policyMerged = new java.util.HashMap<>(provenance.parameters().values());
         policyMerged.putAll(overrides);
         var policySet = com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.of(policyMerged);
+        requireFingerprint(candidate.fingerprint(),
+                SearchModuleFactory.canonicalCandidateFingerprint(
+                        com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.of(overrides)));
 
         var fpComponents = new java.util.ArrayList<StrategyFingerprintCalculator.Component>();
         var resolved = new java.util.ArrayList<Strategy>();
@@ -60,8 +66,6 @@ public final class RegistryFrozenStrategyResolver implements FrozenStrategyResol
         }
 
         String actual = fingerprints.composite(policyId, policyVersion, policySet, fpComponents);
-        requireFingerprint(candidate.fingerprint(), actual);
-        
         StrategyReference compositeReference = new StrategyReference(
                 provenance.components().getFirst().strategyReference().strategyVersionId(),
                 new StrategyPluginId("composite"), policyVersion);

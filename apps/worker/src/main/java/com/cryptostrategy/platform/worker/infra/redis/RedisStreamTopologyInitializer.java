@@ -37,6 +37,9 @@ public class RedisStreamTopologyInitializer {
         // 2. Candidate Evaluated stream with ranking consumer group
         ensureConsumerGroup(streams.getCandidateEvaluatedStream(), consumer.rankingGroup());
 
+        // Search completion observes the same events independently from ranking.
+        ensureConsumerGroup(streams.getCandidateEvaluatedStream(), consumer.searchGroup());
+
         // 3. Search Request dùng group riêng, không chia pending-entry list với Ranking.
         ensureConsumerGroup(streams.getSearchRequestsStream(), consumer.searchGroup());
 

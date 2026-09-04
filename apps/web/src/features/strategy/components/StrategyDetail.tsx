@@ -28,6 +28,12 @@ export function StrategyDetail({
           <dt>Fingerprint</dt>
           <dd>{owned.latestVersion.fingerprint}</dd>
         </dl>
+        {owned.latestVersion.source.type === "COMPOSITE" && (
+          <p role="note">
+            Quy tắc xung đột: {owned.latestVersion.source.policyId} v
+            {owned.latestVersion.source.policyVersion}; nếu số phiếu hòa thì trả HOLD.
+          </p>
+        )}
         {owned.latestVersion.status === "PUBLISHED" && (
           <p role="note">Version đã publish là bất biến. Hãy tạo version mới để thay đổi.</p>
         )}

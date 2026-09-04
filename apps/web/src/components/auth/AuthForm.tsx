@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/src/components/ui/Button";
 import { Field } from "@/src/components/ui/Field";
 import { StatusPanel } from "@/src/components/ui/StatusPanel";
@@ -17,6 +17,8 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
     [confirm, setConfirm] = useState(""),
     [busy, setBusy] = useState(false),
     [message, setMessage] = useState<{ kind: "error" | "success"; text: string } | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  useEffect(() => formRef.current?.setAttribute("data-ready", "true"), []);
   const needsEmail = mode !== "reset",
     needsPassword = mode !== "forgot",
     needsConfirm = mode === "register" || mode === "reset";
@@ -60,7 +62,13 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
     else router.replace("/login?reset=success");
   }
   return (
-    <form className="auth-form" aria-label="Authentication form" onSubmit={submit}>
+    <form
+      className="auth-form"
+      aria-label="Authentication form"
+      data-ready="false"
+      ref={formRef}
+      onSubmit={submit}
+    >
       {needsEmail && (
         <Field
           label="Email address"

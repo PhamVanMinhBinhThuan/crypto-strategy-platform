@@ -123,7 +123,8 @@ class SearchStartTransactionIntegrationTest {
                 Map.of("initialCapital", "1000"), Map.of("generator", "random-search"),
                 Map.of("metricVersion", "metrics-v1"), null,
                 "1.0.0", "commit-f010", "manifest-fingerprint", NOW);
-        Job job = Job.createSearchJob(jobId, experimentId, "correlation-f010", 2, NOW);
+        String correlationId = "12345678-1234-4234-8234-1234567890ab";
+        Job job = Job.createSearchJob(jobId, experimentId, correlationId, 2, NOW);
         GeneratorDescriptor descriptor = new GeneratorDescriptor(
                 new GeneratorId("random-search"), GeneratorVersion.parse("1.0.0"),
                 "random-state-v1", Set.of(ParameterType.INTEGER), "descriptor-fingerprint");
@@ -135,7 +136,7 @@ class SearchStartTransactionIntegrationTest {
                 new SearchStopConditions(2, Duration.ofMinutes(10)), 1, NOW);
         OutboxEvent event = new OutboxEvent(
                 "61000000000000000000000006", "61000000000000000000000007",
-                "JOB", JOB, "SEARCH_REQUEST", "1", "{}", Map.of("correlationId", "correlation-f010"), NOW);
+                "JOB", JOB, "SEARCH_REQUEST", "1", "{}", Map.of("correlationId", correlationId), NOW);
         return new StartSearchGraphCommand(
                 OWNER, "START_SEARCH", "idempotency-f010", requestHash, NOW.plus(Duration.ofHours(1)),
                 experiment, manifest, job, run, event);
@@ -143,10 +144,10 @@ class SearchStartTransactionIntegrationTest {
 
     private static void seedPrerequisites(JdbcTemplate jdbc) {
         jdbc.update("insert into auth.users(id) values (?)", OWNER);
-        jdbc.update("insert into market.asset(asset_id,symbol) values ('61000000000000000000000008','BTC')");
-        jdbc.update("insert into market.asset(asset_id,symbol) values ('61000000000000000000000009','USDT')");
+        jdbc.update("insert into market.asset(asset_id,symbol) values ('61000000000000000000000008','F010BTC')");
+        jdbc.update("insert into market.asset(asset_id,symbol) values ('61000000000000000000000009','F010USDT')");
         jdbc.update("insert into market.trading_pair(trading_pair_id,base_asset_id,quote_asset_id,symbol) "
-                + "values ('6100000000000000000000000A','61000000000000000000000008','61000000000000000000000009','BTCUSDT')");
+                + "values ('6100000000000000000000000A','61000000000000000000000008','61000000000000000000000009','F010BTCUSDT')");
         jdbc.update("insert into market.dataset_version(dataset_version_id,version,provider,trading_pair_id,timeframe,"
                 + "normalization_version,range_start,range_end,candle_count,checksum) values (?,?,?,?,'1m',?,?,?,1,?)",
                 DATASET, "dataset-v1", "fixture", "6100000000000000000000000A",

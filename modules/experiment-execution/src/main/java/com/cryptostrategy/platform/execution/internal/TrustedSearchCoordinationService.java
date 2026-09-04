@@ -43,7 +43,7 @@ public final class TrustedSearchCoordinationService implements TrustedSearchCoor
         if (run.status().isTerminal()) return outcome(snapshot, Decision.ALREADY_TERMINAL);
         SearchRun replacement = run.status() == SearchRunStatus.STOPPING
                 ? run
-                : run.requestStop(trigger.requestedAt());
+                : run.requestStop(notBefore(trigger.requestedAt(), run.updatedAt()));
         if (replacement == run) return outcome(snapshot, Decision.WAIT_FOR_COMPLETIONS);
         commit(snapshot, replacement, null);
         return outcome(reload(new ExperimentId(run.experimentId().value())), Decision.WAIT_FOR_COMPLETIONS);
@@ -56,7 +56,7 @@ public final class TrustedSearchCoordinationService implements TrustedSearchCoor
         SearchRun run = snapshot.run();
         if (run.status().isTerminal()) return outcome(snapshot, Decision.ALREADY_TERMINAL);
         if (run.status() == SearchRunStatus.PENDING) {
-            commit(snapshot, run.start(clock.instant()), messageId);
+            commit(snapshot, run.start(notBefore(clock.instant(), run.updatedAt())), messageId);
             snapshot = reload(new ExperimentId(run.experimentId().value()));
             run = snapshot.run();
         }
@@ -68,26 +68,33 @@ public final class TrustedSearchCoordinationService implements TrustedSearchCoor
 
         if (run.status() == SearchRunStatus.STOPPING) {
             if (!allSettled) return outcome(snapshot, Decision.WAIT_FOR_COMPLETIONS);
-            commit(snapshot, run.stop(observedAt), messageId);
+            commit(snapshot, run.stop(notBefore(observedAt, run.updatedAt())), messageId);
             return outcome(reload(new ExperimentId(run.experimentId().value())), Decision.STOP);
         }
         if (generationFinished && allSettled && completionWasOnTime) {
-            commit(snapshot, run.complete(snapshot.latestAuthoritativeCompletedAt() == null
-                    ? observedAt : snapshot.latestAuthoritativeCompletedAt()), messageId);
+            Instant authoritativeCompletion = snapshot.latestAuthoritativeCompletedAt() == null
+                    ? observedAt : snapshot.latestAuthoritativeCompletedAt();
+            commit(snapshot, run.complete(notBefore(authoritativeCompletion, run.updatedAt())), messageId);
             return outcome(reload(new ExperimentId(run.experimentId().value())), Decision.COMPLETE);
         }
         if (deadlineReached) {
-            SearchRun stopping = run.requestStop(observedAt);
+            Instant transitionAt = notBefore(observedAt, run.updatedAt());
+            SearchRun stopping = run.requestStop(transitionAt);
             commit(snapshot, stopping, messageId);
             var reloaded = reload(new ExperimentId(run.experimentId().value()));
             if (reloaded.activeWork() == 0) {
                 // Message receipt đã được claim bởi transition RUNNING -> STOPPING ngay phía trên.
-                commit(reloaded, reloaded.run().stop(observedAt), null);
+                commit(reloaded, reloaded.run().stop(
+                        notBefore(transitionAt, reloaded.run().updatedAt())), null);
                 return outcome(reload(new ExperimentId(run.experimentId().value())), Decision.STOP);
             }
             return outcome(reloaded, Decision.WAIT_FOR_COMPLETIONS);
         }
         return outcome(snapshot, generationFinished ? Decision.WAIT_FOR_COMPLETIONS : Decision.FILL_AVAILABLE_SLOTS);
+    }
+
+    private static Instant notBefore(Instant candidate, Instant lowerBound) {
+        return candidate.isBefore(lowerBound) ? lowerBound : candidate;
     }
 
     private void commit(TrustedSearchCoordinationGateway.AuthoritativeSnapshot snapshot,

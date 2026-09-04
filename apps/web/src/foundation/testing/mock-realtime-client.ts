@@ -2,22 +2,26 @@ import type {
   LogicalSubscription,
   RealtimeClient,
   RealtimeEnvelope,
-  RealtimeStatus
+  RealtimeStatus,
+  RealtimeStatusMetadata
 } from "../realtime/contracts";
 export class MockRealtimeClient implements RealtimeClient {
   private value: RealtimeStatus = "disconnected";
-  private readonly eventListeners = new Set<(event: RealtimeEnvelope) => void>();
-  private readonly statusListeners = new Set<(status: RealtimeStatus) => void>();
   readonly subscriptions = new Map<string, LogicalSubscription>();
+  private readonly envelopeListeners = new Set<(value: RealtimeEnvelope) => void>();
+  private readonly statusListeners = new Set<(value: RealtimeStatusMetadata) => void>();
+  private transition(status: RealtimeStatus, metadata: Partial<RealtimeStatusMetadata> = {}) {
+    this.value = status;
+    this.statusListeners.forEach((listener) => listener({ status, attempt: 0, ...metadata }));
+  }
   async connect() {
-    this.value = "connected";
-    this.statusListeners.forEach((listener) => listener(this.value));
+    this.transition("connecting");
+    this.transition("connected");
   }
   disconnect() {
-    this.value = "disconnected";
-    this.statusListeners.forEach((listener) => listener(this.value));
+    this.transition("disconnected");
     this.subscriptions.clear();
-    this.eventListeners.clear();
+    this.envelopeListeners.clear();
     this.statusListeners.clear();
   }
   subscribe(v: LogicalSubscription) {
@@ -29,15 +33,39 @@ export class MockRealtimeClient implements RealtimeClient {
   status() {
     return this.value;
   }
-  onEvent(listener: (event: RealtimeEnvelope) => void) {
-    this.eventListeners.add(listener);
-    return () => this.eventListeners.delete(listener);
+  onEnvelope(listener: (value: RealtimeEnvelope) => void) {
+    this.envelopeListeners.add(listener);
+    return () => this.envelopeListeners.delete(listener);
   }
-  onStatus(listener: (status: RealtimeStatus) => void) {
+  onEvent(listener: (value: RealtimeEnvelope) => void) {
+    this.envelopeListeners.add(listener);
+    return () => this.envelopeListeners.delete(listener);
+  }
+  onStatus(listener: (value: RealtimeStatusMetadata) => void) {
     this.statusListeners.add(listener);
     return () => this.statusListeners.delete(listener);
   }
-  emit(event: RealtimeEnvelope) {
-    this.eventListeners.forEach((listener) => listener(event));
+  emit(value: RealtimeEnvelope) {
+    this.envelopeListeners.forEach((listener) => listener(value));
+  }
+  emitStatus(status: RealtimeStatus, metadata: Partial<RealtimeStatusMetadata> = {}) {
+    this.transition(status, metadata);
+  }
+  confirm(subscriptionId: string) {
+    this.emit(this.envelope("SUBSCRIPTION_CONFIRMED", subscriptionId, {}));
+  }
+  fail(subscriptionId: string, code = "SUBSCRIPTION_ERROR") {
+    this.emit(this.envelope("SUBSCRIPTION_ERROR", subscriptionId, { code }));
+  }
+  private envelope(eventType: string, subscriptionId: string, payload: unknown): RealtimeEnvelope {
+    return {
+      eventType,
+      eventVersion: 1,
+      eventId: `fixture-${eventType}-${subscriptionId}`,
+      occurredAt: "2026-09-03T00:00:00Z",
+      correlationId: "fixture-correlation",
+      subscriptionId,
+      payload
+    };
   }
 }

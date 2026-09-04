@@ -1,8 +1,8 @@
 # Dynamic Views and Data Flows
 
-**Status**: Draft — Target MVP Architecture
+**Status**: Implemented baseline — synchronized for F014 demo hardening
 
-**Last Updated**: 2026-08-14
+**Last Updated**: 2026-09-04
 
 **Owner**: Văn Minh
 
@@ -219,3 +219,91 @@ Quy tắc:
 - Circuit breaker và concurrency limit bảo vệ Worker/model; Sentiment lỗi chỉ làm News/Sentiment degraded.
 - Technical Strategy, Backtest và realtime chart không chờ Sentiment.
 - Sentiment Strategy tương lai chỉ nhận frozen `sentimentData` trong StrategyContext; không gọi Python trực tiếp và không dùng News xuất bản sau `evaluationTime`.
+
+## 6. F014 End-to-End Demo Boundary
+
+F014 không tạo một pipeline riêng cho demo. Web phải đi qua public REST/WebSocket contract; API,
+Worker và các module dùng cùng persistence/queue path của hệ thống. Fixture chỉ được dùng trong
+automated browser fallback và phải được ghi nhãn `CONTROLLED`, không được dùng để tuyên bố runtime
+`LIVE` đã hoạt động.
+
+```mermaid
+flowchart LR
+    USER["Người dùng"] --> WEB["Next.js Web"]
+    WEB -->|"REST: snapshot/command"| API["Spring API"]
+    WEB <-->|"WebSocket: update hint"| API
+
+    BINANCE["Binance REST/WebSocket"] --> MARKET["Market Data"]
+    MARKET --> API
+
+    API --> DB[("PostgreSQL\ncanonical state")]
+    API --> OUTBOX["Transactional Outbox"]
+    OUTBOX --> REDIS["Redis Streams"]
+    REDIS --> WORKER["Worker"]
+    WORKER --> DB
+
+    NEWS["News Provider"] --> NEWSMOD["News Module"]
+    NEWSMOD --> DB
+    WORKER -->|"versioned HTTP"| SENTIMENT["Python Sentiment"]
+
+    DB --> RESULT["Result + Provenance\n+ Reproduction Verification"]
+    RESULT --> API
+```
+
+### Luồng demo chính
+
+1. Web đọc market snapshot qua REST và nhận update realtime qua WebSocket. WebSocket chỉ là tín hiệu
+   cập nhật; sau reconnect, Web gọi REST để backfill và đối chiếu lại trạng thái chuẩn.
+2. Người dùng chọn Strategy có sẵn hoặc Strategy thuộc user, cấu hình Dataset và tạo Experiment.
+   API đóng băng Manifest, Strategy version/parameters, Dataset reference/checksum và Candidate
+   definition trước khi enqueue.
+3. API commit business state cùng Outbox trong PostgreSQL. Publisher chuyển event sang Redis Streams;
+   Worker xử lý Search/Backtest/Evaluation và chỉ acknowledge sau durable commit.
+4. Leaderboard và progress được cập nhật từ kết quả đã persist. WebSocket giúp UI cập nhật sớm,
+   còn REST response từ PostgreSQL vẫn là nguồn chuẩn sau refresh hoặc reconnect.
+5. Trang Result hiển thị metrics, trades và đầy đủ provenance. Reproduction tạo một Experiment mới
+   liên kết với nguồn, chạy lại frozen input rồi công bố `MATCHED`, `MISMATCHED` hoặc `FAILED` từ
+   verification record bền vững.
+6. News được đọc độc lập. Sentiment bổ sung kết quả phân tích khi service khả dụng; lỗi Sentiment
+   không chặn market, Strategy kỹ thuật, Search hay Backtest.
+
+### Nguồn sự thật theo capability
+
+| Capability | Nguồn chuẩn | Dữ liệu realtime/cache có vai trò gì |
+|---|---|---|
+| Market history | Candle/Dataset đã chuẩn hóa; provider dùng để backfill | Redis/cache và WebSocket giảm độ trễ, không thay identity của Candle |
+| Experiment/Search | Manifest, Job, Search Run và progress trong PostgreSQL | Redis Streams vận chuyển at-least-once; không phải business source of truth |
+| Backtest/Leaderboard | Result, Evaluation và Top-K revision đã persist | WebSocket báo revision mới; client đọc REST để reconcile |
+| Provenance/Reproduction | Frozen references, fingerprints và verification record | UI polling chỉ phản ánh trạng thái đã persist |
+| News/Sentiment | News Item và analysis state/result trong PostgreSQL | Python service tính toán stateless; không sở hữu dữ liệu nghiệp vụ |
+
+### Failure boundary được trình diễn trong F014
+
+```mermaid
+flowchart TD
+    A["External/runtime failure"] --> B{"Failure ở đâu?"}
+    B -->|"Redis hoặc Worker"| C["Outbox + Job state vẫn bền trong PostgreSQL"]
+    C --> D["Consumer reclaim / recovery sweep"]
+    D --> E["Deduplicate theo stable identity\nretry có giới hạn"]
+
+    B -->|"Sentiment service"| F["News analysis PENDING/FAILED\nerror được redact"]
+    F --> G["Market, Strategy kỹ thuật và Backtest vẫn hoạt động"]
+
+    B -->|"WebSocket"| H["UI giữ snapshot và báo stale/recovering"]
+    H --> I["Reconnect + REST backfill/reconcile"]
+```
+
+- **Redis/Worker interruption**: dữ liệu đã commit không mất; delivery có thể lặp nên Worker dùng
+  stable Job/Candidate identity và idempotent persistence. Pending message được reclaim; retry vượt
+  policy trở thành terminal failure thay vì treo vô hạn.
+- **Sentiment unavailable**: Worker lưu trạng thái có thể retry/failed và trả public error an toàn.
+  News vẫn đọc được; các flow kỹ thuật không phụ thuộc Sentiment tiếp tục hoạt động.
+- **Realtime disconnect**: UI không xóa snapshot đang có và không xem event stream là nguồn chuẩn.
+  Khi kết nối lại, REST backfill/reconcile sửa gap hoặc event bị lặp.
+- **PostgreSQL hoặc migration chưa sẵn sàng**: đây là blocker của demo `LIVE`; không chuyển sang
+  fixture rồi ghi nhận là live pass. Runbook phải dừng ở preflight và công bố migration còn thiếu.
+
+Runbook vận hành, checkpoint chụp minh chứng và fallback tương ứng nằm tại
+[F014 Demo Runbook](../demo/f014/runbook.md),
+[F014 Demo Checklist](../demo/f014/demo-checklist.md) và
+[F014 Evidence Index](../evidence/f014/README.md).

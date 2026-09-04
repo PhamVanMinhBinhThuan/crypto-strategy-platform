@@ -32,3 +32,14 @@ export async function handleAuthenticationFailure(client: AuthClient): Promise<v
   // eslint-disable-next-line @next/next/no-location-assign-relative-destination
   window.location.href = "/login?expired=true";
 }
+
+export async function recoverAuthentication(client: AuthClient): Promise<AuthSession | null> {
+  try {
+    const refreshed = client.refreshSession ? await client.refreshSession() : null;
+    if (refreshed) return refreshed;
+  } catch {
+    // Recovery failures intentionally collapse into the existing safe logout lifecycle.
+  }
+  await handleAuthenticationFailure(client);
+  return null;
+}
