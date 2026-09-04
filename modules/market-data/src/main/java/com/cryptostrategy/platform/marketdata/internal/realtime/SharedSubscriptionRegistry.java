@@ -18,24 +18,38 @@ public final class SharedSubscriptionRegistry {
         Entry entry = entries.get(query);
         if (entry == null) {
             entry = new Entry(); Entry created = entry;
-            entry.updates.add(updates); entry.states.add(states);
+            entry.add(updates, states);
             entry.upstream = provider.subscribe(query, update -> created.updatesSnapshot().forEach(handler -> handler.onUpdate(update)),
-                    state -> created.statesSnapshot().forEach(handler -> handler.onState(state)));
+                    created::publishState);
             entries.put(query, entry);
         } else {
-            entry.updates.add(updates); entry.states.add(states);
+            entry.add(updates, states);
         }
         Entry accepted = entry;
         return () -> release(query, accepted, updates, states);
     }
     private synchronized void release(RealtimeCandleQuery query, Entry entry, CandleUpdateHandler updates, ConnectionStateHandler states) {
-        entry.updates.remove(updates); entry.states.remove(states);
-        if (entry.updates.isEmpty()) { entries.remove(query); entry.upstream.close(); states.onState(ConnectionState.DISCONNECTED); }
+        entry.remove(updates, states);
+        if (entry.isEmpty()) { entries.remove(query); entry.upstream.close(); states.onState(ConnectionState.DISCONNECTED); }
     }
     public synchronized int upstreamCount() { return entries.size(); }
     private static final class Entry {
         private final List<CandleUpdateHandler> updates = new ArrayList<>(); private final List<ConnectionStateHandler> states = new ArrayList<>(); private CandleSubscription upstream;
+        private ConnectionState currentState;
+        private synchronized void add(CandleUpdateHandler updates, ConnectionStateHandler states) {
+            this.updates.add(updates); this.states.add(states);
+            if (currentState != null) states.onState(currentState);
+        }
+        private synchronized void remove(CandleUpdateHandler updates, ConnectionStateHandler states) {
+            this.updates.remove(updates); this.states.remove(states);
+        }
+        private synchronized boolean isEmpty() { return updates.isEmpty(); }
         private List<CandleUpdateHandler> updatesSnapshot() { synchronized (this) { return List.copyOf(updates); } }
         private List<ConnectionStateHandler> statesSnapshot() { synchronized (this) { return List.copyOf(states); } }
+        private void publishState(ConnectionState state) {
+            List<ConnectionStateHandler> snapshot;
+            synchronized (this) { currentState = state; snapshot = List.copyOf(states); }
+            snapshot.forEach(handler -> handler.onState(state));
+        }
     }
 }

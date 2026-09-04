@@ -27,4 +27,43 @@ describe("Market realtime", () => {
     cleanup();
     expect(realtime.subscriptions.size).toBe(0);
   });
+
+  it("aggregates connection state across every market panel", async () => {
+    const realtime = new MockRealtimeClient(),
+      onProvider = vi.fn();
+    observeMarket(
+      realtime,
+      {
+        pair: "BTC/USDT",
+        panels: [
+          { id: "panel-1", timeframe: "5m" },
+          { id: "panel-2", timeframe: "15m" }
+        ]
+      },
+      { onCandle: vi.fn(), onTransport: vi.fn(), onProvider, onRecovery: vi.fn() }
+    );
+    await Promise.resolve();
+
+    const status = (subscriptionId: string, value: string) =>
+      realtime.emit({
+        ...candleUpdatedFixture,
+        eventType: "MARKET_CONNECTION_STATUS_CHANGED",
+        subscriptionId,
+        payload: { status: value }
+      });
+
+    expect(onProvider).toHaveBeenLastCalledWith("CONNECTING");
+    status("market-panel-1", "CONNECTED");
+    expect(onProvider).toHaveBeenLastCalledWith("CONNECTING");
+    status("market-panel-2", "CONNECTED");
+    expect(onProvider).toHaveBeenLastCalledWith("CONNECTED");
+    status("market-panel-1", "RECONNECTING");
+    expect(onProvider).toHaveBeenLastCalledWith("RECONNECTING");
+    status("market-panel-1", "CONNECTED");
+    expect(onProvider).toHaveBeenLastCalledWith("CONNECTED");
+    status("market-panel-2", "DISCONNECTED");
+    expect(onProvider).toHaveBeenLastCalledWith("RECONNECTING");
+    status("market-panel-1", "DISCONNECTED");
+    expect(onProvider).toHaveBeenLastCalledWith("DISCONNECTED");
+  });
 });

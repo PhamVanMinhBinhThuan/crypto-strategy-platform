@@ -229,12 +229,14 @@ Tất cả phải thành công. API/Worker readiness hiện chủ yếu chứng 
 
 ## 7. Setup dữ liệu demo
 
-1. Mở `http://localhost:3000/login` và đăng nhập development user.
-2. Mở Market, chọn `BTC/USDT` và xác nhận dữ liệu ghi rõ Binance/live.
-3. Mở Search và dùng nút `Create dataset` để tạo immutable dataset từ pair/timeframe/khoảng thời gian đã chọn.
-4. Ghi Dataset ID và checksum từ Result provenance sau khi chạy; không dùng ID tự bịa.
-5. Xác nhận Strategy catalog có MA, RSI, Bollinger Bands, Support/Resistance.
-6. Nếu demo personal/composite Strategy, tạo, publish version rồi ghi User Strategy version ID.
+1. Database owner chạy seed tham chiếu idempotent theo `infra/database/README.md`
+   và xác nhận kết quả `f014_market_reference=ready`.
+2. Mở `http://localhost:3000/login` và đăng nhập development user.
+3. Mở Market, chọn `BTC/USDT` và xác nhận dữ liệu ghi rõ Binance/live.
+4. Mở Search và dùng nút `Create dataset` để tạo immutable dataset từ pair/timeframe/khoảng thời gian đã chọn.
+5. Ghi Dataset ID và checksum từ Result provenance sau khi chạy; không dùng ID tự bịa.
+6. Xác nhận Strategy catalog có MA, RSI, Bollinger Bands, Support/Resistance.
+7. Nếu demo personal/composite Strategy, tạo, publish version rồi ghi User Strategy version ID.
 
 ## 8. Main live flow
 

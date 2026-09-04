@@ -3,7 +3,7 @@ export function Header() {
   return (
     <header className="header">
       <span>
-        <b>BTC/USDT</b> · <span style={{ color: "var(--green)" }}>● Live status</span>
+        <b>Crypto Strategy Lab</b> · <span>Authenticated workspace</span>
       </span>
       <AccountMenu />
     </header>
