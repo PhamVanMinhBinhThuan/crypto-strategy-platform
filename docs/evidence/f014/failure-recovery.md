@@ -2,7 +2,7 @@
 
 ## Kết luận hiện tại
 
-Redis/Worker recovery đã được kiểm tra với Redis thật trên máy local và không tạo outcome trùng. Sentiment degraded/recovery đã pass ở backend integration và browser test có điều khiển, nhưng lần chạy service ML thật bị chặn vì host không có optional runtime `tensorflow-cpu` và Docker daemon không hoạt động. Vì vậy hồ sơ này đang ở trạng thái `PARTIAL`; không dùng browser fixture để tuyên bố external Sentiment recovery đã `VERIFIED`.
+Redis/Worker recovery đã được kiểm tra với Redis thật trên máy local và không tạo outcome trùng. Sentiment degraded/recovery đã pass ở backend integration và browser test có điều khiển. Lần chạy mới ở EV-US2-SENTIMENT-EXT-002 đã load model TensorFlow thật, thực hiện inference và stop/restart process thành công trên macOS ARM. Hồ sơ vẫn `PARTIAL` vì chưa có một phiên authenticated LIVE chứng minh Market và technical Backtest tiếp tục hoạt động trong đúng khoảng Sentiment external bị dừng.
 
 ## EV-US2-REDIS-001: Worker bị ngắt và consumer khác reclaim message
 
@@ -71,6 +71,23 @@ Redis/Worker recovery đã được kiểm tra với Redis thật trên máy loc
 - Observed result: Uvicorn mở process nhưng runtime kết thúc với exit code `1` khi load model; kiểm tra environment xác nhận `ModuleNotFoundError: No module named 'tensorflow'`. Optional dependency được khai báo là `tensorflow-cpu==2.19.0`; Docker daemon hiện không khả dụng để chạy image đã cài extra `ml`.
 - Artifact links: `apps/sentiment/pyproject.toml`; `apps/sentiment/Dockerfile`; `apps/sentiment/artifacts/active_release/manifest.json`.
 - Limitations: chưa có external stop/restart timeline hay inference response thật. Cần môi trường chạy được image Sentiment hoặc Python environment có extra `ml` trước khi đóng T037.
+- Owner/reviewer: project team / pending reviewer.
+
+## EV-US2-SENTIMENT-EXT-002: Model thật inference và phục hồi process
+
+- Criterion/requirement: T037 external Sentiment stop/restart; remediation cho EV-US2-SENTIMENT-EXT-001.
+- Status: PARTIAL
+- Commit SHA: `6ffe8aa311f40f7c08e2ca1446baefe376acd1c9`
+- Captured at: `2026-09-04T12:35:21Z` đến `2026-09-04T12:36:06Z`
+- Environment/profile: macOS arm64, Python 3.12, local ignored `.venv`; checked-in bundle `apps/sentiment/artifacts/active_release`; Docker không dùng.
+- Non-secret configuration: service token local dùng riêng cho phép kiểm tra và không commit; bundle contract `sentiment-v1`, model `multichannel-english@1.0.0`, preprocessing `multichannel-whitespace-en-1`.
+- Command/action: cài project core/test cùng `numpy==2.1.3` và wheel macOS `tensorflow==2.19.0`; chạy Python tests; start Uvicorn bằng factory `app.main:create_app --factory`; poll `/health/ready`; POST một request inference; dừng process, xác nhận kết nối port 8000 thất bại; start lại, kiểm tra readiness và inference lần hai.
+- Expected result: model bundle load thành công, readiness chỉ trả `READY` sau khi model sẵn sàng, inference trả canonical provenance; process có thể dừng và khởi động lại mà không sửa bundle.
+- Observed result: Python `10 passed`; readiness trả `HTTP 200` với `READY`, `sentiment-v1`, model `1.0.0`. Hai inference trước/sau restart đều trả `HTTP 200`, cùng `POSITIVE`, confidence `0.8170821`, polarity `0.79490765`; timestamp/request ID mới được tạo cho lần hai. Khi process dừng, `curl` trả exit `7`; sau restart readiness và inference phục hồi. Runbook local command sai `app.main:app` cũng được sửa sang factory thật.
+- Duplicate/determinism assertion: cùng title/content/content hash và cùng frozen release cho cùng label/confidence/polarity trước và sau restart; request ID khác nhau nên không giả là cùng một delivery.
+- Recovery result: external model runtime và process restart `VERIFIED`; failure isolation xuyên authenticated API/Worker/Web vẫn chưa chạy nên task tổng giữ `PARTIAL`.
+- Artifact links: `apps/sentiment/artifacts/active_release/manifest.json`; `apps/sentiment/app/main.py`; `apps/sentiment/app/model/runtime.py`; `docs/demo/f014/runbook.md`.
+- Limitations: `tensorflow-cpu==2.19.0` không có wheel macOS ARM, nên local dùng wheel `tensorflow==2.19.0`; production Linux/Docker vẫn dùng extra `ml` đã khai báo. Chưa có screenshot News LIVE, stored sentiment ID/correlation ID hoặc phép gọi Market/Backtest trong outage window.
 - Owner/reviewer: project team / pending reviewer.
 
 ## Cách lấy ảnh minh chứng sau khi external scenario chạy được

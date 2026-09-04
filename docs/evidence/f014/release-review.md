@@ -44,7 +44,8 @@
 ### RR-002 — LIVE dependency gate chưa đạt
 
 - Mức độ: BLOCKING cho SC-001/SC-005/SC-006 và video LIVE.
-- Shared PostgreSQL thiếu F006; browser auth config/session và external Sentiment ML readiness chưa có.
+- Shared PostgreSQL thiếu F006 và browser auth config/session chưa có. External Sentiment ML đã
+  READY/inference/stop-restart trực tiếp, nhưng chưa có authenticated Worker/Web integration evidence.
 - Remediation thuộc owner/operator được ghi trong `runbook-dry-run.md` và `release-checklist.md`; không
   sửa database ad-hoc hoặc đổi fixture thành LIVE.
 

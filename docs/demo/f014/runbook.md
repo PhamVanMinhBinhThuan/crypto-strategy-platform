@@ -171,8 +171,12 @@ set -a
 source .env.local
 set +a
 export SENTIMENT_BUNDLE_PATH="$(pwd)/apps/sentiment/artifacts/active_release"
-uvicorn app.main:app --app-dir apps/sentiment --host 127.0.0.1 --port 8000
+uvicorn app.main:create_app --factory --app-dir apps/sentiment --host 127.0.0.1 --port 8000
 ```
+
+Trên macOS ARM, PyPI không phát hành `tensorflow-cpu==2.19.0`. Có thể tạo `.venv` local bị ignore,
+cài core/test dependencies rồi cài `numpy==2.1.3 tensorflow==2.19.0` để kiểm tra cùng model bundle;
+không sửa `pyproject.toml`, vì image Linux production vẫn dùng extra `ml` với `tensorflow-cpu`.
 
 Không dùng cách local này nếu `SENTIMENT_SERVICE_TOKEN` chưa được inject hoặc model dependency chưa
 cài thành công. Bundle checked-in giúp tái lập model; service token vẫn chỉ nằm ngoài repository.
@@ -339,7 +343,7 @@ Mọi ảnh lấy từ suite này phải ghi `CONTROLLED/TEST`, không ghi `LIVE
 
 - Shared PostgreSQL đang thiếu migration F006 (`experiment.backtest_result.job_id`), nên live Search/Reproduction chưa đủ điều kiện.
 - Local chưa có browser Supabase credentials/development session để chạy authenticated journey.
-- Local Python environment chưa có `tensorflow-cpu`; Docker daemon chưa chạy nên external Sentiment model chưa được start.
-- Full Java gate còn ba redaction failures đã ghi trong baseline và cần xử lý ở phase quality.
+- External Sentiment model đã load/inference/stop/restart thành công bằng Python 3.12 local; vẫn thiếu phiên authenticated LIVE chứng minh Market và technical Backtest tiếp tục hoạt động trong lúc service down.
+- Ba redaction failure ở baseline đã được remediation; clean candidate gate và secret scan đã pass theo `docs/evidence/f014/final-commit-verification.md`.
 
 Không đổi các blocker trên thành pass cho tới khi có một Evidence Record chạy lại trên đúng commit/environment.
