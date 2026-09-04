@@ -161,7 +161,7 @@
 
 - [x] T059 [P] Đồng bộ trạng thái F014 và liên kết spec/demo/evidence trong `docs/implementation-roadmap.md`
 - [x] T060 [P] Kiểm tra tài liệu F014 không chứa secret, số liệu giả, link hỏng hoặc tuyên bố financial advice trong `specs/014-end-to-end-demo-hardening/`
-- [ ] T061 Re-run toàn bộ `specs/014-end-to-end-demo-hardening/quickstart.md` trên commit cuối và cập nhật evidence commit SHA trong `docs/evidence/f014/`
+- [x] T061 Re-run toàn bộ `specs/014-end-to-end-demo-hardening/quickstart.md` trên commit cuối và cập nhật evidence commit SHA trong `docs/evidence/f014/`
 - [x] T062 Review Constitution, ADR, ownership, public contract và UI-reference compliance; ghi kết luận trong `docs/evidence/f014/release-review.md`
 
 ---

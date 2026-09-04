@@ -17,9 +17,9 @@
 
 | Hạng mục | Kết quả | Ghi chú |
 |---|---|---|
-| Secret/credential | PASS | Secret scanner pass 1.806 text candidate; docs chỉ dùng `<placeholder>`/`[REDACTED:*]` và tên biến |
+| Secret/credential | PASS | Clean candidate scanner pass 1.782 text candidates; docs chỉ dùng `<placeholder>`/`[REDACTED:*]` và tên biến |
 | Markdown local links | PASS | Không có target local bị thiếu trong ba thư mục F014 |
-| Số liệu và claim | PASS | 545/275/10 tests, 2.298×, 1.799 candidates và 5/5 đều có raw report/command; LIVE blockers giữ `BLOCKED/PARTIAL` |
+| Số liệu và claim | PASS | 545/275/10 tests, standalone 2.527× cùng contended 1.836×, 1.782 candidates và 5/5 đều có raw report/command; LIVE gaps giữ `BLOCKED` |
 | Financial advice | PASS | `spec.md` ghi giao dịch tiền thật, ví và lời khuyên đầu tư ngoài phạm vi; không có khuyến nghị mua/bán hay cam kết lợi nhuận |
 | Fixture/LIVE labeling | PASS | Controlled/FIXTURE không được dùng thay Binance/PostgreSQL/Sentiment LIVE evidence |
 

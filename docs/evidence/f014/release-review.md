@@ -34,12 +34,12 @@
 
 ## Finding còn mở
 
-### RR-001 — Final candidate SHA chưa tồn tại
+### RR-001 — Final candidate SHA chưa tồn tại — RESOLVED
 
 - Mức độ: BLOCKING cho release evidence, không phải defect code.
-- T061 chưa thể ghi final SHA/rerun trên clean checkout khi working tree chưa được commit.
-- Remediation: chốt phạm vi commit, loại file rubric binary/changes ngoài F014 nếu không thuộc PR, commit,
-  rerun quickstart và cập nhật evidence bằng SHA đã kiểm tra.
+- Candidate `0761a54bfcbb93c3b24cb216b19d6cc79e03e21b` đã được kiểm tra trong detached clean
+  worktree; Java/Web/Python, Redis dependency, Playwright và secret scan đã chạy. Chi tiết ở
+  `final-commit-verification.md`; standalone performance target 2× đã đạt, còn contended run được công bố.
 
 ### RR-002 — LIVE dependency gate chưa đạt
 
@@ -63,6 +63,6 @@
 
 ## Quyết định release
 
-Không gọi F014 là `LIVE VERIFIED` hoặc release-ready ở trạng thái hiện tại. Có thể bàn giao controlled
-review package và dùng automated reports làm minh chứng kỹ thuật. Sau RR-001, T061 có thể đóng; RR-002
-và RR-004 cần external owner/operator, còn RR-003 phải được giới hạn claim hoặc xử lý bằng governance.
+Không gọi F014 là `LIVE VERIFIED` hoặc release-ready ở trạng thái hiện tại. T061 đã đóng và có thể bàn
+giao controlled review package cùng automated reports. RR-002 và RR-004 cần external owner/operator;
+RR-003 phải được giới hạn claim hoặc xử lý bằng governance.

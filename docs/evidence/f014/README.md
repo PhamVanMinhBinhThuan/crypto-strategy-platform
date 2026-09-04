@@ -116,5 +116,6 @@ Việc dùng tên công nghệ không tự tạo điểm nâng cao. Ví dụ:
 | `security.md` | Secret/security scan |
 | `accessibility-responsive.md` | Keyboard và viewport checks |
 | `quality-gates.md` | Java/Web/Python final gates |
+| `final-commit-verification.md` | Clean-checkout quickstart trên candidate SHA |
 | `release-review.md` | Constitution/ADR/ownership/contract review |
 | `advanced-evidence.md` | Chỉ các claim nâng cao đã đủ bằng chứng |

@@ -10,13 +10,14 @@ thứ tự triển khai cho nhóm bốn người. Đây là tài liệu điều 
 
 - F-003 đến F-013 đã cung cấp implementation nền cho Market/Dataset, Strategy, Experiment,
   Backtest/Evaluation/Leaderboard, Worker/Redis, News/Sentiment, public API/realtime và Web UI.
-- F-014 đang hardening trên nhánh `feature/014-end-to-end-demo-hardening`: T001–T058 đã hoàn tất;
+- F-014 đang hardening trên nhánh `feature/014-end-to-end-demo-hardening`: T001–T028, T030–T036,
+  T038–T043 và T045–T062 đã hoàn tất;
   automated Java/Web/Python gates không có failure, benchmark/secret scan/keyboard-responsive đạt.
 - Controlled browser journeys có evidence nhưng không được dùng thay LIVE. LIVE còn bị chặn bởi
   shared database thiếu migration F006, browser auth configuration/session và external Sentiment
   ML readiness; chi tiết trong `docs/demo/f014/release-checklist.md`.
-- F-014 chưa phải release candidate: working tree chưa commit, T059–T062 và rerun trên final clean
-  commit còn mở.
+- Candidate `0761a54b` đã qua clean-checkout quickstart và standalone performance target 2×; chưa phải
+  LIVE release vì T029/T037/T044 còn external dependency blockers.
 
 ## Phân công ownership chính
 
@@ -298,7 +299,8 @@ F-011.
 **Phụ trách**: Cả bốn thành viên; Luật điều phối luồng tích hợp, mỗi người chịu trách
 nhiệm bằng chứng cho capability mình sở hữu.
 
-**Trạng thái ngày 2026-09-04**: implementation/hardening và demo package đến T058 đã hoàn tất.
+**Trạng thái ngày 2026-09-04**: implementation/hardening, demo package và clean candidate verification
+đến T062 đã hoàn tất, ngoại trừ ba task evidence LIVE T029/T037/T044.
 Quality gate hiện `PARTIAL` vì full Gradle command công bố hai dependency-backed Redis skip; hai
 scenario đó đã pass riêng với Redis thật. Full LIVE journey và video/Drive evidence vẫn `BLOCKED`
 theo dependency gate, không bị thay bằng fixture.
@@ -340,14 +342,15 @@ F-002 Java Foundation
 
 ## Việc cần làm ngay
 
-1. Hoàn tất F-014 T059–T062, commit thay đổi và rerun quickstart trên đúng final SHA.
-2. Database owner reconcile/apply migrations theo quy trình để F006/F010 schema preflight cùng pass;
+1. Database owner reconcile/apply migrations theo quy trình để F006/F010 schema preflight cùng pass;
    không sửa shared table ad-hoc.
-3. Demo operator inject browser-safe Supabase configuration, chuẩn bị development session và bật
+2. Demo operator inject browser-safe Supabase configuration, chuẩn bị development session và bật
    external Sentiment runtime với model bundle/token ngoài repository.
-4. Chạy LIVE runbook, chụp evidence theo `docs/demo/f014/demo-checklist.md`, thêm video/Drive link và
+3. Chạy LIVE runbook, chụp evidence theo `docs/demo/f014/demo-checklist.md`, thêm video/Drive link và
    timestamp vào đúng rubric row.
-5. Cross-owner review public contract, module ownership, ADR và UI reference trước khi merge F-014.
+4. Cross-owner review public contract, module ownership, ADR và UI reference trước khi merge F-014.
+5. Khi trình bày performance, dùng standalone median 2.527× và công bố cả host-contended median 1.836×;
+   không diễn giải in-process benchmark thành production/multi-host SLA.
 
 ## Quy tắc Git cho nhóm
 

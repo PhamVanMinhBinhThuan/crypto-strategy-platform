@@ -10,8 +10,8 @@ Checklist này phản ánh lần kiểm tra ngày `2026-09-04` trên base commit
   secret scan và accessibility/responsive checks đạt.
 - **LIVE end-to-end demo**: NOT READY — shared PostgreSQL thiếu migration F006, browser auth config/session
   chưa có và external Sentiment ML runtime chưa READY.
-- **Release candidate commit**: NOT YET — phải commit thay đổi, rerun quickstart trên SHA cuối ở T061 và
-  hoàn tất review chéo T062.
+- **Controlled candidate commit**: `0761a54b` — clean quickstart và T062 review đã hoàn tất; chưa được
+  gọi là LIVE release do dependency blockers và performance target miss.
 
 ## Dependency gate
 
@@ -31,8 +31,8 @@ Checklist này phản ánh lần kiểm tra ngày `2026-09-04` trên base commit
 - [x] Java `clean check`: 545 tests, 0 failure/error; 2 dependency-backed skips đã công bố.
 - [x] Web `npm run check`: format, lint, typecheck, 275 tests và production build pass.
 - [x] Python core tests: 10 pass, 1 dependency deprecation warning.
-- [x] Performance: ba run, median 2.298× khi concurrency 3 so với 1; không timeout/duplicate.
-- [x] Security: 1.806 text candidate và browser artifact scan pass; public redaction tests pass.
+- [x] Performance target: standalone three-run trên clean SHA đạt median 2.527× khi concurrency 3 so với 1, 0 timeout/duplicate; report công bố thêm host-contended median 1.836×.
+- [x] Security: clean candidate scan 1.782 text candidates pass; public redaction tests pass.
 - [x] Responsive/keyboard: 360/768/1024/1440 cùng keyboard journey, 5/5 pass.
 - [ ] Dependency-backed tests không skip trên release environment.
 - [ ] Full LIVE main journey hoàn tất trong 10 phút và có evidence IDs/screenshots.
@@ -76,5 +76,5 @@ Checklist này phản ánh lần kiểm tra ngày `2026-09-04` trên base commit
 - [ ] Demo operator có browser session và external Sentiment readiness.
 - [ ] Chạy LIVE runbook, chụp 10 ảnh theo `demo-checklist.md`, ghi Experiment/Candidate/Result/Revision IDs đã redact.
 - [ ] Thêm video/Drive links và timestamp vào đúng dòng rubric.
-- [ ] T061 quickstart pass trên final clean SHA.
+- [x] T061 quickstart đã chạy trên clean SHA `0761a54b`; target miss/blocker được công bố.
 - [ ] T062 release review không còn public-contract/ownership finding mức blocking.

@@ -26,8 +26,9 @@
   transactional outbox và stable Job identity; test dùng Redis thật pass.
 - Implementation links: `apps/worker`, `modules/persistence`, `docs/adr/0006-queue-worker-backtesting.md`,
   `docs/adr/0007-postgresql-redis-ownership.md`.
-- Measurement mới: `performance.md` đo compute concurrency 1 so với 3 trong cùng JVM, median 2.298×,
-  không timeout/duplicate. Đây là evidence performance cốt lõi, chưa phải scaling nhiều Worker process.
+- Measurement mới: `performance.md` đo standalone compute concurrency 1 so với 3 trong cùng JVM,
+  median 2.527×, không timeout/duplicate. Đây là evidence performance cốt lõi, chưa phải scaling nhiều
+  Worker process; report cũng công bố host-contended median 1.836×.
 - Thiếu để claim nâng cao: benchmark nhiều Worker/process với queue và durable storage thật hoặc phép
   đo recovery time chứng minh increment vượt yêu cầu reliability cơ bản.
 

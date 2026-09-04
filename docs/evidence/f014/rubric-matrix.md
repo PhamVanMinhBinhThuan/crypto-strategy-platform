@@ -14,7 +14,7 @@
 | 1 | Kiến trúc | Khả năng mở rộng Strategy/Plugin | 7 | FR-004, SC-003 | Strategy Core / Strategies | **VERIFIED** | `foundation-gates.md`: 72/72 foundation tests; RSI, Bollinger và S/R dùng chung `StrategyPlugin`/registry; ADR-0005 | Chạy lại trên commit sạch ở T054 để nâng thành release evidence |
 | 2 | Kiến trúc | Tách trách nhiệm và giảm coupling | 6 | FR-002, FR-007 | Architecture / capability owners | **PARTIAL** | 32 architecture tests pass; `integration-gap-register.md`; `data-flows.md` | T062 còn phải rà ownership/public dependency trên commit cuối |
 | 3 | Kiến trúc | Khả năng thay thế thành phần | 5 | FR-006, FR-010 | Search / Market / Sentiment | **PARTIAL** | Search generator, Market provider và Sentiment đều qua port/adapter; ADR-0003/0008/0010; contract tests pass | Chưa có một demo thay implementation live và đo kết quả tương đương |
-| 4 | Kiến trúc | Scalability và Performance | 5 | FR-028, SC-009 | Search / Worker / API | **PARTIAL** | `performance.md`: ba run cùng workload, median in-process speedup 3v1 đạt 2.298×, 0 timeout/duplicate | Chưa phải multi-process Worker/live infrastructure benchmark; T061 còn phải gắn final clean SHA |
+| 4 | Kiến trúc | Scalability và Performance | 5 | FR-028, SC-009 | Search / Worker / API | **VERIFIED** | `performance.md`: standalone three-run workload trên clean SHA đạt median in-process speedup 3v1 2.527×, 0 timeout/duplicate | Chưa phải multi-process Worker/live infrastructure benchmark; host-contended observation chỉ đạt 1.836× |
 | 5 | Kiến trúc | Realtime và Multi-timeframe | 4 | FR-003, FR-012, FR-016, SC-002 | Market Data / Web | **PARTIAL** | `f014-market-demo.spec.ts` pass; recovery/reconcile tests pass; bốn panel giữ selection độc lập | Chưa có Binance/WebSocket LIVE screenshot và reconnect timeline |
 | 6 | Kiến trúc | Reliability và Observability | 4 | FR-011–FR-016, SC-005 | API / Worker / Web | **PARTIAL** | `failure-recovery.md`: Redis thật reclaim/dedup VERIFIED; backend/UI Sentiment recovery pass có kiểm soát | External Sentiment stop/restart và full live timeline vẫn BLOCKED |
 | 7 | Kiến trúc | Reproducibility và Versioning | 4 | FR-018–FR-021, SC-004, SC-006 | Experiment / Result / Leaderboard | **PARTIAL** | `reproduction.md`: immutable graph/provenance/verdict pass API + controlled browser | Shared DB thiếu F006 nên chưa có live source/target/result/verdict IDs |
@@ -38,13 +38,13 @@
 
 ## Tóm tắt tại T050
 
-- Trong 23 tiêu chí cốt lõi: `VERIFIED` 4, `PARTIAL` 17, `PLANNED` 0 và `BLOCKED` 2.
+- Trong 23 tiêu chí cốt lõi: `VERIFIED` 5, `PARTIAL` 16, `PLANNED` 0 và `BLOCKED` 2.
 - Hai blocker trực tiếp là hồ sơ video/Drive và full live E2E; nguyên nhân runtime cụ thể được ghi trong
   `runbook-dry-run.md`, không bị thay bằng fixture evidence.
 - Dòng mở rộng: `NO_CLAIM`. Hệ thống có implementation ML/Redis/Loop đáng trình bày, nhưng chưa đủ
   measurement và live demonstration để tuyên bố điểm nâng cao.
-- Đây là trạng thái task/evidence trên working tree. Sau commit cuối, T054/T061 phải chạy lại và gắn
-  SHA mới trước khi dùng làm release evidence.
+- T054/T061 đã chạy lại trên clean candidate SHA `0761a54b`; các dòng LIVE vẫn giữ blocker và
+  performance giữ target miss thay vì dùng số liệu working-tree tốt hơn.
 
 ## Minh chứng có thể đưa vào sheet ngay
 
