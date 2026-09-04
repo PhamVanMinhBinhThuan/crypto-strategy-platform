@@ -11,4 +11,19 @@ describe("shared states", () => {
     render(<DegradedState message="Sentiment is unavailable." />);
     expect(screen.getByText("Limited availability")).toBeInTheDocument();
   });
+
+  it.each([
+    ["ready", "Ready", "✓"],
+    ["degraded", "Limited availability", "!"],
+    ["stale", "Stale snapshot", "↻"],
+    ["recovering", "Recovering", "…"]
+  ] as const)("renders %s with a visible label and non-color symbol", (state, label, symbol) => {
+    render(<DegradedState state={state} message={`${state} detail`} />);
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveAttribute("data-availability", state);
+    expect(status).toHaveTextContent(label);
+    expect(status).toHaveTextContent(symbol);
+    expect(status).toHaveTextContent(`${state} detail`);
+  });
 });

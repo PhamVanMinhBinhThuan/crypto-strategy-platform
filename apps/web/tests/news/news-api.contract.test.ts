@@ -38,6 +38,19 @@ describe("News API Contract", () => {
     expect(result.success).toBe(true);
   });
 
+  it("rejects inconsistent analysis and sentiment states", () => {
+    expect(
+      newsItemSchema.safeParse({
+        ...newsPageFixture.items[0],
+        analysisStatus: "ANALYZED",
+        sentiment: null
+      }).success
+    ).toBe(false);
+    expect(
+      newsItemSchema.safeParse({ ...newsPageFixture.items[0], analysisStatus: "PENDING" }).success
+    ).toBe(false);
+  });
+
   it("uses repeated public analysisStatus parameters and no pair filter", async () => {
     let requested = "";
     const api = {

@@ -32,6 +32,7 @@ final class ExperimentRequestMapper {
                 request.generator() == null ? null : new RequestedGeneratorId(request.generator().generatorId().value()),
                 request.generator() == null ? null : request.generator().version(),
                 request.generator() == null ? null : request.generator().seed(),
+                request.userStrategyVersionId(),
                 request.searchSpace() == null ? null : request.searchSpace().strategyId(),
                 request.searchSpace() == null ? null : request.searchSpace().strategyVersion(),
                 Map.copyOf(parameters),

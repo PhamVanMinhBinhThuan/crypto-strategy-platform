@@ -100,6 +100,11 @@ public class FiniteSearchExperimentIntegrationTest {
                 candidate, Timestamp.from(completed), SearchAllocationConcurrencyIntegrationTest.EXPERIMENT,
                 job, "manifest-f010", "sha256:" + "7".repeat(64), assumptions(),
                 "sha256:" + "8".repeat(64));
+        jdbc.update("insert into experiment.trade(trade_id,backtest_result_id,sequence_no,side,entry_time,exit_time,entry_price,exit_price,quantity,entry_fee,exit_fee,fee,profit_loss,post_trade_cash,exit_reason) values ('62000000000000000000000078','62000000000000000000000075',0,'BUY',?,?,?,?,?,?,?,?,?,?,?)",
+                Timestamp.from(completed.minusSeconds(3)), Timestamp.from(completed.minusSeconds(2)),
+                100, 110, 1, new java.math.BigDecimal("0.1"), new java.math.BigDecimal("0.1"),
+                new java.math.BigDecimal("0.2"), new java.math.BigDecimal("9.8"),
+                new java.math.BigDecimal("1009.8"), "STRATEGY_SELL");
         jdbc.update("insert into experiment.evaluation_result(evaluation_result_id,backtest_result_id,metric_version,ranking_version,total_return,win_rate,maximum_drawdown,number_of_trades,overall_score,evaluated_at,experiment_id,return_score,win_rate_score,drawdown_score,leaderboard_eligible,evaluation_fingerprint) values ('62000000000000000000000076','62000000000000000000000075','metric-v1','ranking-v1',0.01,0.5,0.1,1,0.5,?,?,0.5,0.5,0.5,true,?)",
                 Timestamp.from(completed), SearchAllocationConcurrencyIntegrationTest.EXPERIMENT,
                 "sha256:" + "9".repeat(64));

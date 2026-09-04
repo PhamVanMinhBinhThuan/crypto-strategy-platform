@@ -1,7 +1,11 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import type { RealtimeClient, RealtimeStatusMetadata } from "@/src/foundation/realtime/contracts";
-import { RealtimeReconciler } from "./realtime-reconciler";
+import {
+  experimentEventTypes,
+  RealtimeReconciler,
+  validExperimentRealtimeEvent
+} from "./realtime-reconciler";
 export function useExperimentRealtime(
   realtime: RealtimeClient,
   id: string | undefined,
@@ -17,17 +21,27 @@ export function useExperimentRealtime(
   });
   const [subscriptionError, setSubscriptionError] = useState<string>();
   useEffect(() => {
-    if (!id) return;
+    if (!id || terminal) return;
     let recovering = true;
     const buffered: Parameters<Parameters<typeof realtime.onEnvelope>[0]>[0][] = [];
     const offStatus = realtime.onStatus(setConnection);
     const offEnvelope = realtime.onEnvelope((event) => {
-      if (event.subscriptionId !== subscriptionId || !reconciler.accept(event, id)) return;
+      if (event.subscriptionId !== subscriptionId || !experimentEventTypes.has(event.eventType))
+        return;
+      if (!validExperimentRealtimeEvent(event)) {
+        if (reconciler.accept(event, id)) {
+          setSubscriptionError("Realtime event was invalid; authoritative state was reloaded.");
+          onExperimentRefresh();
+        }
+        return;
+      }
+      if (!reconciler.accept(event, id)) return;
       if (recovering && event.eventType !== "SUBSCRIPTION_CONFIRMED") {
         buffered.push(event);
         return;
       }
       if (event.eventType === "SUBSCRIPTION_CONFIRMED") {
+        setSubscriptionError(undefined);
         recovering = true;
         Promise.resolve(onExperimentRefresh()).then(() => {
           recovering = false;
@@ -57,7 +71,7 @@ export function useExperimentRealtime(
       realtime.unsubscribe(subscriptionId);
       reconciler.clear();
     };
-  }, [id, onCandidateRefresh, onExperimentRefresh, realtime, reconciler, subscriptionId]);
+  }, [id, onCandidateRefresh, onExperimentRefresh, realtime, reconciler, subscriptionId, terminal]);
   useEffect(() => {
     if (terminal) onExperimentRefresh();
   }, [terminal, onExperimentRefresh]);

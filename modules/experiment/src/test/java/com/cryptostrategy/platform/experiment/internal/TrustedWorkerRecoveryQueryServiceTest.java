@@ -72,7 +72,7 @@ class TrustedWorkerRecoveryQueryServiceTest {
     void findStaleRunningAttemptsDelegatesWithBounds() {
         Instant threshold = Instant.now().minusSeconds(300);
         List<StaleRunningAttempt> expected = List.of(
-                new StaleRunningAttempt(JobId.generate(), AttemptId.generate(), ExperimentId.generate(), CandidateId.generate(), "w-1", threshold)
+                new StaleRunningAttempt(JobId.generate(), AttemptId.generate(), ExperimentId.generate(), CandidateId.generate(), "w-1", 1, threshold)
         );
         when(attemptStore.findStaleRunningAttempts(threshold, 50)).thenReturn(expected);
 

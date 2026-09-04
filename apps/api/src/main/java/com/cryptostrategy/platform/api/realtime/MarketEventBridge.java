@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.stereotype.Component;
 
 /** Adapts F-003 canonical realtime events into F-009 transport events. */
@@ -45,9 +46,11 @@ public final class MarketEventBridge {
         } catch (RuntimeException exception) {
             throw invalidMarket();
         }
+        var lastSuccessfulEventAt = new AtomicReference<Instant>();
         return subscriptions.subscribeCandles(
                 new RealtimeCandleQuery(MarketProvider.BINANCE, resolvedPair, resolvedTimeframe),
                 update -> {
+                    lastSuccessfulEventAt.set(update.providerEventTime());
                     var candle = update.candle();
                     Map<String, Object> payload = new LinkedHashMap<>();
                     payload.put("pair", candle.key().tradingPair().canonicalSymbol());
@@ -72,13 +75,20 @@ public final class MarketEventBridge {
                             !candle.closed(),
                             key));
                 },
-                state -> delivery.accept(RealtimeMessageMapper.event(
-                        "MARKET_CONNECTION_STATUS_CHANGED",
-                        correlationId,
-                        subscriptionId,
-                        Map.of("status", state.name(), "lastSuccessfulEventAt", Instant.now()),
-                        false,
-                        null)));
+                state -> {
+                    Map<String, Object> payload = new LinkedHashMap<>();
+                    payload.put("status", state.name());
+                    if (lastSuccessfulEventAt.get() != null) {
+                        payload.put("lastSuccessfulEventAt", lastSuccessfulEventAt.get());
+                    }
+                    delivery.accept(RealtimeMessageMapper.event(
+                            "MARKET_CONNECTION_STATUS_CHANGED",
+                            correlationId,
+                            subscriptionId,
+                            Map.copyOf(payload),
+                            false,
+                            null));
+                });
     }
 
     private static RealtimeProtocolException invalidMarket() {

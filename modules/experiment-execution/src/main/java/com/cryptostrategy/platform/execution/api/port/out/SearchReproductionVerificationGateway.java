@@ -1,6 +1,6 @@
 package com.cryptostrategy.platform.execution.api.port.out;
 
-import com.cryptostrategy.platform.search.api.model.ReproductionVerificationId;
+import com.cryptostrategy.platform.execution.api.ReproductionVerificationId;
 
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import java.time.Instant;

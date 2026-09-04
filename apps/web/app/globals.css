@@ -114,6 +114,34 @@ input {
 .status-success {
   border-color: #28754d;
 }
+.availability-state {
+  grid-template-columns: auto 1fr;
+  align-items: start;
+}
+.availability-state > span:last-child {
+  display: grid;
+  gap: 0.2rem;
+}
+.availability-symbol {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: var(--text) !important;
+  font-weight: 800;
+}
+.availability-ready {
+  border-color: #28754d;
+}
+.availability-degraded,
+.availability-recovering {
+  border-style: dashed;
+}
+.availability-stale {
+  border-width: 2px;
+}
 .auth-page {
   min-height: 100vh;
   display: grid;

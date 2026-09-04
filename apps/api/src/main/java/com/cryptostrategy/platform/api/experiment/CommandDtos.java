@@ -14,6 +14,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
+import com.cryptostrategy.platform.strategy.api.model.UserStrategyVersionId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import java.io.IOException;
 import java.io.Serial;
@@ -30,6 +31,7 @@ public final class CommandDtos {
             String name,
             @JsonDeserialize(using = DatasetVersionIdDeserializer.class) DatasetVersionId datasetId,
             GeneratorSelectionRequest generator,
+            @JsonDeserialize(using = UserStrategyVersionIdDeserializer.class) UserStrategyVersionId userStrategyVersionId,
             SearchSpaceRequest searchSpace,
             StopConditionRequest stopCondition,
             Integer topK) {
@@ -128,6 +130,14 @@ public final class CommandDtos {
         public StrategyPluginIdDeserializer() { super(StrategyPluginId.class); }
         @Override public StrategyPluginId deserialize(JsonParser parser, DeserializationContext context) throws IOException {
             return new StrategyPluginId(parser.getValueAsString());
+        }
+    }
+
+    public static final class UserStrategyVersionIdDeserializer extends StdDeserializer<UserStrategyVersionId> {
+        @Serial private static final long serialVersionUID = 1L;
+        public UserStrategyVersionIdDeserializer() { super(UserStrategyVersionId.class); }
+        @Override public UserStrategyVersionId deserialize(JsonParser parser, DeserializationContext context) throws IOException {
+            return new UserStrategyVersionId(parser.getValueAsString());
         }
     }
 }

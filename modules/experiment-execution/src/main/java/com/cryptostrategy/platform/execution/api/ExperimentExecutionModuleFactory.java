@@ -8,6 +8,7 @@ import com.cryptostrategy.platform.search.api.port.in.SearchGenerationUseCase;
 import com.cryptostrategy.platform.search.api.port.out.SearchRunStore;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyFingerprintCalculator;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyRegistry;
+import com.cryptostrategy.platform.strategy.api.port.in.ResolveStrategySnapshotUseCase;
 import com.cryptostrategy.platform.combination.api.CompositeStrategyMaterializer;
 import com.cryptostrategy.platform.backtesting.api.port.out.FrozenStrategyResolver;
 import com.cryptostrategy.platform.backtesting.api.port.in.CommitPreparedBacktestUseCase;
@@ -23,8 +24,10 @@ public final class ExperimentExecutionModuleFactory {
     public static StartSearchExperimentUseCase start(SearchExperimentTransactionGateway gateway) { return new SearchExperimentOrchestrationService(gateway); }
     public static StartSearchReproductionUseCase reproduce(SearchReproductionGateway gateway) { return new SearchReproductionApplicationService(gateway); }
     public static SearchStartCommandFactory startCommands(GetDatasetUseCase datasets, StrategyRegistry strategies,
-            StrategyFingerprintCalculator fingerprints, ObjectMapper json, String version, String commit, Clock clock) {
-        return new SearchStartCommandFactoryService(datasets, strategies, fingerprints, json, version, commit, clock);
+            ResolveStrategySnapshotUseCase userStrategies, StrategyFingerprintCalculator fingerprints,
+            ObjectMapper json, String version, String commit, Clock clock) {
+        return new SearchStartCommandFactoryService(datasets, strategies, userStrategies, fingerprints,
+                json, version, commit, clock);
     }
     public static TrustedSearchCoordinationUseCase trustedCoordination(TrustedSearchCoordinationGateway gateway, Clock clock) { return new TrustedSearchCoordinationService(gateway, clock); }
     public static SearchCandidateAllocationUseCase allocation(SearchRunStore runs, SearchGenerationUseCase generation,

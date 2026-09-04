@@ -29,6 +29,13 @@ export function MarketDashboard() {
     [error, setError] = useState<string>();
   const [transport, setTransport] = useState<RealtimeStatus>(realtime.status());
   const [provider, setProvider] = useState<ProviderStatus>("DISCONNECTED");
+  const lastDataAt = useMemo(() => {
+    const timestamps = Object.values(panels).flatMap((panel) => [
+      ...Object.values(panel.eventTimes),
+      ...panel.items.map((item) => item.closeTime)
+    ]);
+    return timestamps.sort().at(-1);
+  }, [panels]);
   const requests = useRef(new LatestRequest());
   const load = useCallback(async () => {
     const request = requests.current.next();
@@ -116,7 +123,7 @@ export function MarketDashboard() {
           <h1>Market Dashboard</h1>
           <p>{selection.pair} · bốn góc nhìn thời gian, một nguồn dữ liệu authoritative.</p>
         </div>
-        <MarketConnectionStatus transport={transport} provider={provider} />
+        <MarketConnectionStatus transport={transport} provider={provider} lastDataAt={lastDataAt} />
       </header>
       <MarketControls
         pair={selection.pair}

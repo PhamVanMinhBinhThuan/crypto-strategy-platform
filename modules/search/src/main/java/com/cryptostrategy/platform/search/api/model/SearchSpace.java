@@ -17,9 +17,6 @@ public record SearchSpace(SortedMap<String, SearchParameterDomain> parameters) {
 
     public SearchSpace {
         Objects.requireNonNull(parameters, "parameters");
-        if (parameters.isEmpty()) {
-            throw new IllegalArgumentException("Search space must not be empty");
-        }
         parameters = Collections.unmodifiableSortedMap(new TreeMap<>(parameters));
     }
 

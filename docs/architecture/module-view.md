@@ -1,8 +1,8 @@
 # C4 Level 3 — Backend Module View
 
-**Status**: Planned — F-002 build enforcement in progress
+**Status**: Implemented baseline — enforced by Gradle and architecture tests
 
-**Last Updated**: 2026-08-28
+**Last Updated**: 2026-09-04
 
 **Owner**: Văn Minh
 
@@ -68,6 +68,7 @@ Mũi tên `A --> B` nghĩa là code của A được phép phụ thuộc public 
 | `combination` | Composite Strategy và Combination Policy | Composite factory/policy API | Tính metrics/ranking |
 | `experiment` | Immutable manifest, runtime status và reproduction | Experiment use cases/ports | Chứa Strategy hoặc Backtest algorithm |
 | `search` | Generator Registry, candidate generation và stop condition | `StrategyGenerator`, coordinator-facing API | Chạy Backtest hoặc cập nhật Top-K |
+| `experiment-execution` | Điều phối Search → Backtest → Evaluation → Leaderboard và reproduction verification | Cross-capability application ports | Sở hữu thuật toán capability hoặc truy cập table trực tiếp |
 | `backtesting` | Mô phỏng execution và tạo Trade/Result | Backtest use case/ports | Biết generator/ranking implementation |
 | `evaluation` | Tính metrics từ Backtest Result | Evaluator API/ports | Tạo Strategy hoặc Top-K |
 | `leaderboard` | Score, tie-break, Top-K và revision | Ranking/query API/ports | Chạy Backtest hoặc Search |
@@ -85,6 +86,7 @@ Mũi tên `A --> B` nghĩa là code của A được phép phụ thuộc public 
 | `backtesting` | `domain`, public API của `market-data`, `strategy-core`, `combination`, `experiment` |
 | `evaluation` | `domain`, public API của `backtesting`, `experiment` |
 | `leaderboard` | `domain`, public API của `evaluation`, `experiment` |
+| `experiment-execution` | `domain`, `contracts` và public API của `market-data`, `strategy-core`, `combination`, `experiment`, `search`, `backtesting`, `evaluation`, `leaderboard` |
 | `persistence` | `domain`, output port công khai của data owner |
 | `apps/api` | Capability public APIs, `contracts`, `persistence` |
 | `apps/worker` | Public APIs cần cho background flow, `contracts`, `persistence` |
@@ -103,7 +105,7 @@ Mũi tên `A --> B` nghĩa là code của A được phép phụ thuộc public 
 
 Public surface của một capability dùng `api/`, `port/in/`, `port/out/` hoặc `event/`; implementation nằm trong `internal` hoặc package không export.
 
-Kế hoạch enforcement:
+Enforcement hiện tại:
 
 1. Build/module boundary ngăn import package nội bộ.
 2. ArchUnit kiểm tra dependency direction và các forbidden dependency.

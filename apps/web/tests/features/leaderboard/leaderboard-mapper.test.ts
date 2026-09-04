@@ -35,4 +35,15 @@ describe("Leaderboard contract", () => {
       nextCursor: "opaque+cursor=="
     });
   });
+  it("rejects empty authoritative result IDs and duplicate ranks", () => {
+    expect(() =>
+      mapLeaderboard({
+        ...leaderboardPage,
+        items: [
+          { ...leaderboardPage.items[0], backtestResultId: "" },
+          { ...leaderboardPage.items[1], rank: 1 }
+        ]
+      })
+    ).toThrow();
+  });
 });

@@ -8,15 +8,15 @@ thứ tự triển khai cho nhóm bốn người. Đây là tài liệu điều 
 
 ## Trạng thái hiện tại
 
-- Architecture và ADR nền tảng: đã có.
-- Database baseline: đã specification, planning, migration, verification và apply trên
-  Supabase shared development.
-- Java Backend Foundation đã implement và verification trên nhánh
-  `feature/002-java-backend-foundation`; đang chờ cross-owner review và ADR merge gate.
-- Database setup v2 cho User Strategy và durable Job đã được đề xuất trên nhánh
-  `db-setup-v2`; migration chưa được merge hoặc apply lên Supabase shared development.
-- Python và Web application: chưa khởi tạo.
-- Redis/queue, Binance ingestion, Strategy, Backtest và Sentiment runtime: chưa implement.
+- F-003 đến F-013 đã cung cấp implementation nền cho Market/Dataset, Strategy, Experiment,
+  Backtest/Evaluation/Leaderboard, Worker/Redis, News/Sentiment, public API/realtime và Web UI.
+- F-014 đang hardening trên nhánh `feature/014-end-to-end-demo-hardening`: T001–T058 đã hoàn tất;
+  automated Java/Web/Python gates không có failure, benchmark/secret scan/keyboard-responsive đạt.
+- Controlled browser journeys có evidence nhưng không được dùng thay LIVE. LIVE còn bị chặn bởi
+  shared database thiếu migration F006, browser auth configuration/session và external Sentiment
+  ML readiness; chi tiết trong `docs/demo/f014/release-checklist.md`.
+- F-014 chưa phải release candidate: working tree chưa commit, T059–T062 và rerun trên final clean
+  commit còn mở.
 
 ## Phân công ownership chính
 
@@ -298,6 +298,23 @@ F-011.
 **Phụ trách**: Cả bốn thành viên; Luật điều phối luồng tích hợp, mỗi người chịu trách
 nhiệm bằng chứng cho capability mình sở hữu.
 
+**Trạng thái ngày 2026-09-04**: implementation/hardening và demo package đến T058 đã hoàn tất.
+Quality gate hiện `PARTIAL` vì full Gradle command công bố hai dependency-backed Redis skip; hai
+scenario đó đã pass riêng với Redis thật. Full LIVE journey và video/Drive evidence vẫn `BLOCKED`
+theo dependency gate, không bị thay bằng fixture.
+
+**Điểm vào review**:
+
+- [F014 specification](../specs/014-end-to-end-demo-hardening/spec.md)
+- [Implementation tasks](../specs/014-end-to-end-demo-hardening/tasks.md)
+- [Demo runbook](demo/f014/runbook.md)
+- [Release checklist](demo/f014/release-checklist.md)
+- [Rubric/evidence matrix](evidence/f014/rubric-matrix.md)
+- [Quality gates](evidence/f014/quality-gates.md)
+- [Performance evidence](evidence/f014/performance.md)
+- [Security evidence](evidence/f014/security.md)
+- [Accessibility/responsive evidence](evidence/f014/accessibility-responsive.md)
+
 ## Kế hoạch làm song song
 
 ```text
@@ -323,15 +340,14 @@ F-002 Java Foundation
 
 ## Việc cần làm ngay
 
-1. Nghi Văn, Văn Minh và Tiến hoàn thành review T024/T046 cho F-002 theo review guide.
-2. Review và chuyển ADR-0001/0002/0006/0007 sang `Accepted` trước khi merge F-002.
-3. Sửa `db-setup-v2` theo Database gate; chuyển spec staging thành F-004/F-005 có
-   traceability đầy đủ, review ADR-0012 và chưa apply migration.
-4. Merge F-002 vào `main` sau khi toàn bộ merge gate của F-002 đạt.
-5. Chạy dry-run/lint/SQL verification cho DB v2; chỉ apply shared development sau phê
-   duyệt riêng rồi mới merge database evidence cuối.
-6. Tạo feature branch F-003/F-004/F-005 từ `main` đã đồng bộ; Rule DSL đi qua Spec Kit
-   và ADR riêng trước khi code.
+1. Hoàn tất F-014 T059–T062, commit thay đổi và rerun quickstart trên đúng final SHA.
+2. Database owner reconcile/apply migrations theo quy trình để F006/F010 schema preflight cùng pass;
+   không sửa shared table ad-hoc.
+3. Demo operator inject browser-safe Supabase configuration, chuẩn bị development session và bật
+   external Sentiment runtime với model bundle/token ngoài repository.
+4. Chạy LIVE runbook, chụp evidence theo `docs/demo/f014/demo-checklist.md`, thêm video/Drive link và
+   timestamp vào đúng rubric row.
+5. Cross-owner review public contract, module ownership, ADR và UI reference trước khi merge F-014.
 
 ## Quy tắc Git cho nhóm
 

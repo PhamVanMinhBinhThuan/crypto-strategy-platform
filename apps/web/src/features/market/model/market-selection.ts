@@ -6,18 +6,21 @@ import {
   type MarketPair,
   type MarketTimeframe
 } from "./market-catalog";
-import { canonicalEnum, canonicalEnumList } from "../../shared/url-state";
+import { canonicalEnum } from "../../shared/url-state";
 
 export type MarketPanel = Readonly<{ id: string; timeframe: MarketTimeframe }>;
 export type MarketSelection = Readonly<{ pair: MarketPair; panels: readonly MarketPanel[] }>;
 
 export function parseMarketSelection(params: URLSearchParams): MarketSelection {
   const pair = canonicalEnum(params.get("pair"), MARKET_PAIRS, DEFAULT_MARKET_PAIR);
-  const timeframes = canonicalEnumList(
-    params.getAll("timeframe"),
-    MARKET_TIMEFRAMES,
-    DEFAULT_MARKET_TIMEFRAMES,
-    4
+  const supplied = params
+    .getAll("timeframe")
+    .filter((value): value is MarketTimeframe =>
+      MARKET_TIMEFRAMES.some((timeframe) => timeframe === value)
+    )
+    .slice(0, 4);
+  const timeframes = DEFAULT_MARKET_TIMEFRAMES.map(
+    (fallback, index) => supplied[index] ?? fallback
   );
   return {
     pair,

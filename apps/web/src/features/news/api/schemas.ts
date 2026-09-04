@@ -24,5 +24,11 @@ export const newsItemSchema = z
     relatedAssetIds: z.array(z.string().min(1).max(128)),
     sentiment: sentimentSchema.nullable()
   })
-  .strict();
+  .strict()
+  .superRefine((item, context) => {
+    if (item.analysisStatus === "ANALYZED" && item.sentiment === null)
+      context.addIssue({ code: "custom", message: "Analyzed News requires sentiment." });
+    if (item.analysisStatus !== "ANALYZED" && item.sentiment !== null)
+      context.addIssue({ code: "custom", message: "Incomplete analysis cannot expose sentiment." });
+  });
 export const newsPageSchema = paginationSchema.extend({ items: z.array(newsItemSchema) });

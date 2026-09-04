@@ -46,7 +46,7 @@ describe("Experiment configuration validation", () => {
       ...initialExperimentDraft,
       name: "x",
       datasetId: "dataset",
-      parameters: { fastPeriod: { minimum: "50", maximum: "2" } }
+      parameters: { fastPeriod: { kind: "RANGE", minimum: "50", maximum: "2" } }
     });
     expect(errors["parameter-fastPeriod"]).toBeDefined();
   });

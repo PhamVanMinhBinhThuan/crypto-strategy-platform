@@ -48,4 +48,30 @@ describe("Experiment Stop actions", () => {
     await user.click(screen.getByRole("button", { name: "Confirm stop" }));
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
   });
+
+  it("creates a separate linked reproduction only from a terminal experiment", async () => {
+    const api = new MockApiClient().respond(
+      "POST /api/v1/experiments/experiment-013/reproductions",
+      { experimentId: "experiment-reproduced", jobId: "job-reproduced", status: "QUEUED" }
+    );
+    render(
+      <ExperimentActions
+        api={api}
+        experiment={mapExperiment({
+          ...runningExperiment,
+          status: "COMPLETED",
+          completedAt: "2026-09-03T05:00:00Z"
+        })}
+        onRefresh={() => {}}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Reproduce Experiment" }));
+
+    expect(await screen.findByText(/verification starts as PENDING/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open reproduced Experiment/ })).toHaveAttribute(
+      "href",
+      "/search?id=experiment-reproduced"
+    );
+  });
 });

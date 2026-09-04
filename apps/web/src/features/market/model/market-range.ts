@@ -16,7 +16,8 @@ const MARKET_WINDOW_MILLISECONDS = 24 * 60 * 60 * 1000;
  */
 export function marketRangeEndingAt(now: Date, timeframe: MarketTimeframe) {
   const intervalMilliseconds = TIMEFRAME_SECONDS[timeframe] * 1000;
-  const alignedEndMilliseconds = Math.floor(now.getTime() / intervalMilliseconds) * intervalMilliseconds;
+  const alignedEndMilliseconds =
+    Math.floor(now.getTime() / intervalMilliseconds) * intervalMilliseconds;
   const alignedStartMilliseconds = alignedEndMilliseconds - MARKET_WINDOW_MILLISECONDS;
 
   return {

@@ -22,6 +22,44 @@ export type TradeViewModel = Readonly<{
   postTradeCash: string;
   exitReason: string;
 }>;
+export type ProvenanceParameter = Readonly<{ type: string; value: string }>;
+export type DatasetEvidence = Readonly<{
+  datasetVersionId: string;
+  version: string;
+  checksum: string;
+  provider: string;
+  tradingPair: string;
+  timeframe: string;
+  normalizationVersion: string;
+  rangeStart: string;
+  rangeEnd: string;
+  candleCount: number;
+}>;
+export type StrategyReferenceEvidence = Readonly<{
+  strategyVersionId: string;
+  pluginId: string;
+  implementationVersion: string;
+}>;
+export type StrategyEvidence = Readonly<{
+  kind: "SINGLE" | "COMPOSITE";
+  singleStrategy: StrategyReferenceEvidence | null;
+  parameters: Readonly<Record<string, ProvenanceParameter>>;
+  compositePolicyId: string | null;
+  compositePolicyVersion: string | null;
+  components: readonly Readonly<{
+    strategy: StrategyReferenceEvidence;
+    parameters: Readonly<Record<string, ProvenanceParameter>>;
+  }>[];
+  sourceUserStrategyVersionId: string | null;
+  fingerprint: string;
+}>;
+export type CandidateEvidence = Readonly<{
+  candidateId: string;
+  generationIndex: number;
+  definition: Readonly<Record<string, unknown>>;
+  fingerprint: string;
+  createdAt: string;
+}>;
 export type BacktestResultViewModel = Readonly<{
   backtestResultId: BacktestResultId;
   backtestId?: BacktestId;
@@ -45,7 +83,15 @@ export type BacktestResultViewModel = Readonly<{
       | "resultFingerprint",
       string
     >
-  >;
+  > &
+    Readonly<{
+      manifestVersion: string | null;
+      dataset: DatasetEvidence | null;
+      strategy: StrategyEvidence | null;
+      candidate: CandidateEvidence | null;
+      softwareVersion: string | null;
+      gitCommit: string | null;
+    }>;
   assumptions: Readonly<{
     assumptionsVersion: string;
     initialCapital: string;

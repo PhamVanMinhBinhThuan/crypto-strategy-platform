@@ -65,11 +65,21 @@ export function StrategyForm({
       (kind === "COMPOSITE" && (componentIds.length < 2 || compositeInvalid))
     )
       return;
+    const serialize = (item: StrategyDescriptor, current: Record<string, string>) =>
+      Object.fromEntries(
+        item.parameters.map((field) => {
+          const value = current[field.name] ?? field.defaultValue ?? "";
+          if (field.type === "INTEGER") return [field.name, Number(value)];
+          if (field.type === "BOOLEAN") return [field.name, value === "true"];
+          return [field.name, value];
+        })
+      );
     const selection = (item: StrategyDescriptor) => ({
       strategyId: item.strategyId,
       version: item.version,
-      parameters: Object.fromEntries(
-        item.parameters.map((field) => [field.name, field.defaultValue ?? ""])
+      parameters: serialize(
+        item,
+        Object.fromEntries(item.parameters.map((field) => [field.name, field.defaultValue ?? ""]))
       )
     });
     await onSubmit({
@@ -78,11 +88,17 @@ export function StrategyForm({
       kind,
       source:
         kind === "SINGLE"
-          ? { type: "SINGLE", strategy: { ...selection(descriptor), parameters: effectiveValues } }
+          ? {
+              type: "SINGLE",
+              strategy: {
+                ...selection(descriptor),
+                parameters: serialize(descriptor, effectiveValues)
+              }
+            }
           : {
               type: "COMPOSITE",
-              policyId: "weighted-signal",
-              policyVersion: "1",
+              policyId: "majority-vote",
+              policyVersion: "1.0.0",
               policyParameters: {},
               components: systemStrategies
                 .filter((item) => componentIds.includes(item.strategyVersionId))
@@ -127,23 +143,47 @@ export function StrategyForm({
         />
       </label>
       {kind === "SINGLE" &&
-        descriptor.parameters.map((field) => (
-          <label key={field.name}>
-            {field.name}
-            <input
-              aria-label={field.name}
-              value={effectiveValues[field.name]}
-              onChange={(e) =>
-                setValues((current) => ({ ...current, [field.name]: e.target.value }))
-              }
-              aria-invalid={Boolean(issues[field.name])}
-            />
-            {issues[field.name] && <small role="alert">{issues[field.name]}</small>}
-          </label>
-        ))}
+        descriptor.parameters.map((field) => {
+          const update = (value: string) =>
+            setValues((current) => ({ ...current, [field.name]: value }));
+          return (
+            <label key={field.name}>
+              {field.name}
+              {field.type === "ENUM" || field.type === "BOOLEAN" ? (
+                <select
+                  aria-label={field.name}
+                  value={effectiveValues[field.name]}
+                  onChange={(event) => update(event.target.value)}
+                  aria-invalid={Boolean(issues[field.name])}
+                >
+                  {(field.type === "BOOLEAN" ? ["true", "false"] : field.allowedValues).map(
+                    (option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    )
+                  )}
+                </select>
+              ) : (
+                <input
+                  aria-label={field.name}
+                  inputMode={field.type === "INTEGER" ? "numeric" : "decimal"}
+                  value={effectiveValues[field.name]}
+                  onChange={(event) => update(event.target.value)}
+                  aria-invalid={Boolean(issues[field.name])}
+                />
+              )}
+              {issues[field.name] && <small role="alert">{issues[field.name]}</small>}
+            </label>
+          );
+        })}
       {kind === "COMPOSITE" && (
         <fieldset>
           <legend>Thành phần (ít nhất 2)</legend>
+          <p role="note">
+            Quy tắc majority vote: tín hiệu có nhiều phiếu nhất được chọn; nếu xung đột hòa thì trả
+            HOLD.
+          </p>
           {systemStrategies.map((item) => (
             <label key={item.strategyVersionId}>
               <input

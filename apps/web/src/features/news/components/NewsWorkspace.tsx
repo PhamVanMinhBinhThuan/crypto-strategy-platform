@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useClients } from "@/src/foundation/composition/client-provider";
 import type { NewsAnalysisStatus } from "../model/news";
@@ -33,9 +33,14 @@ export function NewsWorkspace() {
     [urlStatuses]
   );
   const [state, dispatch] = useReducer(newsReducer, initial);
+  const pendingUrlStatuses = useRef<string | null>(null);
   useEffect(() => {
     const current = state.selectedStatuses.join("|");
     const incoming = urlStatuses.join("|");
+    if (pendingUrlStatuses.current !== null) {
+      if (incoming === pendingUrlStatuses.current) pendingUrlStatuses.current = null;
+      else return;
+    }
     if (current !== incoming) dispatch({ type: "SET_STATUS_FILTER", statuses: urlStatuses });
   }, [state.selectedStatuses, urlStatuses]);
   const fetchPage = useCallback(
@@ -73,6 +78,7 @@ export function NewsWorkspace() {
   const changeFilters = (statuses: NewsAnalysisStatus[]) => {
     const next = new URLSearchParams();
     statuses.forEach((status) => next.append("analysisStatus", status));
+    pendingUrlStatuses.current = statuses.join("|");
     router.replace(`/news${next.size ? `?${next}` : ""}`);
     dispatch({ type: "SET_STATUS_FILTER", statuses });
   };

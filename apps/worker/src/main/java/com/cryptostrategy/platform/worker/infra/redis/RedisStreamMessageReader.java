@@ -10,6 +10,7 @@ import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.domain.Range;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -72,6 +73,49 @@ public class RedisStreamMessageReader {
             return List.of();
         }
         return raw.stream().map(this::convertRecord).collect(Collectors.toList());
+    }
+
+    /**
+     * Transfers messages abandoned by another consumer to the current worker after
+     * the configured idle boundary. Reading {@code 0-0} only sees pending messages
+     * already owned by the same consumer, so it cannot recover work from a crashed
+     * worker with a different instance name.
+     */
+    public List<MapRecord<String, String, String>> claimStaleBatch(
+            String streamKey,
+            String consumerGroup,
+            String consumerName,
+            Duration minimumIdleTime,
+            int count
+    ) {
+        Objects.requireNonNull(streamKey, "streamKey cannot be null");
+        Objects.requireNonNull(consumerGroup, "consumerGroup cannot be null");
+        Objects.requireNonNull(consumerName, "consumerName cannot be null");
+        Objects.requireNonNull(minimumIdleTime, "minimumIdleTime cannot be null");
+        if (minimumIdleTime.isNegative()) {
+            throw new IllegalArgumentException("minimumIdleTime cannot be negative");
+        }
+
+        int batchSize = Math.max(1, count);
+        var pending = redisTemplate.opsForStream()
+                .pending(streamKey, consumerGroup, Range.unbounded(), batchSize);
+        if (pending == null || pending.isEmpty()) {
+            return List.of();
+        }
+        RecordId[] eligible = pending.stream()
+                .filter(message -> !message.getConsumerName().equals(consumerName))
+                .filter(message -> message.getElapsedTimeSinceLastDelivery().compareTo(minimumIdleTime) >= 0)
+                .map(message -> message.getId())
+                .toArray(RecordId[]::new);
+        if (eligible.length == 0) {
+            return List.of();
+        }
+        List<MapRecord<String, Object, Object>> claimed = redisTemplate.opsForStream()
+                .claim(streamKey, consumerGroup, consumerName, minimumIdleTime, eligible);
+        if (claimed == null) {
+            return List.of();
+        }
+        return claimed.stream().map(this::convertRecord).collect(Collectors.toList());
     }
 
     public void ack(String streamKey, String consumerGroup, RecordId... recordIds) {

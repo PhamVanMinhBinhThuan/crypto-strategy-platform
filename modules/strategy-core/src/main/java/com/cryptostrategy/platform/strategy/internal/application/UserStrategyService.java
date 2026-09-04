@@ -97,7 +97,9 @@ public final class UserStrategyService implements UserStrategyApplication {
         if(source instanceof SingleStrategyDraftSource single) return fingerprint.single(single.strategyReference(),single.parameters());
         CompositeStrategyDraftSource composite=(CompositeStrategyDraftSource)source;
         List<byte[]> parts=composite.components().stream().map(component->encoder.encodeSingle(component.strategyReference(),component.parameters())).toList();
-        return fingerprint.composite(composite.policyId()+"@"+composite.policyVersion(),parts);
+        return fingerprint.composite(
+                encoder.encodePolicy(composite.policyId(), composite.policyVersion(), composite.policyParameters()),
+                parts);
     }
     private UserStrategy requireRoot(UUID owner, UserStrategyId id){return store.findRoot(owner,id).orElseThrow(UserStrategyService::notFound);}
     private UserStrategyDetails details(UUID owner,UserStrategy root){UserStrategyVersion latest=store.findLatestVersion(owner,root.id()).orElseThrow(()->new StrategyException(StrategyErrorCode.INTEGRITY_ERROR,"Strategy latest version is missing"));return new UserStrategyDetails(root,latest);}

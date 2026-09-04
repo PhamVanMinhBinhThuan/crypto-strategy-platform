@@ -54,7 +54,13 @@ export const normalBacktestResult = {
     manifestFingerprint: "sha256:manifest013",
     datasetFingerprint: "sha256:dataset013",
     strategyFingerprint: "sha256:strategy013",
-    resultFingerprint: "sha256:result013"
+    resultFingerprint: "sha256:result013",
+    manifestVersion: null,
+    dataset: null,
+    strategy: null,
+    candidate: null,
+    softwareVersion: null,
+    gitCommit: null
   },
   assumptions: {
     assumptionsVersion: "1",

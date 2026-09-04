@@ -89,7 +89,7 @@ export function SearchView({ id }: { id?: string }) {
         </>
       )}
       {board.error && <p role="alert">{board.error}</p>}
-      <ExperimentConfigurationForm api={api} fixture={fixtures} reproduceId={id} />
+      <ExperimentConfigurationForm api={api} fixture={fixtures} />
     </main>
   );
 }

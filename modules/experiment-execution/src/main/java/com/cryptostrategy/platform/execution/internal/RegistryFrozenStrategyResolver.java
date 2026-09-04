@@ -35,7 +35,8 @@ public final class RegistryFrozenStrategyResolver implements FrozenStrategyResol
             merged.putAll(overrides);
             var mergedSet = com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.of(merged);
             requireFingerprint(candidate.fingerprint(),
-                    SearchModuleFactory.canonicalCandidateFingerprint(mergedSet));
+                    SearchModuleFactory.canonicalCandidateFingerprint(
+                            com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet.of(overrides)));
             String actual = fingerprints.single(reference, mergedSet);
             Strategy strategy = registry.create(reference.pluginId(), reference.implementationVersion(), merged);
             int lookback = registry.requiredLookback(reference.pluginId(), reference.implementationVersion(), merged);

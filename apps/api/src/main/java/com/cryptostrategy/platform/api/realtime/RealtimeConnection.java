@@ -213,9 +213,12 @@ public final class RealtimeConnection extends TextWebSocketHandler {
                             session.getId(), command.subscriptionId(), registration, event));
             subscriptions.attach(session.getId(), command.subscriptionId(), registration, handle);
             subscriptions.activate(session.getId(), command.subscriptionId(), registration,
-                    () -> confirm(session, command, "CANDLES", "ACTIVE", Map.of(
-                            "syncMarker", snapshots.candleMarker(),
-                            "snapshotUrl", "/api/v1/candles")));
+                    () -> confirm(
+                            session,
+                            command,
+                            "CANDLES",
+                            "ACTIVE",
+                            snapshots.candleRecovery(pair, timeframe)));
         } catch (RuntimeException exception) {
             subscriptions.discard(
                     session.getId(), command.subscriptionId(), registration);

@@ -7,13 +7,19 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.AdditionalAnswers.delegatesTo;
+import static org.mockito.Mockito.when;
 
 import com.cryptostrategy.platform.leaderboard.api.port.in.GetLeaderboardUseCase;
+import com.cryptostrategy.platform.experiment.api.Experiment;
+import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.port.in.GetExperimentUseCase;
+import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardSnapshot;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -46,19 +52,48 @@ class RealtimeRedisRecoveryIntegrationTest {
                 prefix + ":candidate", Duration.ofMillis(100));
         var bridge = new WorkEventBridge();
         var errors = new AtomicInteger();
+        UUID owner = UUID.randomUUID();
+        String experimentId = "01J00000000000000000000001";
+        var experiments = mock(GetExperimentUseCase.class);
+        var leaderboards = mock(GetLeaderboardUseCase.class);
+        when(experiments.getExperiment(owner, new ExperimentId(experimentId)))
+                .thenReturn(Optional.of(mock(Experiment.class)));
+        when(leaderboards.getLatest(new ExperimentId(experimentId)))
+                .thenReturn(Optional.of(mock(LeaderboardSnapshot.class)));
+        var snapshots = new SnapshotCoordinator(experiments, leaderboards);
         var consumer = spy(new WorkEventStreamConsumer(new ObjectMapper().findAndRegisterModules(),
-                bridge, mock(GetLeaderboardUseCase.class)));
+                bridge, leaderboards));
         doAnswer(ignored -> { errors.incrementAndGet(); return null; }).when(consumer).onConsumerError(any());
         var container = new RealtimeStreamConfiguration()
                 .realtimeStreamListenerContainer(readerFactory, properties, consumer);
         var received = new CopyOnWriteArrayList<RealtimeMessageMapper.ServerEvent>();
         try (var handle = bridge.subscribe(WorkEventBridge.Kind.EXPERIMENT,
-                "01J00000000000000000000001", "corr", "progress", received::add)) {
+                experimentId, "corr", "progress", received::add)) {
             assertThat(handle).isNotNull();
             container.start();
+            Map<String, Object> snapshotBeforeOutage =
+                    snapshots.authorizeExperiment(owner, experimentId);
             deliver(redis, properties.lifecycle(), received, "RUNNING");
             disconnected.set(true);
             await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertThat(errors.get()).isGreaterThanOrEqualTo(3));
+
+            // Redis carries hints only. While it is unavailable, the last event is
+            // retained by the client and a fresh owner-authorized REST snapshot
+            // remains available from the durable application boundary.
+            assertThat(received)
+                    .extracting(event -> (String) event.payload().get("status"))
+                    .contains("RUNNING")
+                    .doesNotContain("COMPLETED");
+            Map<String, Object> snapshotDuringOutage =
+                    snapshots.authorizeExperiment(owner, experimentId);
+            assertThat(snapshotDuringOutage.get("snapshotUrl"))
+                    .isEqualTo(snapshotBeforeOutage.get("snapshotUrl"))
+                    .isEqualTo("/api/v1/experiments/" + experimentId);
+            assertThat(snapshotDuringOutage.get("syncMarker"))
+                    .isNotEqualTo(snapshotBeforeOutage.get("syncMarker"));
+            assertThat(snapshots.authorizeLeaderboard(owner, experimentId).get("snapshotUrl"))
+                    .isEqualTo("/api/v1/experiments/" + experimentId + "/leaderboard");
+
             disconnected.set(false);
             deliver(redis, properties.lifecycle(), received, "COMPLETED");
             assertThat(received).extracting(event -> (String) event.payload().get("status"))

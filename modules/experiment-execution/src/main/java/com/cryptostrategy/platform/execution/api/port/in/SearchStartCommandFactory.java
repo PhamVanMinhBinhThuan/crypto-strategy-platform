@@ -2,6 +2,7 @@ package com.cryptostrategy.platform.execution.api.port.in;
 
 import com.cryptostrategy.platform.domain.api.market.DatasetVersionId;
 import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
+import com.cryptostrategy.platform.strategy.api.model.UserStrategyVersionId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -12,7 +13,8 @@ public interface SearchStartCommandFactory {
 
     record Request(UUID ownerUserId, String idempotencyKey, String canonicalRequestHash,
             String correlationId, String name, DatasetVersionId datasetId, RequestedGeneratorId generatorId,
-            String generatorVersion, Long seed, StrategyPluginId strategyId, String strategyVersion,
+            String generatorVersion, Long seed, UserStrategyVersionId userStrategyVersionId,
+            StrategyPluginId strategyId, String strategyVersion,
             Map<String, ParameterDomain> parameters, Integer maximumCandidates,
             Integer maximumDurationSeconds, Integer topK) {}
 

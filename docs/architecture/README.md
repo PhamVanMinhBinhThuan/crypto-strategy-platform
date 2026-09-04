@@ -1,8 +1,8 @@
 # Architecture Documentation
 
-**Status**: Draft — Target MVP Architecture
+**Status**: Implemented baseline — F014 release review in progress
 
-**Last Updated**: 2026-08-14
+**Last Updated**: 2026-09-04
 
 **Owner**: Văn Minh
 

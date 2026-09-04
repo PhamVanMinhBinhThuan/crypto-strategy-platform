@@ -63,6 +63,7 @@ class SearchCoordinatorPerformanceTest {
         return new CommandDtos.StartExperimentRequest("benchmark",
                 new com.cryptostrategy.platform.domain.api.market.DatasetVersionId("66000000000000000000000001"),
                 new CommandDtos.GeneratorSelectionRequest(new CommandDtos.GeneratorId("random-search"), "1.0.0", 42L),
+                null,
                 new CommandDtos.SearchSpaceRequest(
                         new com.cryptostrategy.platform.strategy.api.model.StrategyPluginId("momentum"), "1.0.0",
                         java.util.Map.of("period", new CommandDtos.ParameterRangeRequest(2L, 5L, null))),

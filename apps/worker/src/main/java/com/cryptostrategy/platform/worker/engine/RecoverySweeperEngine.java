@@ -3,7 +3,6 @@ package com.cryptostrategy.platform.worker.engine;
 import com.cryptostrategy.platform.contracts.api.BacktestJobPayload;
 import com.cryptostrategy.platform.contracts.api.MessageEnvelope;
 import com.cryptostrategy.platform.contracts.api.MessageTypes;
-import com.cryptostrategy.platform.domain.api.identity.Ulids;
 import com.cryptostrategy.platform.experiment.api.job.DueRetryJob;
 import com.cryptostrategy.platform.experiment.api.job.FailureClassification;
 import com.cryptostrategy.platform.experiment.api.job.RecoverableQueuedJob;
@@ -71,7 +70,7 @@ public class RecoverySweeperEngine {
                             job.candidateId().value()
                     );
                     MessageEnvelope<BacktestJobPayload> envelope = new MessageEnvelope<>(
-                            Ulids.generate(),
+                            recoveryMessageId(job),
                             1,
                             MessageTypes.BACKTEST_JOB,
                             Instant.now(),
@@ -103,28 +102,8 @@ public class RecoverySweeperEngine {
         for (DueRetryJob due : dueRetries) {
             try {
                 experimentUseCase.requeueDueRetry(due.jobId());
-                if (due.candidateId() != null) {
-                    BacktestJobPayload payload = new BacktestJobPayload(
-                            due.experimentId().value(),
-                            due.jobId().value(),
-                            due.candidateId().value()
-                    );
-                    MessageEnvelope<BacktestJobPayload> envelope = new MessageEnvelope<>(
-                            Ulids.generate(),
-                            1,
-                            MessageTypes.BACKTEST_JOB,
-                            Instant.now(),
-                            due.jobId().value(),
-                            payload
-                    );
-                    String serialized = objectMapper.writeValueAsString(envelope);
-                    streamPublisher.publish(
-                            workerProperties.streams().getBacktestJobsStream(),
-                            envelope.messageId(),
-                            serialized,
-                            Map.of("messageType", MessageTypes.BACKTEST_JOB, "correlationId", due.jobId().value())
-                    );
-                }
+                // requeueDueRetry persists a new JobQueued outbox record in the same
+                // transaction. Publishing here as well creates two queue messages.
                 requeued++;
             } catch (Exception ex) {
                 log.error("Failed to requeue due retry job '{}': {}", due.jobId(), ex.getMessage());
@@ -141,13 +120,20 @@ public class RecoverySweeperEngine {
 
         for (StaleRunningAttempt stale : staleAttempts) {
             try {
-                Instant nextRetry = Instant.now().plus(workerProperties.retry().baseDelay());
+                boolean exhausted = stale.attemptNo() >= workerProperties.retry().maxAttempts();
+                Instant nextRetry = exhausted
+                        ? null
+                        : Instant.now().plus(retryDelay(stale.attemptNo()));
                 experimentUseCase.finalizeFailure(
                         stale.jobId(),
                         stale.attemptId(),
-                        "STALE_TIMEOUT",
-                        "Attempt timed out / worker heartbeat stale",
-                        FailureClassification.WORKER_CRASHED,
+                        exhausted ? "STALE_RETRY_EXHAUSTED" : "STALE_TIMEOUT",
+                        exhausted
+                                ? "Worker recovery retry budget exhausted"
+                                : "Attempt timed out because the worker heartbeat became stale",
+                        exhausted
+                                ? FailureClassification.UNKNOWN_ERROR
+                                : FailureClassification.WORKER_CRASHED,
                         nextRetry
                 );
                 cleaned++;
@@ -183,5 +169,21 @@ public class RecoverySweeperEngine {
             }
         }
         return completed;
+    }
+
+    private static String recoveryMessageId(RecoverableQueuedJob job) {
+        // Stable across repeated sweeps, so dual-layer dedup can recognize the same
+        // abandoned business job even when Redis publication is retried.
+        return job.jobId().value();
+    }
+
+    private java.time.Duration retryDelay(int attemptNo) {
+        var retry = workerProperties.retry();
+        double scaled = retry.baseDelay().toMillis()
+                * Math.pow(retry.multiplier(), Math.max(0, attemptNo - 1));
+        long millis = !Double.isFinite(scaled) || scaled >= retry.maxDelay().toMillis()
+                ? retry.maxDelay().toMillis()
+                : Math.max(retry.baseDelay().toMillis(), Math.round(scaled));
+        return java.time.Duration.ofMillis(Math.min(millis, retry.maxDelay().toMillis()));
     }
 }

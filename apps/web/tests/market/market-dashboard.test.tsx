@@ -10,4 +10,17 @@ describe("Market dashboard states", () => {
     rerender(<MarketConnectionStatus transport="connected" provider="CONNECTED" />);
     expect(screen.getByRole("status")).toHaveTextContent("Live");
   });
+
+  it("shows the authoritative freshness timestamp without claiming transport liveness", () => {
+    render(
+      <MarketConnectionStatus
+        transport="reconnecting"
+        provider="DISCONNECTED"
+        lastDataAt="2026-09-04T02:00:00Z"
+      />
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Dữ liệu lưu gần nhất");
+    expect(screen.getByRole("time")).toHaveAttribute("dateTime", "2026-09-04T02:00:00Z");
+  });
 });

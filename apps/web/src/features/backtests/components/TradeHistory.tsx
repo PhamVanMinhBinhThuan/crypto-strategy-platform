@@ -17,7 +17,12 @@ const columns: [keyof TradeViewModel, string][] = [
 export function TradeHistory({ trades }: { trades: readonly TradeViewModel[] }) {
   return (
     <section className="panel">
-      <h2>Trade History</h2>
+      <h2>Trade History · Entry/Exit evidence</h2>
+      <p className="muted">
+        Each row is authoritative execution evidence from the backend: position side, executed
+        entry, executed exit and the recorded exit reason. Indicator-level reasoning is not inferred
+        in the browser.
+      </p>
       {trades.length === 0 ? (
         <p className="empty-copy">
           No trades were recorded because the strategy generated no signals.

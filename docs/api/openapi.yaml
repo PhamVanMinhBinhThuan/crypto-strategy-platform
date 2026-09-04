@@ -530,7 +530,8 @@ paths:
       operationId: startExperiment
       summary: Start a strategy search Experiment
       description: |-
-        Atomically freezes a single-Strategy search configuration and queues durable execution.
+        Atomically freezes either a system Strategy Search Space or one published User Strategy
+        version owned by the authenticated user, then queues durable execution.
       parameters:
         - $ref: '#/components/parameters/CorrelationId'
         - $ref: '#/components/parameters/IdempotencyKey'
@@ -542,7 +543,7 @@ paths:
             example:
               name: BTC MA random search
               datasetId: 01JDATASET00000000000000001
-              generator: { generatorId: random, version: 1.0.0, seed: 20260816 }
+              generator: { generatorId: random-search, version: 1.0.0, seed: 20260816 }
               searchSpace:
                 strategyId: ma-crossover
                 strategyVersion: 1.0.0
@@ -656,6 +657,27 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
+        '503': { $ref: '#/components/responses/ServiceUnavailable' }
+
+  /experiments/{experimentId}/reproduction-verification:
+    get:
+      tags: [Experiments]
+      operationId: getReproductionVerification
+      summary: Read the durable verification state of a linked reproduction
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+        - $ref: '#/components/parameters/ExperimentId'
+      responses:
+        '200':
+          description: Owner-scoped PENDING, RUNNING, MATCHED, MISMATCHED or FAILED verdict.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReproductionVerification' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
   /experiments/{experimentId}/candidates:
@@ -1421,10 +1443,79 @@ components:
         profitLoss: { $ref: '#/components/schemas/DecimalString' }
         postTradeCash: { $ref: '#/components/schemas/NonNegativeDecimalString' }
         exitReason: { type: string, enum: [STRATEGY_SELL, FORCED_FINAL_CLOSE] }
+    ProvenanceParameter:
+      type: object
+      additionalProperties: false
+      required: [type, value]
+      properties:
+        type: { type: string, enum: [INTEGER, DECIMAL, BOOLEAN, TEXT, ENUM] }
+        value: { type: string }
+    StrategyReferenceEvidence:
+      type: object
+      additionalProperties: false
+      required: [strategyVersionId, pluginId, implementationVersion]
+      properties:
+        strategyVersionId: { $ref: '#/components/schemas/OpaqueId' }
+        pluginId: { type: string, minLength: 1 }
+        implementationVersion: { type: string, minLength: 1 }
+    StrategyComponentEvidence:
+      type: object
+      additionalProperties: false
+      required: [strategy, parameters]
+      properties:
+        strategy: { $ref: '#/components/schemas/StrategyReferenceEvidence' }
+        parameters:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/ProvenanceParameter' }
+    StrategyEvidence:
+      type: object
+      additionalProperties: false
+      required: [kind, singleStrategy, parameters, compositePolicyId, compositePolicyVersion, components, sourceUserStrategyVersionId, fingerprint]
+      properties:
+        kind: { type: string, enum: [SINGLE, COMPOSITE] }
+        singleStrategy:
+          oneOf:
+            - $ref: '#/components/schemas/StrategyReferenceEvidence'
+            - type: 'null'
+        parameters:
+          type: object
+          additionalProperties: { $ref: '#/components/schemas/ProvenanceParameter' }
+        compositePolicyId: { type: [string, 'null'] }
+        compositePolicyVersion: { type: [string, 'null'] }
+        components:
+          type: array
+          items: { $ref: '#/components/schemas/StrategyComponentEvidence' }
+        sourceUserStrategyVersionId: { type: [string, 'null'] }
+        fingerprint: { type: string, minLength: 1 }
+    DatasetEvidence:
+      type: object
+      additionalProperties: false
+      required: [datasetVersionId, version, checksum, provider, tradingPair, timeframe, normalizationVersion, rangeStart, rangeEnd, candleCount]
+      properties:
+        datasetVersionId: { $ref: '#/components/schemas/OpaqueId' }
+        version: { type: string, minLength: 1 }
+        checksum: { type: string, minLength: 1 }
+        provider: { type: string, minLength: 1 }
+        tradingPair: { type: string, minLength: 1 }
+        timeframe: { type: string, minLength: 1 }
+        normalizationVersion: { type: string, minLength: 1 }
+        rangeStart: { type: string, format: date-time }
+        rangeEnd: { type: string, format: date-time }
+        candleCount: { type: integer, minimum: 0 }
+    CandidateEvidence:
+      type: object
+      additionalProperties: false
+      required: [candidateId, generationIndex, definition, fingerprint, createdAt]
+      properties:
+        candidateId: { $ref: '#/components/schemas/OpaqueId' }
+        generationIndex: { type: integer, minimum: 0 }
+        definition: { type: object, additionalProperties: true }
+        fingerprint: { type: string, minLength: 1 }
+        createdAt: { type: string, format: date-time }
     BacktestProvenance:
       type: object
       additionalProperties: false
-      required: [experimentId, candidateId, jobId, successfulAttemptId, manifestFingerprint, datasetFingerprint, strategyFingerprint, resultFingerprint]
+      required: [experimentId, candidateId, jobId, successfulAttemptId, manifestFingerprint, datasetFingerprint, strategyFingerprint, resultFingerprint, manifestVersion, dataset, strategy, candidate, softwareVersion, gitCommit]
       properties:
         experimentId: { $ref: '#/components/schemas/OpaqueId' }
         candidateId: { $ref: '#/components/schemas/OpaqueId' }
@@ -1434,6 +1525,21 @@ components:
         datasetFingerprint: { type: string, minLength: 1 }
         strategyFingerprint: { type: string, minLength: 1 }
         resultFingerprint: { type: string, minLength: 1 }
+        manifestVersion: { type: [string, 'null'] }
+        dataset:
+          oneOf:
+            - $ref: '#/components/schemas/DatasetEvidence'
+            - type: 'null'
+        strategy:
+          oneOf:
+            - $ref: '#/components/schemas/StrategyEvidence'
+            - type: 'null'
+        candidate:
+          oneOf:
+            - $ref: '#/components/schemas/CandidateEvidence'
+            - type: 'null'
+        softwareVersion: { type: [string, 'null'] }
+        gitCommit: { type: [string, 'null'] }
     BacktestAssumptions:
       type: object
       additionalProperties: false
@@ -1506,11 +1612,20 @@ components:
     StartExperimentRequest:
       type: object
       additionalProperties: false
-      required: [name, datasetId, generator, searchSpace, stopCondition, topK]
+      required: [name, datasetId, generator, stopCondition, topK]
+      oneOf:
+        - required: [searchSpace]
+          not: { required: [userStrategyVersionId] }
+        - required: [userStrategyVersionId]
+          not: { required: [searchSpace] }
       properties:
         name: { type: string, minLength: 1, maxLength: 200 }
         datasetId: { $ref: '#/components/schemas/OpaqueId' }
         generator: { $ref: '#/components/schemas/GeneratorSelection' }
+        userStrategyVersionId:
+          allOf:
+            - $ref: '#/components/schemas/OpaqueId'
+          description: Published User Strategy version owned by the authenticated user.
         searchSpace: { $ref: '#/components/schemas/SearchSpace' }
         stopCondition: { $ref: '#/components/schemas/StopCondition' }
         topK: { type: integer, minimum: 1, maximum: 100 }
@@ -1522,6 +1637,36 @@ components:
         experimentId: { $ref: '#/components/schemas/OpaqueId' }
         jobId: { $ref: '#/components/schemas/OpaqueId' }
         status: { type: string, const: QUEUED }
+
+    ReproductionVerificationFailure:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code: { type: string, pattern: '^[A-Z][A-Z0-9_]*$' }
+        message: { type: string, minLength: 1 }
+    ReproductionVerification:
+      type: object
+      additionalProperties: false
+      required: [verificationId, sourceExperimentId, reproductionExperimentId, status, tradesMatched, metricsMatched, fingerprintsMatched, sourceEvidenceFingerprint, reproductionEvidenceFingerprint, differences, failure, startedAt, finishedAt, updatedAt]
+      properties:
+        verificationId: { $ref: '#/components/schemas/OpaqueId' }
+        sourceExperimentId: { $ref: '#/components/schemas/OpaqueId' }
+        reproductionExperimentId: { $ref: '#/components/schemas/OpaqueId' }
+        status: { type: string, enum: [PENDING, RUNNING, MATCHED, MISMATCHED, FAILED] }
+        tradesMatched: { type: [boolean, 'null'] }
+        metricsMatched: { type: [boolean, 'null'] }
+        fingerprintsMatched: { type: [boolean, 'null'] }
+        sourceEvidenceFingerprint: { type: [string, 'null'] }
+        reproductionEvidenceFingerprint: { type: [string, 'null'] }
+        differences: { type: object, additionalProperties: true }
+        failure:
+          oneOf:
+            - $ref: '#/components/schemas/ReproductionVerificationFailure'
+            - type: 'null'
+        startedAt: { type: [string, 'null'], format: date-time }
+        finishedAt: { type: [string, 'null'], format: date-time }
+        updatedAt: { type: string, format: date-time }
 
     ExperimentStatus:
       type: string

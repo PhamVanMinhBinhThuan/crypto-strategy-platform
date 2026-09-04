@@ -24,6 +24,7 @@ import com.cryptostrategy.platform.search.api.port.out.SearchRunStore;
 import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterType;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -82,6 +83,14 @@ class SearchModelContractTest {
                         new StrategyParameterValue.DecimalValue(new BigDecimal("1.00")))))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("duplicate");
+    }
+
+    @Test
+    void emptySearchSpaceRepresentsOneFrozenCandidate() {
+        SearchSpace frozen = new SearchSpace(Map.of());
+
+        assertThat(frozen.parameters()).isEmpty();
+        assertThat(frozen.combinationCount()).isEqualTo(BigInteger.ONE);
     }
 
     @Test

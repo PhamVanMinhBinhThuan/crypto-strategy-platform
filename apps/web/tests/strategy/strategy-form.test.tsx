@@ -46,7 +46,7 @@ describe("Strategy form", () => {
     await userEvent.click(screen.getByRole("button", { name: "Lưu Strategy" }));
     expect(submit.mock.calls[0][0]).toMatchObject({
       kind: "SINGLE",
-      source: { strategy: { parameters: { period: "5" } } }
+      source: { strategy: { parameters: { period: 5 } } }
     });
   });
   it("requires two valid components for COMPOSITE", async () => {
@@ -70,7 +70,12 @@ describe("Strategy form", () => {
     await userEvent.click(screen.getByRole("button", { name: "Lưu Strategy" }));
     expect(submit.mock.calls[0][0]).toMatchObject({
       kind: "COMPOSITE",
-      source: { type: "COMPOSITE", components: [{ strategyId: "ma" }, { strategyId: "rsi" }] }
+      source: {
+        type: "COMPOSITE",
+        policyId: "majority-vote",
+        policyVersion: "1.0.0",
+        components: [{ strategyId: "ma" }, { strategyId: "rsi" }]
+      }
     });
   });
 });

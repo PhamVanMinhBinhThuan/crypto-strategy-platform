@@ -2,12 +2,21 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { ExperimentConfigurationForm } from "@/src/features/experiments/components/ExperimentConfigurationForm";
+import { strategyDescriptorPage } from "@/src/features/experiments/fixtures/experiment-configuration-fixtures";
 import { MockApiClient } from "@/src/foundation/testing/mock-api-client";
+
+const withCatalog = (api = new MockApiClient()) =>
+  api
+    .respond("GET /api/v1/strategies", strategyDescriptorPage)
+    .respond("GET /api/v1/user-strategies", {
+      items: [],
+      nextCursor: null,
+      hasMore: false
+    });
+
 describe("Experiment configuration form", () => {
-  it("has semantic labels, fixture source indicators, parameter ranges and keyboard-reachable actions", () => {
-    render(
-      <ExperimentConfigurationForm api={new MockApiClient()} fixture reproduceId="experiment-013" />
-    );
+  it("has semantic labels, fixture source indicators, parameter ranges and keyboard-reachable actions", async () => {
+    render(<ExperimentConfigurationForm api={withCatalog()} fixture />);
     for (const name of [
       "Name",
       "Dataset ID",
@@ -22,14 +31,13 @@ describe("Experiment configuration form", () => {
       "Maximum duration (seconds)",
       "Top-K"
     ])
-      expect(screen.getByLabelText(name, { exact: true })).toBeInTheDocument();
+      expect(await screen.findByLabelText(name, { exact: true })).toBeInTheDocument();
     expect(screen.getByText("FIXTURE DATA")).toBeInTheDocument();
-    expect(screen.getByText(/Fixture-only discovery/)).toBeInTheDocument();
+    expect(screen.getByText(/Fixture profile/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start Experiment" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Reproduce Experiment" })).toBeEnabled();
   });
   it("announces real acceptance and preserves the submitted draft", async () => {
-    const api = new MockApiClient().respond("POST /api/v1/experiments", {
+    const api = withCatalog().respond("POST /api/v1/experiments", {
       experimentId: "experiment-new",
       jobId: "job-new",
       status: "QUEUED"
@@ -40,16 +48,31 @@ describe("Experiment configuration form", () => {
     expect(screen.getAllByRole("alert").length).toBeGreaterThan(0);
     await user.type(screen.getByLabelText("Name"), "My experiment");
     await user.type(screen.getByLabelText("Dataset ID", { exact: true }), "dataset-known");
+    await screen.findByRole("option", { name: "Moving Average Crossover" });
     await user.click(screen.getByRole("button", { name: "Start Experiment" }));
     expect(
       await screen.findByRole("link", { name: /Open Experiment experiment-new/ })
     ).toHaveAttribute("href", "/search?id=experiment-new");
     expect(screen.getByLabelText("Name")).toHaveValue("My experiment");
     expect(screen.getByLabelText("Dataset ID", { exact: true })).toHaveValue("dataset-known");
+    const request = api.requests.find((item) => item.path === "/api/v1/experiments");
+    expect(JSON.parse(String(request?.init.body))).toMatchObject({
+      generator: { generatorId: "random-search", version: "1.0.0" },
+      searchSpace: {
+        strategyId: "ma-crossover",
+        strategyVersion: "1.0.0",
+        parameters: {
+          fastPeriod: { minimum: 2, maximum: 50 },
+          slowPeriod: { minimum: 10, maximum: 200 },
+          priceSource: { options: ["OPEN", "CLOSE"] }
+        }
+      },
+      stopCondition: { maximumCandidates: 100, maximumDurationSeconds: 300 }
+    });
   });
 
   it("creates a real immutable dataset and selects it for the experiment", async () => {
-    const api = new MockApiClient().respond("POST /api/v1/datasets", {
+    const api = withCatalog().respond("POST /api/v1/datasets", {
       datasetId: "01M1M383AJRDGS3BVC4KCE84Q2",
       version: "candle-v1",
       provider: "BINANCE",
