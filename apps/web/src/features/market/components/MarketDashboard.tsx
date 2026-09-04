@@ -20,9 +20,10 @@ export function MarketDashboard() {
   const params = useSearchParams(),
     router = useRouter(),
     { api, realtime } = useClients();
+  const serializedParams = params.toString();
   const selection = useMemo(
-    () => parseMarketSelection(new URLSearchParams(params.toString())),
-    [params]
+    () => parseMarketSelection(new URLSearchParams(serializedParams)),
+    [serializedParams]
   );
   const [panels, setPanels] = useState<Record<string, CandleState>>({});
   const [loading, setLoading] = useState(true),

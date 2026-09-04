@@ -19,6 +19,24 @@ export function observeMarket(
   const ids = new Map(selection.panels.map((p) => [`market-${p.id}`, p]));
   const confirmed = new Set<string>();
   const buffered = new Map<string, RealtimeEnvelope[]>();
+  const providerStates = new Map<string, ProviderStatus>(
+    [...ids.keys()].map((id) => [id, "CONNECTING"])
+  );
+  let reportedProvider: ProviderStatus | undefined;
+  const reportProvider = () => {
+    const states = [...providerStates.values()];
+    const status: ProviderStatus = states.every((value) => value === "CONNECTED")
+      ? "CONNECTED"
+      : states.every((value) => value === "DISCONNECTED")
+        ? "DISCONNECTED"
+        : states.some((value) => value === "RECONNECTING" || value === "DISCONNECTED")
+          ? "RECONNECTING"
+          : "CONNECTING";
+    if (status !== reportedProvider) {
+      reportedProvider = status;
+      handlers.onProvider(status);
+    }
+  };
   const deliver = (event: RealtimeEnvelope) => {
     const panel = ids.get(event.subscriptionId);
     if (!panel) return;
@@ -53,8 +71,14 @@ export function observeMarket(
     }
     if (event.eventType === "MARKET_CONNECTION_STATUS_CHANGED") {
       const status = (event.payload as { status?: string }).status;
-      if (["CONNECTING", "CONNECTED", "RECONNECTING", "DISCONNECTED"].includes(status ?? ""))
-        handlers.onProvider(status as ProviderStatus);
+      if (["CONNECTING", "CONNECTED", "RECONNECTING", "DISCONNECTED"].includes(status ?? "")) {
+        providerStates.set(event.subscriptionId, status as ProviderStatus);
+        reportProvider();
+      }
+    }
+    if (event.eventType === "SUBSCRIPTION_ERROR") {
+      providerStates.set(event.subscriptionId, "DISCONNECTED");
+      reportProvider();
     }
   });
   selection.panels.forEach((panel) =>
@@ -64,11 +88,13 @@ export function observeMarket(
       payload: { pair: selection.pair, timeframe: panel.timeframe }
     })
   );
+  reportProvider();
   void realtime.connect();
   return () => {
     ids.forEach((_, id) => realtime.unsubscribe(id));
     buffered.clear();
     confirmed.clear();
+    providerStates.clear();
     removeEvent();
     removeStatus();
   };

@@ -36,5 +36,25 @@ Không duy trì thêm migration Flyway trong
 - Seed data cho local/demo được tách khỏi production migration.
 - Integration test dựng database sạch từ toàn bộ migration.
 
+## Seed cho demo F014
+
+Sau khi migrations đã được áp dụng, database owner có thể thêm dữ liệu tham
+chiếu tối thiểu cho profile demo LIVE bằng seed idempotent sau:
+
+```bash
+set -a
+source .env.local
+set +a
+export PGPASSWORD="$DATABASE_PASSWORD"
+psql "${DATABASE_URL#jdbc:}" -U "$DATABASE_USERNAME" \
+  -v ON_ERROR_STOP=1 -X \
+  -f infra/database/seeds/f014-live-demo.sql
+unset PGPASSWORD
+```
+
+Kết quả mong đợi là `f014_market_reference=ready`. Seed chỉ tạo `BTC`, `USDT`
+và cặp `BTC/USDT` khi còn thiếu; nếu identity hoặc symbol hiện có xung đột,
+toàn bộ transaction bị rollback thay vì ghi đè dữ liệu dùng chung.
+
 Không thay đổi schema thủ công qua database dashboard mà không lưu vết. Mọi thay
 đổi được chấp nhận phải có migration tương ứng trong version control.

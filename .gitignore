@@ -33,6 +33,7 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 .venv/
+.venv-f014-sentiment/
 venv/
 dist/
 *.egg-info/
