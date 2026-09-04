@@ -83,6 +83,23 @@ class SearchReproductionIntegrationTest {
             assertThat(jdbc.queryForObject("select status from search.reproduction_verification where reproduction_experiment_id=?",
                     String.class, accepted.experimentId().value())).isEqualTo("MATCHED");
             assertThat(snapshotSourceGraph(jdbc)).isEqualTo(sourceBefore);
+            String verificationId = jdbc.queryForObject(
+                    "select verification_id from search.reproduction_verification where reproduction_experiment_id=?",
+                    String.class, accepted.experimentId().value());
+            System.out.printf(
+                    "F014_REPRODUCTION_EVIDENCE sourceExperimentId=%s reproductionExperimentId=%s "
+                            + "verificationId=%s originalResultId=%s reproducedResultId=%s "
+                            + "originalEvaluationId=%s reproducedEvaluationId=%s "
+                            + "originalLeaderboardRevisionId=%s reproducedLeaderboardRevisionId=%s verdict=MATCHED%n",
+                    SearchAllocationConcurrencyIntegrationTest.EXPERIMENT,
+                    accepted.experimentId().value(),
+                    verificationId,
+                    "62000000000000000000000075",
+                    "62000000000000000000000085",
+                    "62000000000000000000000076",
+                    "62000000000000000000000086",
+                    "62000000000000000000000077",
+                    "62000000000000000000000087");
         });
     }
 
@@ -182,6 +199,7 @@ class SearchReproductionIntegrationTest {
 
     private static void seedReproducedEvidence(JdbcTemplate jdbc, String experiment, String candidate, String job) {
         Instant completed = SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(12);
+        Instant sourceEvidenceCompleted = SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(4);
         jdbc.update("update experiment.job set status='SUCCEEDED',completed_work=1,finished_at=? where job_id=?",
                 java.sql.Timestamp.from(completed), job);
         jdbc.update("insert into experiment.execution_attempt(attempt_id,job_id,candidate_id,attempt_no,status,started_at,finished_at) values ('62000000000000000000000084',?,?,1,'SUCCEEDED',?,?)",
@@ -191,8 +209,8 @@ class SearchReproductionIntegrationTest {
                 "sha256:" + "7".repeat(64), FiniteSearchExperimentIntegrationTest.assumptions(),
                 "sha256:" + "8".repeat(64));
         jdbc.update("insert into experiment.trade(trade_id,backtest_result_id,sequence_no,side,entry_time,exit_time,entry_price,exit_price,quantity,entry_fee,exit_fee,fee,profit_loss,post_trade_cash,exit_reason) values ('62000000000000000000000088','62000000000000000000000085',0,'BUY',?,?,?,?,?,?,?,?,?,?,?)",
-                java.sql.Timestamp.from(completed.minusSeconds(3)),
-                java.sql.Timestamp.from(completed.minusSeconds(2)), 100, 110, 1,
+                java.sql.Timestamp.from(sourceEvidenceCompleted.minusSeconds(3)),
+                java.sql.Timestamp.from(sourceEvidenceCompleted.minusSeconds(2)), 100, 110, 1,
                 new java.math.BigDecimal("0.1"), new java.math.BigDecimal("0.1"),
                 new java.math.BigDecimal("0.2"), new java.math.BigDecimal("9.8"),
                 new java.math.BigDecimal("1009.8"), "STRATEGY_SELL");
