@@ -11,13 +11,13 @@ thứ tự triển khai cho nhóm bốn người. Đây là tài liệu điều 
 - F-003 đến F-013 đã cung cấp implementation nền cho Market/Dataset, Strategy, Experiment,
   Backtest/Evaluation/Leaderboard, Worker/Redis, News/Sentiment, public API/realtime và Web UI.
 - F-014 đang hardening trên nhánh `feature/014-end-to-end-demo-hardening`: T001–T028, T030–T036,
-  T038–T043 và T045–T062 đã hoàn tất;
+  T038–T062 đã hoàn tất;
   automated Java/Web/Python gates không có failure, benchmark/secret scan/keyboard-responsive đạt.
-- Controlled browser journeys có evidence nhưng không được dùng thay LIVE. LIVE còn bị chặn bởi
-  shared database thiếu migration F006, browser auth configuration/session và external Sentiment
-  ML readiness; chi tiết trong `docs/demo/f014/release-checklist.md`.
-- Candidate `0761a54b` đã qua clean-checkout quickstart và standalone performance target 2×; chưa phải
-  LIVE release vì T029/T037/T044 còn external dependency blockers.
+- Controlled browser journeys có evidence nhưng không được dùng thay LIVE. PostgreSQL đã được migrate
+  và reproduction dependency-backed đã pass; LIVE còn bị chặn bởi browser auth configuration/session
+  và chưa có authenticated Sentiment isolation timeline; chi tiết trong `docs/demo/f014/release-checklist.md`.
+- Candidate `0761a54b` đã qua clean-checkout quickstart và standalone performance target 2×; PostgreSQL
+  reproduction được xác nhận ở `0d87e16b`. Chưa phải LIVE release vì T029/T037 còn operator/auth evidence.
 
 ## Phân công ownership chính
 
@@ -300,7 +300,7 @@ F-011.
 nhiệm bằng chứng cho capability mình sở hữu.
 
 **Trạng thái ngày 2026-09-04**: implementation/hardening, demo package và clean candidate verification
-đến T062 đã hoàn tất, ngoại trừ ba task evidence LIVE T029/T037/T044.
+đến T062 đã hoàn tất, ngoại trừ hai task evidence LIVE T029/T037.
 Quality gate hiện `PARTIAL` vì full Gradle command công bố hai dependency-backed Redis skip; hai
 scenario đó đã pass riêng với Redis thật. Full LIVE journey và video/Drive evidence vẫn `BLOCKED`
 theo dependency gate, không bị thay bằng fixture.

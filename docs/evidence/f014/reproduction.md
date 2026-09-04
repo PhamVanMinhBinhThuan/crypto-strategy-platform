@@ -2,7 +2,7 @@
 
 ## Kết luận hiện tại
 
-Canonical Result provenance, linked reproduction command và durable verification read boundary đã pass API/component/Playwright tests. Lần chạy PostgreSQL remote phát hiện database chưa áp dụng migration F006 nên chưa thể tạo evidence runtime thật. Vì vậy T044 và hồ sơ này vẫn `PARTIAL`; controlled browser journey không được dùng thay LIVE reproduction.
+Canonical Result provenance, linked reproduction command và durable verification read boundary đã pass API/component/Playwright tests. EV-US3-DB-002 đã áp dụng migration được version-control, chạy application service cùng verification coordinator trên PostgreSQL remote và ghi verdict/artifact IDs thật vào JUnit report. T044 đã hoàn thành; full authenticated browser journey và screenshot vẫn thuộc T029, không được thay bằng integration-test evidence.
 
 ## EV-US3-001: Canonical provenance và linked reproduction
 
@@ -35,6 +35,22 @@ Canonical Result provenance, linked reproduction command và durable verificatio
 - Artifact links: `modules/persistence/build/reports/tests/experimentIntegrationTest/index.html`; `supabase/migrations/20260901000100_f006_backtest_evaluation_leaderboard.sql`.
 - Limitations: không tự áp dụng migration lên shared database vì đó là thay đổi external state cần đúng quy trình/owner. Không có live verdict hoặc screenshot.
 - Owner/reviewer: database owner / pending reviewer.
+
+## EV-US3-DB-002: PostgreSQL reproduction và immutable source
+
+- Criterion/requirement: T044, FR-018–FR-021, SC-006; remediation cho EV-US3-DB-001.
+- Status: VERIFIED
+- Commit SHA: `0d87e16b34544bd8d45deafaea4ca7b6a6f2a02b`
+- Captured at: `2026-09-04T12:52:45Z`
+- Environment/profile: shared PostgreSQL 17.6, Java 21, Gradle `experimentIntegrationTest`; credential chỉ inject từ local server-only environment.
+- Non-secret configuration: migration history `20260827000100` đến `20260904000100`; source fixture được tạo qua persistence/application boundary trong transaction và rollback sau test.
+- Command/action: chạy `supabase db push --dry-run --include-all --skip-vault`; reconcile riêng history F010 sau khi kiểm tra đủ table/column/constraint/index/trigger/privilege; chạy `supabase db push`; xác nhận dry-run trả `upToDate=true`; chạy focused `SearchReproductionIntegrationTest --rerun-tasks`.
+- Expected result: F006/F009/F010 schema cùng tồn tại; reproduction tạo Experiment/verification mới, giữ source graph bất biến và trả verdict deterministic.
+- Observed result: sáu migration pending đã apply thành công; postflight có đủ `backtest_result.job_id`, fee components, F006 verification, standalone Backtest, F010 Search/verification và correlation ID `varchar(128)`. Focused PostgreSQL suite pass `4/4`; suite persistence đầy đủ trên cùng commit pass `29/29`, zero skip/failure. Verdict cuối `MATCHED`; idempotent replay giữ cùng reproduction Experiment và request hash khác trả conflict; source snapshot trước/sau bằng nhau.
+- Artifact IDs: source Experiment `62000000000000000000000001`; reproduction Experiment `01M1P7K6YEMXKRFCS1AWP4BMS9`; verification `01M1P7K6YF0D7JZ1WMHYP00QBK`; Result source/target `62000000000000000000000075`/`62000000000000000000000085`; Evaluation source/target `62000000000000000000000076`/`62000000000000000000000086`; Leaderboard revision source/target `62000000000000000000000077`/`62000000000000000000000087`.
+- Artifact links: `modules/persistence/build/test-results/experimentIntegrationTest/TEST-com.cryptostrategy.platform.persistence.internal.experiment.SearchReproductionIntegrationTest.xml`; `modules/persistence/build/reports/tests/experimentIntegrationTest/index.html`; `modules/persistence/src/experimentIntegrationTest/java/com/cryptostrategy/platform/persistence/internal/experiment/SearchReproductionIntegrationTest.java`; `supabase/migrations/20260901000100_f006_backtest_evaluation_leaderboard.sql`.
+- Limitations: transaction rollback bảo đảm không để test record trong shared database; đây là dependency-backed PostgreSQL evidence, không phải screenshot authenticated Web. Full browser flow vẫn cần T029.
+- Owner/reviewer: database owner / pending cross-owner reviewer.
 
 ## Ảnh minh chứng có thể lấy
 

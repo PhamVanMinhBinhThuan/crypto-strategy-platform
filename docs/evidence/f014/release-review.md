@@ -13,7 +13,7 @@
 | -------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Constitution I — Spec/ADR                                | PASS có điều kiện | F014 spec/plan/tasks đầy đủ; ADR-0001–0014 và 0016 liên quan đều Accepted; additive public reads được ghi lại trong plan/OpenAPI                                         |
 | Constitution II — ownership/dependency                   | PASS              | 32 architecture tests; `ReproductionVerificationId` chỉ có một owner ở `experiment-execution`; API không phụ thuộc Search trực tiếp                                      |
-| Constitution III — provenance/immutability               | PARTIAL           | Canonical Result/reproduction tests pass; shared DB thiếu F006 nên chưa có LIVE immutable graph/verdict                                                                  |
+| Constitution III — provenance/immutability               | PASS              | PostgreSQL reproduction tạo graph mới, giữ source immutable và ghi verdict/artifact IDs `MATCHED`; xem `reproduction.md`                                                 |
 | Constitution IV — versioned contracts/provider isolation | PASS              | OpenAPI có Result provenance + reproduction verification; contract/API/Web tests pass; Strategy/Generator/provider không bị kéo vào browser                              |
 | Constitution V — security/reliability/evidence           | PARTIAL           | Full gates không failure, redaction + secret scan pass, Redis real recovery pass riêng; final clean SHA và external LIVE dependencies còn thiếu                          |
 | UI authority/reference                                   | PASS              | F-011 shell/client được tái sử dụng; F-012/F-013 routes giữ owner; browser không sinh Candidate, chạy Backtest, tính Evaluation/Ranking hay đọc business table trực tiếp |
@@ -44,8 +44,8 @@
 ### RR-002 — LIVE dependency gate chưa đạt
 
 - Mức độ: BLOCKING cho SC-001/SC-005/SC-006 và video LIVE.
-- Shared PostgreSQL thiếu F006 và browser auth config/session chưa có. External Sentiment ML đã
-  READY/inference/stop-restart trực tiếp, nhưng chưa có authenticated Worker/Web integration evidence.
+- Shared PostgreSQL đã up-to-date và reproduction dependency-backed đã pass. Browser auth config/session
+  vẫn chưa có. External Sentiment ML đã READY/inference/stop-restart trực tiếp, nhưng chưa có authenticated Worker/Web integration evidence.
 - Remediation thuộc owner/operator được ghi trong `runbook-dry-run.md` và `release-checklist.md`; không
   sửa database ad-hoc hoặc đổi fixture thành LIVE.
 

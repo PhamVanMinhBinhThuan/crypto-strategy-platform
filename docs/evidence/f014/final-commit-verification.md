@@ -26,5 +26,12 @@
 | LIVE startup/main flow | BLOCKED — shared DB thiếu F006; browser auth/session và external Sentiment readiness thiếu |
 | LIVE failure/reproduction | BLOCKED/PARTIAL — Redis thật pass; external Sentiment và durable PostgreSQL reproduction chưa chạy |
 
-T061 xác nhận candidate có thể build/test từ clean checkout mà không dựa vào `node_modules` cũ. Task
-này không tự đóng T029/T037/T044: ba task đó cần external owner/operator và evidence LIVE riêng.
+T061 xác nhận candidate có thể build/test từ clean checkout mà không dựa vào `node_modules` cũ. Tại
+thời điểm record này, T061 chưa tự đóng T029/T037/T044 vì ba task đó cần dependency/operator evidence riêng.
+
+## Follow-up sau candidate verification
+
+Record EV-F014-FINAL-001 ở trên giữ nguyên trạng thái lịch sử tại thời điểm capture. Sau đó shared
+PostgreSQL đã được reconcile đến `20260904000100`, external Sentiment model đã inference/stop-restart
+thành công và T044 đã pass trên commit `0d87e16b`; xem `reproduction.md` và `failure-recovery.md`.
+Các task còn mở hiện tại là T029 và T037 vì vẫn cần browser auth/session cùng ảnh/timeline LIVE.

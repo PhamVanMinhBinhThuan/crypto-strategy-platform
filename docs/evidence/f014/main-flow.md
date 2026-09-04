@@ -20,7 +20,10 @@
 
 1. Inject local browser-safe `NEXT_PUBLIC_SUPABASE_URL` và `NEXT_PUBLIC_SUPABASE_ANON_KEY`; không commit hai giá trị này.
 2. Có một development user đăng nhập hợp lệ trong browser.
-3. Start Sentiment bằng service token/model bundle ngoài repository, hoặc ghi rõ degraded nếu chỉ kiểm tra failure scenario.
+3. Start Sentiment bằng lệnh factory đã kiểm chứng trong runbook; model local đã READY/inference thành công.
 4. Dùng Node 22 qua `PATH=/opt/homebrew/opt/node@22/bin:$PATH` vì Homebrew Node mặc định trên máy đang hỏng dynamic link.
 5. Chụp ít nhất: bốn Market chart; catalog bốn Strategy; published personal/composite Strategy và conflict rule; Random Search/progress terminal; Top-K → authoritative Result; bốn metric cards cùng một hàng Trade Entry/Exit; News có `ANALYZED` và degraded status nếu kiểm tra isolation.
 6. Ghi duration, experiment ID, candidate/result ID, leaderboard revision và correlation ID đã redact vào record mới; ảnh tải lên Drive phải liên kết từng dòng rubric tương ứng.
+
+PostgreSQL/F006 và external model runtime đã được unblock sau EV-US1-001. Blocker còn lại cho lần chạy
+browser LIVE là browser-safe Supabase config cùng development session hợp lệ.

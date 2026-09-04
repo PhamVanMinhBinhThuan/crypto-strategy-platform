@@ -341,7 +341,7 @@ Mọi ảnh lấy từ suite này phải ghi `CONTROLLED/TEST`, không ghi `LIVE
 
 ## 13. Known blockers tại lần soạn runbook
 
-- Shared PostgreSQL đang thiếu migration F006 (`experiment.backtest_result.job_id`), nên live Search/Reproduction chưa đủ điều kiện.
+- Shared PostgreSQL đã được reconcile đến migration `20260904000100`; postflight và dependency-backed reproduction đã pass.
 - Local chưa có browser Supabase credentials/development session để chạy authenticated journey.
 - External Sentiment model đã load/inference/stop/restart thành công bằng Python 3.12 local; vẫn thiếu phiên authenticated LIVE chứng minh Market và technical Backtest tiếp tục hoạt động trong lúc service down.
 - Ba redaction failure ở baseline đã được remediation; clean candidate gate và secret scan đã pass theo `docs/evidence/f014/final-commit-verification.md`.

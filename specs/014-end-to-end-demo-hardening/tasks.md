@@ -113,7 +113,7 @@
 - [x] T041 [US3] Remediate canonical result/provenance mapping gap trong `apps/api/src/main/java/com/cryptostrategy/platform/api/backtest/BacktestResultByIdController.java`
 - [x] T042 [US3] Hiển thị đầy đủ evidence chain và reproduction comparison trong `apps/web/src/features/backtests/components/ResultEvidence.tsx`
 - [x] T043 [US3] Nối reproduction command/state/reconciliation vào `apps/web/src/features/experiments/components/ExperimentActions.tsx`
-- [ ] T044 [US3] Chạy reproduction thật, chứng minh source immutable và lưu verdict/artifact IDs vào `docs/evidence/f014/reproduction.md`
+- [x] T044 [US3] Chạy reproduction thật, chứng minh source immutable và lưu verdict/artifact IDs vào `docs/evidence/f014/reproduction.md`
 
 **Checkpoint**: Provenance và reproduction được kiểm chứng độc lập.
 
