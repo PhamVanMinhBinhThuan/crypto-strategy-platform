@@ -31,7 +31,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class NewsWorkerConfiguration {
     @Bean NewsPersistenceFactory.Components newsPersistence(DataSource source){return NewsPersistenceFactory.create(source);}
-    @Bean HttpClient sentimentHttpClient(NewsWorkerProperties properties){return HttpClient.newBuilder().connectTimeout(properties.sentiment().connectTimeout()).build();}
+    @Bean HttpClient sentimentHttpClient(NewsWorkerProperties properties){return HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(properties.sentiment().connectTimeout()).build();}
     @Bean HttpSentimentInferenceAdapter sentimentInference(HttpClient client,NewsWorkerProperties p,ObjectMapper json){return new HttpSentimentInferenceAdapter(client,p.sentiment().endpoint(),p.sentiment().serviceToken(),json,new SentimentContractMapper());}
     @Bean SentimentClientGuard sentimentGuard(NewsWorkerProperties p){
         var s=p.sentiment();
