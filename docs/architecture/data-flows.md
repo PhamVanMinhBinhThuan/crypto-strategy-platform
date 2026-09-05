@@ -159,13 +159,16 @@ sequenceDiagram
     end
 ```
 
-Stop và backpressure:
+F-015 configuration, stop và backpressure:
 
-- Stop Conditions của MVP gồm `maximumCandidates`, frozen `deadlineAt` từ `maximumDuration` và user stop.
+- Người dùng chọn `pair`, `timeframe`, `startTime` và `endTime` theo khoảng UTC half-open `[start,end)` rồi tạo hoặc chọn một Frozen Dataset. Chỉ bước tạo dataset gọi Market Data Provider; mọi Candidate Backtest đọc cùng snapshot/checksum đã lưu trong PostgreSQL qua `DatasetCandleReader`.
+- Mỗi Search v2 đóng băng Strategy pool, typed parameter domains, component bounds, constraints, Majority Vote, generator/version/seed, stop conditions, Top-K và requested concurrency trong immutable manifest.
+- Stop Conditions gồm `maximumCandidates`, frozen `deadlineAt` từ `maximumDuration`, `maximumWithoutImprovement` và user stop. Terminal reason được persist để REST/recovery không phải suy đoán lại quyết định.
 - `STOP_REQUESTED` ngừng sinh candidate; queued job bị skip/cancel; running job kết thúc tại safe checkpoint.
-- Coordinator giới hạn authoritative `QUEUED + RUNNING` theo `maxInFlightPerExperiment`; không fill vô hạn theo queue depth.
-- Worker concurrency và job timeout cấu hình theo môi trường; Dataset chỉ truyền bằng reference.
-- MVP chỉ nhận một frozen Strategy version; Composite Search bị validation từ chối.
+- Coordinator refill cửa sổ active sau mỗi trusted completion và trong scheduled reconciliation. Cửa sổ bị chặn bởi requested concurrency, per-experiment limit và global active limit; Top-K chỉ giới hạn kết quả xếp hạng, không giới hạn Candidate được Backtest.
+- Candidate được resolve từ immutable composite definition, không thay bằng Strategy đầu tiên. Generator traversal/fingerprint độc lập với thứ tự Worker hoàn thành và không materialize toàn bộ không gian 100–10.000 Candidate trong bộ nhớ.
+- Worker concurrency và job timeout cấu hình theo môi trường; Dataset và Candidate chỉ truyền bằng immutable reference/evidence.
+- Legacy Search v1 vẫn đọc/reproduce được; mọi Start Search F-015 mới ghi configuration schema v2.
 
 Reliability:
 

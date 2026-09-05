@@ -10,10 +10,12 @@ import com.cryptostrategy.platform.marketdata.api.model.DatasetSnapshot;
 import com.cryptostrategy.platform.marketdata.api.port.in.CreateDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.LoadHistoricalCandlesUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.ListDatasetsUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.VerifyDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.out.DatasetStore;
 
-public final class DatasetService implements CreateDatasetUseCase, GetDatasetUseCase, VerifyDatasetUseCase {
+public final class DatasetService implements CreateDatasetUseCase, GetDatasetUseCase, VerifyDatasetUseCase,
+        ListDatasetsUseCase {
     private final LoadHistoricalCandlesUseCase historical;
     private final DatasetAssembler assembler;
     private final DatasetStore store;
@@ -23,7 +25,7 @@ public final class DatasetService implements CreateDatasetUseCase, GetDatasetUse
     }
     @Override public DatasetSnapshot createDataset(CreateDatasetCommand command) {
         DatasetFinalization finalization = assembler.assemble(command, historical.loadHistoricalCandles(command.query()).candles());
-        return store.finalizeAtomically(finalization);
+        return store.finalizeAtomically(finalization, command.ownerUserId());
     }
     @Override public DatasetSnapshot getDataset(DatasetVersionId datasetId) {
         DatasetSnapshot snapshot = store.find(datasetId).orElseThrow(() -> new MarketDataException(MarketDataErrorCode.DATASET_NOT_FOUND, "Dataset not found"));
@@ -31,4 +33,8 @@ public final class DatasetService implements CreateDatasetUseCase, GetDatasetUse
         return snapshot;
     }
     @Override public DatasetIntegrityResult verifyDataset(DatasetVersionId datasetId) { return store.find(datasetId).map(verifier::verify).orElseThrow(() -> new MarketDataException(MarketDataErrorCode.DATASET_NOT_FOUND, "Dataset not found")); }
+    @Override public java.util.List<DatasetSnapshot> listRecentDatasets(java.util.UUID ownerUserId, int limit) {
+        if (limit < 1 || limit > 100) throw new IllegalArgumentException("Dataset list limit must be between 1 and 100");
+        return store.listRecent(ownerUserId, limit);
+    }
 }

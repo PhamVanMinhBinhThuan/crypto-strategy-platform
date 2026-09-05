@@ -23,12 +23,24 @@ public interface TrustedSearchCoordinationGateway {
             int allocatedWork,
             int completedWork,
             int failedWork,
-            Instant latestAuthoritativeCompletedAt) {
+            Instant latestAuthoritativeCompletedAt,
+            int configuredMaximumCandidates,
+            int consecutiveWithoutImprovement) {
+        public AuthoritativeSnapshot(SearchRun run, int allocatedWork, int completedWork,
+                int failedWork, Instant latestAuthoritativeCompletedAt) {
+            this(run, allocatedWork, completedWork, failedWork, latestAuthoritativeCompletedAt,
+                    run.stopConditions().maximumCandidates(), 0);
+        }
+
         public AuthoritativeSnapshot {
             Objects.requireNonNull(run, "run");
             if (allocatedWork < 0 || completedWork < 0 || failedWork < 0
                     || completedWork + failedWork > allocatedWork) {
                 throw new IllegalArgumentException("authoritative counters are inconsistent");
+            }
+            if (configuredMaximumCandidates < run.stopConditions().maximumCandidates()
+                    || consecutiveWithoutImprovement < 0) {
+                throw new IllegalArgumentException("authoritative Search bounds are inconsistent");
             }
         }
 

@@ -12,6 +12,18 @@ export type Experiment = Readonly<{
   startedAt: string | null;
   completedAt: string | null;
   failure: Failure | null;
+  searchProgress?: Readonly<{
+    allocated: number;
+    active: number;
+    completed: number;
+    failed: number;
+    remainingCapacity: number;
+    configuredMaximum: number;
+    topK: number;
+    bestScore: string | null;
+    startedAt: string | null;
+    terminalReason: string | null;
+  }> | null;
   createdAt: string;
 }>;
 export type Job = Readonly<{

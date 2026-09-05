@@ -1,7 +1,7 @@
 package com.cryptostrategy.platform.worker.search.reconciliation;
 
-import com.cryptostrategy.platform.execution.api.port.in.TrustedSearchCoordinationUseCase;
 import com.cryptostrategy.platform.search.api.port.out.SearchRunStore;
+import com.cryptostrategy.platform.worker.search.coordination.SearchCoordinator;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,7 +15,7 @@ import com.cryptostrategy.platform.execution.api.port.in.SearchReproductionVerif
 public final class SearchReconciler {
     private static final Logger log = LoggerFactory.getLogger(SearchReconciler.class);
     private final SearchRunStore runs;
-    private final TrustedSearchCoordinationUseCase coordination;
+    private final SearchCoordinator coordinator;
     private final Clock clock;
     private final Duration staleAfter;
     private final int batchSize;
@@ -23,18 +23,18 @@ public final class SearchReconciler {
 
     public SearchReconciler(
             SearchRunStore runs,
-            TrustedSearchCoordinationUseCase coordination,
+            SearchCoordinator coordinator,
             Clock clock,
             Duration staleAfter,
             int batchSize) {
-        this(runs, coordination, clock, staleAfter, batchSize, null);
+        this(runs, coordinator, clock, staleAfter, batchSize, null);
     }
 
-    public SearchReconciler(SearchRunStore runs, TrustedSearchCoordinationUseCase coordination,
+    public SearchReconciler(SearchRunStore runs, SearchCoordinator coordinator,
             Clock clock, Duration staleAfter, int batchSize,
             SearchReproductionVerificationUseCase reproductions) {
         this.runs = Objects.requireNonNull(runs, "runs");
-        this.coordination = Objects.requireNonNull(coordination, "coordination");
+        this.coordinator = Objects.requireNonNull(coordinator, "coordinator");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.staleAfter = Objects.requireNonNull(staleAfter, "staleAfter");
         if (staleAfter.isNegative() || staleAfter.isZero()) throw new IllegalArgumentException("staleAfter must be positive");
@@ -48,8 +48,8 @@ public final class SearchReconciler {
         Instant observedAt = clock.instant();
         runs.findRecoverable(observedAt.minus(staleAfter), batchSize).forEach(run -> {
             try {
-                coordination.reconcileRun(new TrustedSearchCoordinationUseCase.ReconciliationTrigger(
-                        new com.cryptostrategy.platform.experiment.api.ExperimentId(run.experimentId().value()), observedAt, "search-recovery:" + run.searchRunId().value()));
+                coordinator.reconcile(run.experimentId().value(), observedAt,
+                        "search-recovery:" + run.searchRunId().value());
             } catch (RuntimeException failure) {
                 log.warn("Search reconciliation failed for run '{}': {}",
                         run.searchRunId().value(), failure.getMessage());

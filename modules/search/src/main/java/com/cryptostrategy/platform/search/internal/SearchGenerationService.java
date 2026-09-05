@@ -31,7 +31,8 @@ public final class SearchGenerationService {
             if (!(raw instanceof GenerationOutcome.Generated generated)) {
                 return raw;
             }
-            if (!CanonicalSearchSpace.contains(request.searchSpace(), generated.candidate().parameters())) {
+            if (request.compositeSearchSpace().isEmpty()
+                    && !CanonicalSearchSpace.contains(request.searchSpace(), generated.candidate().parameters())) {
                 return new GenerationOutcome.Rejected("OUTPUT_OUTSIDE_SEARCH_SPACE");
             }
             if (generated.candidate().generationIndex() != request.expectedGenerationIndex()) {
@@ -43,8 +44,11 @@ public final class SearchGenerationService {
                         generated.nextState(), "GENERATOR_STATE_DID_NOT_PROGRESS");
             }
             if (!request.acceptedCandidateFingerprints().contains(generated.candidate().fingerprint())) {
-                String canonicalFingerprint = CanonicalSearchSpace.candidateFingerprint(
-                        generated.candidate().parameters());
+                String canonicalFingerprint = request.compositeSearchSpace()
+                        .map(space -> CanonicalCompositeSearchSpace.candidateFingerprint(
+                                generated.candidate().compositeDefinition().orElseThrow().components(), space))
+                        .orElseGet(() -> CanonicalSearchSpace.candidateFingerprint(
+                                generated.candidate().parameters()));
                 if (!canonicalFingerprint.equals(generated.candidate().fingerprint())) {
                     return new GenerationOutcome.Rejected("CANDIDATE_FINGERPRINT_MISMATCH");
                 }
@@ -56,6 +60,7 @@ public final class SearchGenerationService {
             }
             draw = new GenerationRequest(
                     request.searchSpace(),
+                    request.compositeSearchSpace(),
                     request.seed(),
                     Optional.of(generated.nextState()),
                     request.expectedGenerationIndex(),
@@ -67,8 +72,14 @@ public final class SearchGenerationService {
 
     private static boolean allCombinationsAccepted(GenerationRequest request) {
         BigInteger acceptedCount = BigInteger.valueOf(request.acceptedCandidateFingerprints().size());
-        if (acceptedCount.compareTo(request.searchSpace().combinationCount()) < 0) {
+        BigInteger combinationCount = request.compositeSearchSpace()
+                .map(com.cryptostrategy.platform.search.api.model.CompositeSearchSpace::combinationCount)
+                .orElseGet(() -> request.searchSpace().combinationCount());
+        if (acceptedCount.compareTo(combinationCount) < 0) {
             return false;
+        }
+        if (request.compositeSearchSpace().isPresent()) {
+            return true;
         }
         List<java.util.Map.Entry<String, SearchParameterDomain>> domains =
                 new ArrayList<>(request.searchSpace().parameters().entrySet());

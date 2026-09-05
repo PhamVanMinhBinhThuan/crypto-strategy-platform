@@ -69,14 +69,29 @@ public class SearchCoordinator {
                 new com.cryptostrategy.platform.experiment.api.job.JobId(request.searchJobId().value()),
                 new com.cryptostrategy.platform.experiment.api.ExperimentId(request.experimentId().value()),
                 boundedWindow,
+                properties.concurrency().maxInFlight(),
                 request.topKTarget(),
                 correlationId));
     }
 
     public TrustedSearchCoordinationUseCase.CoordinationOutcome complete(
             TrustedSearchCoordinationUseCase.CompletionTrigger trigger) {
-        requireDurableRun(trigger.experimentId().value());
-        return requireTrusted().reconcileCompletion(trigger);
+        SearchRun run = requireDurableRun(trigger.experimentId().value());
+        var outcome = requireTrusted().reconcileCompletion(trigger);
+        refillWhenRequested(run, outcome, trigger.correlationId());
+        return outcome;
+    }
+
+    public TrustedSearchCoordinationUseCase.CoordinationOutcome reconcile(
+            String experimentId, Instant observedAt, String correlationId) {
+        SearchRun run = requireDurableRun(experimentId);
+        var outcome = requireTrusted().reconcileRun(
+                new TrustedSearchCoordinationUseCase.ReconciliationTrigger(
+                        new com.cryptostrategy.platform.experiment.api.ExperimentId(experimentId),
+                        observedAt,
+                        correlationId));
+        refillWhenRequested(run, outcome, correlationId);
+        return outcome;
     }
 
     public TrustedSearchCoordinationUseCase.CoordinationOutcome stop(
@@ -93,5 +108,25 @@ public class SearchCoordinator {
 
     private TrustedSearchCoordinationUseCase requireTrusted() {
         return trusted;
+    }
+
+    private void refillWhenRequested(
+            SearchRun run,
+            TrustedSearchCoordinationUseCase.CoordinationOutcome outcome,
+            String correlationId) {
+        if (outcome.decision() != TrustedSearchCoordinationUseCase.Decision.FILL_AVAILABLE_SLOTS
+                || run.mode() == com.cryptostrategy.platform.search.api.model.SearchRunMode.REPRODUCTION) {
+            return;
+        }
+        int boundedWindow = Math.min(
+                run.maxInFlight(),
+                properties.concurrency().maxInFlightPerExperiment());
+        allocations.fillAvailableSlots(new SearchCoordinationCommand(
+                new com.cryptostrategy.platform.experiment.api.job.JobId(run.searchJobId().value()),
+                new com.cryptostrategy.platform.experiment.api.ExperimentId(run.experimentId().value()),
+                boundedWindow,
+                properties.concurrency().maxInFlight(),
+                1,
+                correlationId));
     }
 }

@@ -129,13 +129,13 @@ public class SearchWorkerConfiguration {
     }
 
     @Bean
-    @ConditionalOnBean(TrustedSearchCoordinationUseCase.class)
+    @ConditionalOnBean(SearchCoordinator.class)
     SearchReconciler searchReconciler(
             SearchRunStore runs,
-            TrustedSearchCoordinationUseCase coordination,
+            SearchCoordinator coordinator,
             SearchReproductionVerificationUseCase reproductions,
             WorkerProperties properties) {
-        return new SearchReconciler(runs, coordination, Clock.systemUTC(),
+        return new SearchReconciler(runs, coordinator, Clock.systemUTC(),
                 properties.reconciliation().staleGracePeriod(),
                 properties.reconciliation().searchBatchSize(), reproductions);
     }

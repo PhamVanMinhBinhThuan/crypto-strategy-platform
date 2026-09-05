@@ -9,7 +9,11 @@ import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardEntry;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardRevision;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardRevisionId;
+import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardCandidateEvidence;
+import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardBacktestResultId;
 import com.cryptostrategy.platform.leaderboard.api.port.out.LeaderboardStore;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -20,6 +24,20 @@ import java.util.Objects;
 import java.util.Optional;
 
 public final class JdbcLeaderboardStore implements LeaderboardStore {
+    private static final ObjectMapper JSON = new ObjectMapper().findAndRegisterModules();
+    private static final String EVIDENCE_SELECT = """
+            select c.experiment_id,c.candidate_id,c.generation_index,c.definition::text,
+                c.generator_state::text,c.fingerprint,br.backtest_result_id,j.status,
+                er.evaluation_result_id,er.metric_version,er.ranking_version,er.total_return,
+                er.win_rate,er.maximum_drawdown,er.number_of_trades,er.overall_score,
+                er.leaderboard_eligible,er.evaluation_fingerprint,er.evaluated_at
+            from experiment.candidate_definition c
+            left join experiment.job j on j.candidate_id=c.candidate_id
+                and j.experiment_id=c.experiment_id and j.job_type='BACKTEST'
+            left join experiment.backtest_result br on br.job_id=j.job_id
+            left join experiment.evaluation_result er on er.backtest_result_id=br.backtest_result_id
+                and er.experiment_id=c.experiment_id
+            """;
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
 
@@ -154,6 +172,62 @@ public final class JdbcLeaderboardStore implements LeaderboardStore {
                     evaluationResultId.value()));
         } catch (EmptyResultDataAccessException exception) {
             return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<LeaderboardCandidateEvidence> findCandidateEvidence(
+            ExperimentId experimentId, EvaluationResultId evaluationResultId) {
+        return evidence(EVIDENCE_SELECT + """
+                where c.experiment_id=? and er.evaluation_result_id=?
+                order by er.evaluated_at desc limit 1
+                """, experimentId.value(), evaluationResultId.value());
+    }
+
+    @Override
+    public Optional<LeaderboardCandidateEvidence> findCandidateEvidence(
+            ExperimentId experimentId, com.cryptostrategy.platform.experiment.api.CandidateId candidateId) {
+        return evidence(EVIDENCE_SELECT + """
+                where c.experiment_id=? and c.candidate_id=?
+                order by er.evaluated_at desc nulls last limit 1
+                """, experimentId.value(), candidateId.value());
+    }
+
+    private Optional<LeaderboardCandidateEvidence> evidence(String sql, Object... arguments) {
+        try {
+            return Optional.ofNullable(jdbc.queryForObject(sql, (rs, row) -> {
+                EvaluationResult evaluation = rs.getString("evaluation_result_id") == null ? null
+                        : new EvaluationResult(
+                                new EvaluationResultId(rs.getString("evaluation_result_id")),
+                                new ExperimentId(rs.getString("experiment_id")),
+                                new BacktestResultId(rs.getString("backtest_result_id")),
+                                new MetricVersion(rs.getString("metric_version")),
+                                new RankingVersion(rs.getString("ranking_version")),
+                                rs.getBigDecimal("total_return"), rs.getBigDecimal("win_rate"),
+                                rs.getBigDecimal("maximum_drawdown"), rs.getInt("number_of_trades"),
+                                rs.getBigDecimal("overall_score"), rs.getBoolean("leaderboard_eligible"),
+                                rs.getString("evaluation_fingerprint"),
+                                rs.getTimestamp("evaluated_at").toInstant());
+                return new LeaderboardCandidateEvidence(
+                        new ExperimentId(rs.getString("experiment_id")),
+                        new com.cryptostrategy.platform.experiment.api.CandidateId(
+                                rs.getString("candidate_id")), rs.getInt("generation_index"),
+                        map(rs.getString("definition")), map(rs.getString("generator_state")),
+                        rs.getString("fingerprint"), rs.getString("backtest_result_id") == null ? null
+                                : new LeaderboardBacktestResultId(rs.getString("backtest_result_id")),
+                        rs.getString("status") == null ? "QUEUED" : rs.getString("status"), evaluation);
+            }, arguments));
+        } catch (EmptyResultDataAccessException exception) {
+            return Optional.empty();
+        }
+    }
+
+    private static java.util.Map<String, Object> map(String value) {
+        if (value == null) return java.util.Map.of();
+        try {
+            return JSON.readValue(value, new TypeReference<>() {});
+        } catch (java.io.IOException failure) {
+            throw new IllegalStateException("Stored candidate evidence is invalid", failure);
         }
     }
 }

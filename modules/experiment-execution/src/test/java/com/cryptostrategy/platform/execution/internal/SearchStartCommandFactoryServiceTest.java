@@ -17,13 +17,19 @@ import com.cryptostrategy.platform.marketdata.api.model.DatasetSnapshot;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.strategy.api.StrategyModuleFactory;
 import com.cryptostrategy.platform.strategy.api.model.CombinationPolicyId;
+import com.cryptostrategy.platform.strategy.api.model.StrategyDescriptor;
 import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
+import com.cryptostrategy.platform.strategy.api.model.StrategySignal;
 import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
 import com.cryptostrategy.platform.strategy.api.model.StrategyReference;
 import com.cryptostrategy.platform.strategy.api.model.StrategyVersionId;
 import com.cryptostrategy.platform.strategy.api.model.UserStrategyId;
 import com.cryptostrategy.platform.strategy.api.model.UserStrategyVersionId;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
+import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSchema;
+import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue;
+import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterDefinition;
+import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterType;
 import com.cryptostrategy.platform.strategy.api.model.user.CompositeStrategyDraftSource;
 import com.cryptostrategy.platform.strategy.api.model.user.CompositeStrategySnapshot;
 import com.cryptostrategy.platform.strategy.api.model.user.UserStrategyComponent;
@@ -32,11 +38,14 @@ import com.cryptostrategy.platform.strategy.api.port.in.ResolveStrategySnapshotU
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyFingerprintCalculator;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -117,6 +126,94 @@ class SearchStartCommandFactoryServiceTest {
         assertThatThrownBy(() -> service.create(both))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("exactly one");
+    }
+
+    @Test
+    void expandsExactDecimalRangesAndFreezesCanonicalOptions() {
+        GetDatasetUseCase datasets = mock(GetDatasetUseCase.class);
+        DatasetSnapshot dataset = dataset();
+        when(datasets.getDataset(DATASET_ID)).thenReturn(dataset);
+        StrategyRegistry registry = mock(StrategyRegistry.class);
+        ResolveStrategySnapshotUseCase userStrategies = mock(ResolveStrategySnapshotUseCase.class);
+        StrategyFingerprintCalculator fingerprints = StrategyModuleFactory.fingerprints();
+        StrategyReference reference = reference("rsi", '4');
+        ParameterDefinition threshold = new ParameterDefinition(
+                "buyThreshold", ParameterType.DECIMAL, true,
+                Optional.of(new StrategyParameterValue.DecimalValue(new BigDecimal("30"))),
+                Optional.of(new BigDecimal("0")), Optional.of(new BigDecimal("100")),
+                Set.of(), "Buy threshold");
+        StrategyDescriptor descriptor = new StrategyDescriptor(
+                reference, "strategy-descriptor-v1", "RSI", "RSI", "momentum",
+                Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD), 2,
+                new StrategyParameterSchema(List.of(threshold), List.of()), "descriptor-fingerprint");
+        when(registry.descriptor(reference.pluginId(), reference.implementationVersion()))
+                .thenReturn(descriptor);
+        when(registry.resolveParameters(
+                org.mockito.ArgumentMatchers.eq(reference.pluginId()),
+                org.mockito.ArgumentMatchers.eq(reference.implementationVersion()),
+                org.mockito.ArgumentMatchers.anyMap()))
+                .thenAnswer(invocation -> StrategyParameterSet.of(invocation.getArgument(2)));
+        SearchStartCommandFactory.ParameterDomain decimalRange =
+                new SearchStartCommandFactory.ParameterDomain(
+                        "DECIMAL_RANGE", new BigDecimal("20.5"), new BigDecimal("21.5"),
+                        new BigDecimal("0.5"), List.of());
+        SearchStartCommandFactory.Request request = new SearchStartCommandFactory.Request(
+                OWNER, "decimal-key", "decimal-hash", "decimal-correlation", "Decimal search",
+                DATASET_ID, new RequestedGeneratorId("random-search"), "1.0.0", 42L,
+                null, null, null, Map.of(), 100, 60, null, 10,
+                List.of(new SearchStartCommandFactory.StrategyPoolEntryRequest(
+                        reference.pluginId(), reference.implementationVersion().toString(), null,
+                        Map.of("buyThreshold", decimalRange))),
+                1, 1, new CombinationPolicyId("majority-vote"), "1.0.0", List.of(), 2);
+
+        var command = service(datasets, registry, userStrategies, fingerprints).create(request);
+
+        assertThat(command.searchRun().stopConditions().maximumCandidates()).isEqualTo(3);
+        assertThat(command.manifest().searchConfig().toString())
+                .contains("buyThreshold", "20.5", "21", "21.5", "DECIMAL");
+    }
+
+    @Test
+    void freezesConfiguredBacktestAssumptionsAndRetainsDefaultsWhenOmitted() {
+        GetDatasetUseCase datasets = mock(GetDatasetUseCase.class);
+        DatasetSnapshot dataset = dataset();
+        when(datasets.getDataset(DATASET_ID)).thenReturn(dataset);
+        StrategyRegistry registry = mock(StrategyRegistry.class);
+        ResolveStrategySnapshotUseCase userStrategies = mock(ResolveStrategySnapshotUseCase.class);
+        StrategyFingerprintCalculator fingerprints = StrategyModuleFactory.fingerprints();
+        CompositeStrategyDraftSource source = compositeSource();
+        when(userStrategies.resolveSnapshot(OWNER, new ResolveStrategySnapshotQuery(USER_VERSION_ID)))
+                .thenReturn(new CompositeStrategySnapshot(
+                        new UserStrategyId("01J00000000000000000000403"), USER_VERSION_ID, 1,
+                        OWNER, source, fingerprints.composite(source.policyId(), source.policyVersion(),
+                                source.policyParameters(), source.components().stream()
+                                        .map(component -> new StrategyFingerprintCalculator.Component(
+                                                component.strategyReference(), component.parameters()))
+                                        .toList())));
+
+        SearchStartCommandFactory.Request base = request();
+        SearchStartCommandFactory.Request configured = new SearchStartCommandFactory.Request(
+                base.ownerUserId(), base.idempotencyKey(), base.canonicalRequestHash(),
+                base.correlationId(), base.name(), base.datasetId(), base.generatorId(),
+                base.generatorVersion(), base.seed(), base.userStrategyVersionId(),
+                base.strategyId(), base.strategyVersion(), base.parameters(),
+                base.maximumCandidates(), base.maximumDurationSeconds(),
+                base.maximumWithoutImprovement(), base.topK(), base.strategyPool(),
+                base.minimumComponents(), base.maximumComponents(), base.combinationPolicyId(),
+                base.combinationPolicyVersion(), base.constraints(), base.requestedConcurrency(),
+                new SearchStartCommandFactory.BacktestAssumptionsRequest(
+                        new BigDecimal("25000.50"), new BigDecimal("0.001"),
+                        new BigDecimal("0.0005")));
+
+        var service = service(datasets, registry, userStrategies, fingerprints);
+        assertThat(service.create(configured).manifest().backtestConfig())
+                .containsEntry("initialCapital", "25000.500000000000")
+                .containsEntry("feeRate", "0.0010000000")
+                .containsEntry("slippageRate", "0.0005000000");
+        assertThat(service.create(base).manifest().backtestConfig())
+                .containsEntry("initialCapital", "10000.000000000000")
+                .containsEntry("feeRate", "0.0010000000")
+                .containsEntry("slippageRate", "0.0000000000");
     }
 
     private static SearchStartCommandFactory.Request request() {

@@ -602,6 +602,14 @@ Hệ thống không đảm bảo exactly-once delivery. Client phải xử lý d
   `SEARCH_REQUEST`/`1`) từ `search.requests.v1` qua group riêng `search-coordinators`; completion
   `CANDIDATE_EVALUATED` chỉ là trigger để reload durable progress. Start/Reproduce chỉ nhận qua REST,
   còn WebSocket tiếp tục chỉ phân phối progress/lifecycle và hướng client reconcile snapshot.
+- Với F-015, progress notification chỉ báo rằng snapshot của Experiment đã thay đổi. Client MUST
+  đọc lại `GET /api/v1/experiments/{experimentId}` để lấy `searchProgress` authoritative gồm
+  `allocated`, `active`, `completed`, `failed`, `remainingCapacity`, `configuredMaximum`, `topK`,
+  `bestScore`, `startedAt` và `terminalReason`. Client không được cộng/trừ các counter từ event.
+- Refill, no-improvement, deadline, exhaustion và global/per-experiment capacity là quyết định durable
+  của Coordinator. Realtime không mô phỏng Worker/candidate hiện tại và không được dùng làm bằng chứng
+  rằng Search đã terminal. Khi reconnect hoặc thấy revision/event gap, UI giữ snapshot cuối, hiển thị
+  trạng thái degraded/reconnecting rồi REST-reconcile trước khi cập nhật màn hình.
 - Chỉ cho phép Origin trong allowlist.
 - Không nhận `START_SEARCH`, `STOP_SEARCH` hoặc command thay đổi business state qua WebSocket.
 - Không gửi credential, token, SQL, internal class name, stack trace hoặc raw Binance/Python response.

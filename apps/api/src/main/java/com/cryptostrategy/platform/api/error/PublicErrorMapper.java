@@ -14,10 +14,13 @@ import com.cryptostrategy.platform.strategy.api.error.StrategyErrorCode;
 import com.cryptostrategy.platform.strategy.api.error.StrategyException;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import java.util.Map;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.BindingResult;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.BindException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -44,9 +47,16 @@ public final class PublicErrorMapper {
         if (exception instanceof InvalidCursorException) {
             return error(HttpStatus.BAD_REQUEST, "INVALID_CURSOR", "The pagination cursor is invalid.");
         }
-        if (exception instanceof MethodArgumentNotValidException
-                || exception instanceof BindException
-                || exception instanceof MissingRequestHeaderException
+        if (exception instanceof RequestFieldValidationException validation) {
+            return validation(validation.fieldErrors());
+        }
+        if (exception instanceof MethodArgumentNotValidException validation) {
+            return validation(validation.getBindingResult());
+        }
+        if (exception instanceof BindException validation) {
+            return validation(validation.getBindingResult());
+        }
+        if (exception instanceof MissingRequestHeaderException
                 || exception instanceof MissingServletRequestParameterException
                 || exception instanceof IllegalArgumentException) {
             return error(HttpStatus.BAD_REQUEST, "REQUEST_VALIDATION_FAILED", "Request validation failed.");
@@ -98,6 +108,14 @@ public final class PublicErrorMapper {
         }
         if (exception instanceof BacktestException backtestException) {
             return mapBacktest(backtestException.code());
+        }
+        if (hasCause(exception, BadSqlGrammarException.class)) {
+            return retryable(HttpStatus.SERVICE_UNAVAILABLE, "DATABASE_SCHEMA_UNAVAILABLE",
+                    "The required database schema is not available. Apply pending migrations.");
+        }
+        if (hasCause(exception, DataAccessException.class)) {
+            return retryable(HttpStatus.SERVICE_UNAVAILABLE, "DATABASE_UNAVAILABLE",
+                    "The database is temporarily unavailable.");
         }
         return error(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred.");
     }
@@ -180,6 +198,27 @@ public final class PublicErrorMapper {
 
     private static MappedError retryable(HttpStatus status, String code, String message) {
         return new MappedError(status, code, message, Map.of("retryable", true));
+    }
+
+    private static MappedError validation(BindingResult binding) {
+        var fieldErrors = binding.getFieldErrors().stream()
+                .map(error -> Map.of(
+                        "field", error.getField(),
+                        "reason", safeReason(error.getDefaultMessage())))
+                .toList();
+        return validation(fieldErrors);
+    }
+
+    private static MappedError validation(java.util.List<Map<String, String>> fieldErrors) {
+        return new MappedError(HttpStatus.BAD_REQUEST, "REQUEST_VALIDATION_FAILED",
+                "Request validation failed.",
+                fieldErrors.isEmpty() ? Map.of() : Map.of("fieldErrors", fieldErrors));
+    }
+
+    private static String safeReason(String reason) {
+        if (reason == null || reason.isBlank()) return "Invalid value.";
+        String sanitized = reason.replaceAll("\\p{Cntrl}", " ").trim();
+        return sanitized.length() <= 256 ? sanitized : sanitized.substring(0, 256);
     }
 
     private static MappedError error(HttpStatus status, String code, String message) {

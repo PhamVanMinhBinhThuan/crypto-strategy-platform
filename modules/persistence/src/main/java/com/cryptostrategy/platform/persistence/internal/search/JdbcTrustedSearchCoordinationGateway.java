@@ -20,16 +20,43 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 /** PostgreSQL authority cho progress/lifecycle Search, với cùng version fence cho Run và SEARCH Job. */
 public final class JdbcTrustedSearchCoordinationGateway implements TrustedSearchCoordinationGateway {
-    private static final String SNAPSHOT = "select " + SearchSql.COLUMNS + """
-            , (select count(*) from experiment.candidate_definition c
-               where c.experiment_id=sr.experiment_id) allocated_work
-            , (select count(*) from experiment.job j
-               where j.experiment_id=sr.experiment_id and j.job_type='BACKTEST' and j.status='SUCCEEDED') completed_work
-            , (select count(*) from experiment.job j
-               where j.experiment_id=sr.experiment_id and j.job_type='BACKTEST' and j.status in ('FAILED','CANCELLED')) failed_work
-            , (select max(br.completed_at) from experiment.backtest_result br
-               where br.experiment_id=sr.experiment_id) latest_completed_at
-            from search.search_run sr where sr.experiment_id=?
+    private static final String SNAPSHOT = "select sr.*" + """
+            , progress.allocated_work, progress.completed_work, progress.failed_work,
+              progress.latest_completed_at,
+              coalesce((manifest.search_config ->> 'maximumCandidates')::integer,
+                       sr.maximum_candidates) configured_maximum_candidates,
+              progress.settled_prefix - coalesce(best.generation_index + 1, 0)
+                  consecutive_without_improvement
+            from (select
+            """ + SearchSql.COLUMNS + """
+                  from search.search_run where experiment_id=?) sr
+            join experiment.experiment_manifest manifest on manifest.experiment_id=sr.experiment_id
+            cross join lateral (
+                select count(c.candidate_id)::integer allocated_work,
+                    count(*) filter (where j.status='SUCCEEDED')::integer completed_work,
+                    count(*) filter (where j.status in ('FAILED','CANCELLED'))::integer failed_work,
+                    max(br.completed_at) latest_completed_at,
+                    coalesce(min(c.generation_index) filter (
+                        where j.status not in ('SUCCEEDED','FAILED','CANCELLED')),
+                        count(c.candidate_id)::integer) settled_prefix
+                from experiment.candidate_definition c
+                left join experiment.job j on j.candidate_id=c.candidate_id
+                    and j.experiment_id=c.experiment_id and j.job_type='BACKTEST'
+                left join experiment.backtest_result br on br.job_id=j.job_id
+                where c.experiment_id=sr.experiment_id
+            ) progress
+            left join lateral (
+                select c.generation_index
+                from experiment.candidate_definition c
+                join experiment.job j on j.candidate_id=c.candidate_id
+                    and j.experiment_id=c.experiment_id and j.status='SUCCEEDED'
+                join experiment.backtest_result br on br.job_id=j.job_id
+                join experiment.evaluation_result er on er.backtest_result_id=br.backtest_result_id
+                where c.experiment_id=sr.experiment_id
+                  and c.generation_index < progress.settled_prefix
+                order by er.overall_score desc, c.generation_index asc
+                limit 1
+            ) best on true
             """;
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
@@ -77,7 +104,8 @@ public final class JdbcTrustedSearchCoordinationGateway implements TrustedSearch
         SearchRun run = change.replacement();
         int updated = jdbc.update(SearchSql.UPDATE_FENCED,
                 run.generatorState().contractVersion(), run.generatorState().canonicalState(),
-                run.generatorState().fingerprint(), run.nextGenerationIndex(), run.status().name(), run.version(),
+                run.generatorState().fingerprint(), run.nextGenerationIndex(), run.status().name(),
+                run.terminalReason() == null ? null : run.terminalReason().name(), run.version(),
                 timestamp(run.startedAt()), timestamp(run.deadlineAt()), timestamp(run.finishedAt()),
                 run.failureCode(), run.failureMessage(), Timestamp.from(run.updatedAt()),
                 run.searchRunId().value(), change.expectedVersion());
@@ -118,7 +146,9 @@ public final class JdbcTrustedSearchCoordinationGateway implements TrustedSearch
         Timestamp latest = rs.getTimestamp("latest_completed_at");
         return new AuthoritativeSnapshot(rows.mapSearchRun(rs, row), rs.getInt("allocated_work"),
                 rs.getInt("completed_work"), rs.getInt("failed_work"),
-                latest == null ? null : latest.toInstant());
+                latest == null ? null : latest.toInstant(),
+                rs.getInt("configured_maximum_candidates"),
+                rs.getInt("consecutive_without_improvement"));
     }
 
     private static Timestamp timestamp(java.time.Instant instant) {

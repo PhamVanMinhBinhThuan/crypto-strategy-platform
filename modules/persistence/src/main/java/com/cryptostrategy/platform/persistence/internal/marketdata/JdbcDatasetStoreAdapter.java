@@ -12,6 +12,7 @@ import com.cryptostrategy.platform.marketdata.api.port.out.DatasetStore;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -24,11 +25,20 @@ public final class JdbcDatasetStoreAdapter implements DatasetStore {
         this.jdbc = jdbc; this.transactions = transactions; this.references = references; this.candles = candles; this.reader = reader;
     }
     @Override public DatasetSnapshot finalizeAtomically(DatasetFinalization finalization) {
+        return finalizeAtomically(finalization, null);
+    }
+    @Override public DatasetSnapshot finalizeAtomically(
+            DatasetFinalization finalization, UUID ownerUserId) {
         try {
-            return transactions.execute(status -> insert(finalization));
+            return transactions.execute(status -> {
+                DatasetSnapshot snapshot = insert(finalization);
+                if (ownerUserId != null) grantAccess(ownerUserId, snapshot.datasetVersionId());
+                return snapshot;
+            });
         } catch (DuplicateKeyException duplicate) {
             DatasetSnapshot winner = findByChecksum(finalization.snapshot().checksum()).orElseThrow(() -> duplicate);
             if (!equivalent(winner, finalization)) throw new MarketDataException(MarketDataErrorCode.MARKET_DATA_INTEGRITY_CONFLICT, "Dataset checksum provenance conflict");
+            if (ownerUserId != null) grantAccess(ownerUserId, winner.datasetVersionId());
             return winner;
         }
     }
@@ -42,6 +52,20 @@ public final class JdbcDatasetStoreAdapter implements DatasetStore {
     }
     @Override public Optional<DatasetSnapshot> find(DatasetVersionId datasetId) { return jdbc.query(MarketDataSql.FIND_DATASET_ID, (rs, row) -> MarketDataRows.dataset(rs), datasetId.value()).stream().findFirst(); }
     @Override public Optional<DatasetSnapshot> findByChecksum(String checksum) { return jdbc.query(MarketDataSql.FIND_DATASET_CHECKSUM, (rs, row) -> MarketDataRows.dataset(rs), checksum).stream().findFirst(); }
+    @Override public List<DatasetSnapshot> listRecent(int limit) {
+        if (limit < 1 || limit > 100) throw new IllegalArgumentException("Dataset list limit must be between 1 and 100");
+        return List.copyOf(jdbc.query(MarketDataSql.LIST_RECENT_DATASETS,
+                (rs, row) -> MarketDataRows.dataset(rs), limit));
+    }
+    @Override public List<DatasetSnapshot> listRecent(UUID ownerUserId, int limit) {
+        if (ownerUserId == null) return listRecent(limit);
+        if (limit < 1 || limit > 100) throw new IllegalArgumentException("Dataset list limit must be between 1 and 100");
+        return List.copyOf(jdbc.query(MarketDataSql.LIST_RECENT_DATASETS_FOR_OWNER,
+                (rs, row) -> MarketDataRows.dataset(rs), ownerUserId, limit));
+    }
+    @Override public void grantAccess(UUID ownerUserId, DatasetVersionId datasetId) {
+        jdbc.update(MarketDataSql.GRANT_DATASET_ACCESS, ownerUserId, datasetId.value());
+    }
     private boolean equivalent(DatasetSnapshot winner, DatasetFinalization expected) {
         DatasetSnapshot candidate = expected.snapshot();
         if (!winner.version().equals(candidate.version()) || !winner.normalizationVersion().equals(candidate.normalizationVersion())

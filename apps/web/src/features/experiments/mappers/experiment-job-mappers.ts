@@ -2,6 +2,22 @@ import { z } from "zod";
 const utc = z.string().datetime(),
   nullableUtc = utc.nullable(),
   failure = z.object({ code: z.string(), message: z.string() }).strict().nullable();
+const searchProgress = z
+  .object({
+    allocated: z.number().int().nonnegative(),
+    active: z.number().int().nonnegative(),
+    completed: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+    remainingCapacity: z.number().int().nonnegative(),
+    configuredMaximum: z.number().int().positive(),
+    topK: z.number().int().positive(),
+    bestScore: z.string().nullable(),
+    startedAt: nullableUtc,
+    terminalReason: z.string().nullable()
+  })
+  .strict()
+  .nullable()
+  .optional();
 export const experimentSchema = z
   .object({
     experimentId: z.string(),
@@ -22,6 +38,7 @@ export const experimentSchema = z
     startedAt: nullableUtc,
     completedAt: nullableUtc,
     failure,
+    searchProgress,
     createdAt: utc
   })
   .strict();

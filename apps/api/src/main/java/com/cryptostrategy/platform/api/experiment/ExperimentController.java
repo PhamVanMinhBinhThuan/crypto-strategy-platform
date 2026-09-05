@@ -15,6 +15,9 @@ import com.cryptostrategy.platform.experiment.api.port.in.ListCandidatesUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.StopExperimentUseCase;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUseCase;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchReproductionUseCase;
+import com.cryptostrategy.platform.execution.api.port.in.GetSearchProgressUseCase;
+import com.cryptostrategy.platform.leaderboard.api.port.in.GetLeaderboardUseCase;
+import com.cryptostrategy.platform.api.leaderboard.LeaderboardDtos;
 import java.time.Instant;
 import java.time.Duration;
 import java.time.Clock;
@@ -52,6 +55,8 @@ public final class ExperimentController {
     private final StartSearchReproductionUseCase reproduceSearch;
     private final boolean searchReproduceEnabled;
     private final Clock clock;
+    private final GetSearchProgressUseCase searchProgress;
+    private final GetLeaderboardUseCase leaderboards;
 
     public ExperimentController(
             IdempotencyCommandExecutor idempotency,
@@ -61,7 +66,7 @@ public final class ExperimentController {
             StopExperimentUseCase stopExperiment,
             PageRequestMapper pages) {
         this(idempotency, experiments, jobs, candidates, stopExperiment, pages, null, null, false, null, false,
-                Clock.systemUTC());
+                Clock.systemUTC(), ignored -> java.util.Optional.empty(), emptyLeaderboards());
     }
 
     ExperimentController(
@@ -70,7 +75,8 @@ public final class ExperimentController {
             PageRequestMapper pages, StartSearchExperimentUseCase startSearch,
             ExperimentRequestMapper startRequests, boolean searchStartEnabled) {
         this(idempotency, experiments, jobs, candidates, stopExperiment, pages, startSearch, startRequests,
-                searchStartEnabled, null, false, Clock.systemUTC());
+                searchStartEnabled, null, false, Clock.systemUTC(), ignored -> java.util.Optional.empty(),
+                emptyLeaderboards());
     }
 
     ExperimentController(
@@ -80,7 +86,20 @@ public final class ExperimentController {
             ExperimentRequestMapper startRequests, boolean searchStartEnabled,
             StartSearchReproductionUseCase reproduceSearch, boolean searchReproduceEnabled) {
         this(idempotency, experiments, jobs, candidates, stopExperiment, pages, startSearch, startRequests,
-                searchStartEnabled, reproduceSearch, searchReproduceEnabled, Clock.systemUTC());
+                searchStartEnabled, reproduceSearch, searchReproduceEnabled, Clock.systemUTC(),
+                ignored -> java.util.Optional.empty(), emptyLeaderboards());
+    }
+
+    ExperimentController(
+            IdempotencyCommandExecutor idempotency, GetExperimentUseCase experiments,
+            GetJobUseCase jobs, ListCandidatesUseCase candidates, StopExperimentUseCase stopExperiment,
+            PageRequestMapper pages, StartSearchExperimentUseCase startSearch,
+            ExperimentRequestMapper startRequests, boolean searchStartEnabled,
+            StartSearchReproductionUseCase reproduceSearch, boolean searchReproduceEnabled,
+            Clock clock) {
+        this(idempotency, experiments, jobs, candidates, stopExperiment, pages, startSearch,
+                startRequests, searchStartEnabled, reproduceSearch, searchReproduceEnabled, clock,
+                ignored -> java.util.Optional.empty(), emptyLeaderboards());
     }
 
     @Autowired
@@ -96,7 +115,9 @@ public final class ExperimentController {
             @Value("${platform.features.search-start-enabled:true}") boolean searchStartEnabled,
             StartSearchReproductionUseCase reproduceSearch,
             @Value("${platform.features.search-reproduce-enabled:true}") boolean searchReproduceEnabled,
-            @Qualifier("searchApiClock") Clock clock) {
+            @Qualifier("searchApiClock") Clock clock,
+            GetSearchProgressUseCase searchProgress,
+            GetLeaderboardUseCase leaderboards) {
         this.idempotency = Objects.requireNonNull(idempotency, "idempotency");
         this.experiments = Objects.requireNonNull(experiments, "experiments");
         this.jobs = Objects.requireNonNull(jobs, "jobs");
@@ -109,6 +130,8 @@ public final class ExperimentController {
         this.reproduceSearch = reproduceSearch;
         this.searchReproduceEnabled = searchReproduceEnabled;
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.searchProgress = Objects.requireNonNull(searchProgress, "searchProgress");
+        this.leaderboards = Objects.requireNonNull(leaderboards, "leaderboards");
     }
 
     @PostMapping
@@ -127,7 +150,10 @@ public final class ExperimentController {
                 (key, requestHash) -> startSearch.start(startRequests.map(
                         user.userId(), key, requestHash, correlationId(), request)));
         var response = new CommandDtos.ExperimentAcceptedResponse(
-                accepted.experimentId(), accepted.searchJobId(), accepted.status());
+                accepted.experimentId(), accepted.searchJobId(), accepted.searchRunId(),
+                accepted.status(), accepted.configurationVersion(),
+                accepted.configurationFingerprint(),
+                "/search/" + accepted.experimentId().value());
         return ResponseEntity.accepted()
                 .location(URI.create("/api/v1/experiments/" + accepted.experimentId().value()))
                 .body(response);
@@ -143,7 +169,8 @@ public final class ExperimentController {
         var manifest = experiments.getManifest(user.userId(), experimentId)
                 .orElseThrow(ExperimentController::inaccessible);
         return ReadDtos.ExperimentResponse.from(
-                experiment, manifest, jobs.listJobs(user.userId(), experimentId));
+                experiment, manifest, jobs.listJobs(user.userId(), experimentId),
+                searchProgress.findByExperimentId(experimentId).orElse(null));
     }
 
     @PostMapping("/{id}/stop")
@@ -163,7 +190,8 @@ public final class ExperimentController {
                     var manifest = experiments.getManifest(user.userId(), experimentId)
                             .orElseThrow(ExperimentController::inaccessible);
                     return ReadDtos.ExperimentResponse.from(
-                            stopped, manifest, jobs.listJobs(user.userId(), experimentId));
+                            stopped, manifest, jobs.listJobs(user.userId(), experimentId),
+                            searchProgress.findByExperimentId(experimentId).orElse(null));
                 });
         return ResponseEntity.accepted()
                 .location(URI.create("/api/v1/experiments/" + id))
@@ -226,14 +254,21 @@ public final class ExperimentController {
     }
 
     @GetMapping("/{id}/candidates/{candidateId}")
-    public ReadDtos.CandidateResponse getCandidate(
+    public LeaderboardDtos.CandidateDetailResponse getCandidate(
             @AuthenticationPrincipal AuthenticatedUserContext user,
             @PathVariable String id,
             @PathVariable String candidateId) {
-        return candidates.getCandidate(
-                        user.userId(), new ExperimentId(id), new CandidateId(candidateId))
-                .map(ReadDtos.CandidateResponse::from)
+        ExperimentId experimentId = new ExperimentId(id);
+        var candidate = candidates.getCandidate(user.userId(), experimentId,
+                        new CandidateId(candidateId))
                 .orElseThrow(ExperimentController::inaccessible);
+        var manifest = experiments.getManifest(user.userId(), experimentId)
+                .orElseThrow(ExperimentController::inaccessible);
+        return leaderboards.getCandidate(experimentId, new CandidateId(candidateId))
+                .map(value -> LeaderboardDtos.CandidateDetailResponse.from(
+                        value, manifest.datasetProvenance()))
+                .orElseGet(() -> LeaderboardDtos.CandidateDetailResponse.from(
+                        candidate, manifest.datasetProvenance()));
     }
 
     private static DependencyUnavailableException searchCoordinatorUnavailable() {
@@ -243,6 +278,10 @@ public final class ExperimentController {
     private static String correlationId() {
         String current = CorrelationContext.current();
         return current == null ? CorrelationId.resolve(null) : current;
+    }
+
+    private static GetLeaderboardUseCase emptyLeaderboards() {
+        return experimentId -> java.util.Optional.empty();
     }
 
     private static ResourceInaccessibleException inaccessible() {

@@ -5,7 +5,6 @@ import com.cryptostrategy.platform.marketdata.api.error.MarketDataErrorCode;
 import com.cryptostrategy.platform.marketdata.api.error.MarketDataException;
 import com.cryptostrategy.platform.marketdata.api.port.out.MarketReferenceDataStore;
 import java.util.Optional;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public final class JdbcMarketReferenceDataAdapter implements MarketReferenceDataStore {
@@ -13,16 +12,14 @@ public final class JdbcMarketReferenceDataAdapter implements MarketReferenceData
     public JdbcMarketReferenceDataAdapter(JdbcTemplate jdbc) { this.jdbc = jdbc; }
     @Override public Asset resolveAsset(Asset asset) {
         Optional<Asset> existing = findAsset(asset.symbol()); if (existing.isPresent()) return existing.get();
-        try { jdbc.update(MarketDataSql.INSERT_ASSET, asset.assetId().value(), asset.symbol().value(), asset.name().orElse(null), asset.active()); }
-        catch (DuplicateKeyException ignored) { }
+        jdbc.update(MarketDataSql.INSERT_ASSET, asset.assetId().value(), asset.symbol().value(), asset.name().orElse(null), asset.active());
         return findAsset(asset.symbol()).orElseThrow(() -> new MarketDataException(MarketDataErrorCode.MARKET_DATA_INTEGRITY_CONFLICT, "Asset conflict"));
     }
     @Override public TradingPair resolveTradingPair(TradingPair pair) {
         Asset base = resolveAsset(pair.baseAsset()); Asset quote = resolveAsset(pair.quoteAsset());
         Optional<TradingPair> existing = jdbc.query(MarketDataSql.FIND_PAIR_BY_ASSETS, (rs, row) -> MarketDataRows.pair(rs), base.assetId().value(), quote.assetId().value()).stream().findFirst();
         if (existing.isPresent()) return existing.get();
-        try { jdbc.update(MarketDataSql.INSERT_PAIR, pair.tradingPairId().value(), base.assetId().value(), quote.assetId().value(), base.symbol().value() + quote.symbol().value(), pair.active()); }
-        catch (DuplicateKeyException ignored) { }
+        jdbc.update(MarketDataSql.INSERT_PAIR, pair.tradingPairId().value(), base.assetId().value(), quote.assetId().value(), base.symbol().value() + quote.symbol().value(), pair.active());
         return jdbc.query(MarketDataSql.FIND_PAIR_BY_ASSETS, (rs, row) -> MarketDataRows.pair(rs), base.assetId().value(), quote.assetId().value()).stream().findFirst()
                 .orElseThrow(() -> new MarketDataException(MarketDataErrorCode.MARKET_DATA_INTEGRITY_CONFLICT, "Trading Pair conflict"));
     }

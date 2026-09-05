@@ -3,6 +3,7 @@ package com.cryptostrategy.platform.execution.internal;
 import com.cryptostrategy.platform.contracts.api.MessageEnvelope;
 import com.cryptostrategy.platform.contracts.api.MessageTypes;
 import com.cryptostrategy.platform.contracts.api.SearchRequestPayload;
+import com.cryptostrategy.platform.backtesting.api.model.BacktestAssumptions;
 import com.cryptostrategy.platform.execution.api.port.in.SearchStartCommandFactory;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUseCase.StartCommand;
 import com.cryptostrategy.platform.experiment.api.Experiment;
@@ -17,6 +18,7 @@ import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceS
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.search.api.model.*;
 import com.cryptostrategy.platform.search.api.SearchModuleFactory;
+import com.cryptostrategy.platform.search.api.CompositeSearchCanonicalization;
 import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
 import com.cryptostrategy.platform.strategy.api.model.user.*;
 import com.cryptostrategy.platform.strategy.api.model.user.query.ResolveStrategySnapshotQuery;
@@ -28,6 +30,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.*;
 import java.util.*;
 
@@ -61,11 +65,15 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         if (request.datasetId() == null || request.parameters() == null) {
             throw new IllegalArgumentException("Dataset, generator, search space and stop condition are required");
         }
+        boolean compositeV2 = request.strategyPool() != null && !request.strategyPool().isEmpty();
         boolean userStrategy = request.userStrategyVersionId() != null;
         boolean systemStrategy = request.strategyId() != null;
-        if (userStrategy == systemStrategy) {
+        if (!compositeV2 && userStrategy == systemStrategy) {
             throw new IllegalArgumentException(
                     "Choose exactly one published User Strategy or system Strategy Search Space");
+        }
+        if (compositeV2 && (userStrategy || systemStrategy)) {
+            throw new IllegalArgumentException("Use either the v2 strategy pool or the legacy Search Space");
         }
         if (request.generatorId() == null || !"random-search".equals(request.generatorId().value())
                 || !"1.0.0".equals(request.generatorVersion())) {
@@ -77,17 +85,25 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         Instant now = clock.instant();
         long seed = request.seed() == null ? 0L : request.seed();
         int maximumCandidates = request.maximumCandidates() == null ? 10_000 : positive(request.maximumCandidates(), "maximumCandidates");
+        int configuredMaximumCandidates = maximumCandidates;
         int durationSeconds = request.maximumDurationSeconds() == null ? 86_400 : positive(request.maximumDurationSeconds(), "maximumDurationSeconds");
+        Integer maximumWithoutImprovement = request.maximumWithoutImprovement() == null
+                ? null : positive(request.maximumWithoutImprovement(), "maximumWithoutImprovement");
         int topK = positive(request.topK(), "topK");
         var dataset = datasets.getDataset(request.datasetId());
         var datasetSnapshot = new DatasetProvenanceSnapshot(dataset.datasetVersionId(), dataset.version(),
                 dataset.checksum(), dataset.provider().value(), dataset.tradingPair().canonicalSymbol(),
                 dataset.timeframe().code(), dataset.normalizationVersion(), dataset.rangeStart(),
                 dataset.rangeEnd(), dataset.candleCount());
-        ResolvedStrategyInput strategyInput = userStrategy
-                ? resolveUserStrategy(request)
-                : resolveSystemStrategy(request);
+        ResolvedStrategyInput strategyInput = compositeV2
+                ? resolveCompositeStrategyPool(request)
+                : userStrategy ? resolveUserStrategy(request) : resolveSystemStrategy(request);
         SearchSpace searchSpace = strategyInput.searchSpace();
+        BigInteger finiteCardinality = strategyInput.compositeSearchSpace()
+                .map(CompositeSearchSpace::combinationCount)
+                .orElseGet(searchSpace::combinationCount);
+        if (finiteCardinality.signum() == 0) throw new IllegalArgumentException("Search Space is empty");
+        maximumCandidates = finiteCardinality.min(BigInteger.valueOf(maximumCandidates)).intValueExact();
         StrategyProvenanceSnapshot strategySnapshot = strategyInput.provenance();
         ExperimentId experimentId = ExperimentId.generate();
         JobId searchJobId = JobId.generate();
@@ -96,36 +112,58 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         Job searchJob = Job.createSearchJob(searchJobId, experimentId, request.correlationId(), maximumCandidates, now);
         var baseline = SearchModuleFactory.baselineDefinition(seed);
         GeneratorDescriptor generator = baseline.descriptor();
+        int requestedConcurrency = request.requestedConcurrency() == null
+                ? Math.min(maximumCandidates, SearchRequestPayload.MAX_CONCURRENCY_HINT)
+                : positive(request.requestedConcurrency(), "requestedConcurrency");
+        if (requestedConcurrency > SearchRequestPayload.MAX_CONCURRENCY_HINT) {
+            throw new IllegalArgumentException("requestedConcurrency exceeds the supported maximum");
+        }
+        String searchSpaceFingerprint = strategyInput.compositeSearchSpace()
+                .map(CompositeSearchCanonicalization::searchSpaceFingerprint)
+                .orElseGet(() -> SearchModuleFactory.canonicalSearchSpaceFingerprint(searchSpace));
         SearchRun run = SearchRun.pending(searchRunId,
                 new SearchExperimentId(experimentId.value()), new SearchJobId(searchJobId.value()),
-                SearchRunMode.GENERATION, null, generator, seed, SearchModuleFactory.canonicalSearchSpaceFingerprint(searchSpace),
+                SearchRunMode.GENERATION, null, generator, seed, searchSpaceFingerprint,
                 baseline.initialState(),
-                new SearchStopConditions(maximumCandidates, Duration.ofSeconds(durationSeconds)),
-                Math.min(maximumCandidates, SearchRequestPayload.MAX_CONCURRENCY_HINT), now);
+                new SearchStopConditions(maximumCandidates, Duration.ofSeconds(durationSeconds),
+                        maximumWithoutImprovement),
+                Math.min(maximumCandidates, requestedConcurrency), now);
         Map<String, Object> searchConfig = new LinkedHashMap<>();
-        searchConfig.put("contractVersion", "search-config-v1");
+        searchConfig.put("contractVersion", compositeV2 ? "search-config-v2" : "search-config-v1");
         searchConfig.putAll(strategyInput.identity());
         searchConfig.put("generatorId", "random-search");
         searchConfig.put("generatorVersion", "1.0.0");
         searchConfig.put("seed", seed);
-        searchConfig.put("searchSpace", canonicalDomains(searchSpace));
-        searchConfig.put("maximumCandidates", maximumCandidates);
+        searchConfig.put("searchSpace", strategyInput.compositeSearchSpace()
+                .map(SearchStartCommandFactoryService::canonicalCompositeSpace)
+                .orElseGet(() -> canonicalDomains(searchSpace)));
+        searchConfig.put("maximumCandidates", configuredMaximumCandidates);
+        searchConfig.put("effectiveMaximumCandidates", maximumCandidates);
         searchConfig.put("maximumDurationSeconds", durationSeconds);
+        if (maximumWithoutImprovement != null) {
+            searchConfig.put("maximumWithoutImprovement", maximumWithoutImprovement);
+        }
         searchConfig.put("topK", topK);
+        searchConfig.put("requestedConcurrency", run.maxInFlight());
+        BacktestAssumptions assumptions = request.backtestAssumptions() == null
+                ? BacktestAssumptions.mvp(new BigDecimal("10000"), new BigDecimal("0.001"), BigDecimal.ZERO)
+                : BacktestAssumptions.mvp(request.backtestAssumptions().initialCapital(),
+                        request.backtestAssumptions().feeRate(), request.backtestAssumptions().slippageRate());
         Map<String, Object> backtestConfig = Map.of(
                 "assumptionsVersion", "backtest-assumptions-v1",
-                "initialCapital", "10000",
-                "feeRate", "0.001",
-                "slippageRate", "0",
+                "initialCapital", assumptions.initialCapital().value().toPlainString(),
+                "feeRate", assumptions.feeRate().toPlainString(),
+                "slippageRate", assumptions.slippageRate().toPlainString(),
                 "executionPriceRule", "NEXT_CANDLE_OPEN",
                 "positionMode", "LONG_ONLY",
                 "forceCloseAtEnd", true,
                 "roundingMode", "HALF_EVEN");
-        ExperimentManifest manifest = new ExperimentManifest(experimentId, "manifest-v1", datasetSnapshot,
+        ExperimentManifest manifest = new ExperimentManifest(experimentId,
+                compositeV2 ? "manifest-v2" : "manifest-v1", datasetSnapshot,
                 strategySnapshot, backtestConfig, Map.copyOf(searchConfig),
                 Map.of("metricVersion", "metric-v1", "rankingVersion", "ranking-v1"), null,
                 softwareVersion, gitCommit,
-                sha256(request.canonicalRequestHash() + '\n' + SearchModuleFactory.canonicalSearchSpaceFingerprint(searchSpace)), now);
+                sha256(request.canonicalRequestHash() + '\n' + searchSpaceFingerprint), now);
         String messageId = com.cryptostrategy.platform.domain.api.identity.Ulids.generate();
         var envelope = new MessageEnvelope<>(messageId, MessageTypes.CURRENT_VERSION,
                 MessageTypes.SEARCH_REQUEST, now, request.correlationId(),
@@ -137,27 +175,114 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 now.plus(Duration.ofHours(24)), experiment, manifest, searchJob, run, outbox);
     }
 
+    private ResolvedStrategyInput resolveCompositeStrategyPool(Request request) {
+        int minimum = positive(request.minimumComponents(), "minimumComponents");
+        int maximum = positive(request.maximumComponents(), "maximumComponents");
+        if (!com.cryptostrategy.platform.search.api.model.SearchCombinationPolicy.MAJORITY_VOTE
+                .equals(request.combinationPolicyId())
+                || !"1.0.0".equals(request.combinationPolicyVersion())) {
+            throw new IllegalArgumentException("F-015 supports Majority Vote 1.0.0 only");
+        }
+        List<SearchStrategyPoolEntry> pool = new ArrayList<>();
+        List<StrategyComponentSnapshot> snapshots = new ArrayList<>();
+        for (StrategyPoolEntryRequest entry : request.strategyPool()) {
+            boolean system = entry.strategyId() != null;
+            boolean user = entry.userStrategyVersionId() != null;
+            if (system == user) {
+                throw new IllegalArgumentException("Each pool entry must identify exactly one strategy artifact");
+            }
+            if (system) {
+                SemanticVersion version = SemanticVersion.parse(entry.strategyVersion());
+                var descriptor = strategies.descriptor(entry.strategyId(), version);
+                Map<String, ParameterDefinition> definitions = new TreeMap<>();
+                descriptor.parameterSchema().definitions().forEach(value -> definitions.put(value.name(), value));
+                Map<String, SearchParameterDomain> domains = resolveDomains(entry.parameters(), definitions);
+                Map<String, StrategyParameterValue> representative = representative(domains);
+                StrategyParameterSet frozen = strategies.resolveParameters(entry.strategyId(), version, representative);
+                pool.add(new SearchStrategyPoolEntry(descriptor.reference(), domains,
+                        descriptor.parameterSchema().constraints()));
+                snapshots.add(new StrategyComponentSnapshot(descriptor.reference(), frozen));
+            } else {
+                if (entry.parameters() != null && !entry.parameters().isEmpty()) {
+                    throw new IllegalArgumentException("Published User Strategy pool entries use frozen parameters");
+                }
+                StrategySnapshot snapshot = userStrategies.resolveSnapshot(request.ownerUserId(),
+                        new ResolveStrategySnapshotQuery(entry.userStrategyVersionId()));
+                if (!(snapshot instanceof SingleStrategySnapshot single)) {
+                    throw new IllegalArgumentException("Nested composite pool entries are not executable");
+                }
+                Map<String, SearchParameterDomain> fixed = new TreeMap<>();
+                single.source().parameters().values().forEach((name, value) -> fixed.put(name,
+                        new SearchParameterDomain(value.type(), List.of(value))));
+                var descriptor = strategies.descriptor(single.source().strategyReference().pluginId(),
+                        single.source().strategyReference().implementationVersion());
+                pool.add(new SearchStrategyPoolEntry(single.source().strategyReference(), fixed,
+                        descriptor.parameterSchema().constraints()));
+                snapshots.add(new StrategyComponentSnapshot(
+                        single.source().strategyReference(), single.source().parameters()));
+            }
+        }
+        CompositeSearchSpace composite = new CompositeSearchSpace(pool, minimum, maximum,
+                SearchCombinationPolicy.majorityVote(), validateRequestedConstraints(request, pool));
+        StrategyProvenanceSnapshot provenance;
+        if (snapshots.size() == 1) {
+            var only = snapshots.getFirst();
+            provenance = StrategyProvenanceSnapshot.single(only.strategyReference(), only.parameters(),
+                    Optional.empty(), fingerprints.single(only.strategyReference(), only.parameters()));
+        } else {
+            List<StrategyFingerprintCalculator.Component> components = snapshots.stream()
+                    .map(value -> new StrategyFingerprintCalculator.Component(
+                            value.strategyReference(), value.parameters())).toList();
+            provenance = StrategyProvenanceSnapshot.composite(SearchCombinationPolicy.MAJORITY_VOTE,
+                    SearchCombinationPolicy.MAJORITY_VOTE_V1, StrategyParameterSet.empty(), snapshots,
+                    Optional.empty(), fingerprints.composite(SearchCombinationPolicy.MAJORITY_VOTE,
+                            SearchCombinationPolicy.MAJORITY_VOTE_V1,
+                            StrategyParameterSet.empty(), components));
+        }
+        return new ResolvedStrategyInput(new SearchSpace(Map.of()), Optional.of(composite), provenance,
+                Map.of("strategyKind", "COMPOSITE_POOL"));
+    }
+
+    private static List<String> validateRequestedConstraints(Request request,
+            List<SearchStrategyPoolEntry> pool) {
+        if (request.constraints() == null || request.constraints().isEmpty()) return List.of();
+        List<String> accepted = new ArrayList<>();
+        for (ComponentConstraintRequest constraint : request.constraints()) {
+            if (!"PARAMETER_LT".equals(constraint.kind())) {
+                throw new IllegalArgumentException("Unsupported combination constraint: " + constraint.kind());
+            }
+            String[] left = constraint.left() == null ? new String[0] : constraint.left().split("\\.", 2);
+            String[] right = constraint.right() == null ? new String[0] : constraint.right().split("\\.", 2);
+            if (left.length != 2 || right.length != 2 || !left[0].equals(right[0])) {
+                throw new IllegalArgumentException("PARAMETER_LT must compare parameters of one Strategy");
+            }
+            boolean published = pool.stream().anyMatch(entry ->
+                    entry.strategy().pluginId().value().equals(left[0])
+                            && entry.constraints().stream().anyMatch(rule ->
+                                    rule.lowerParameter().equals(left[1])
+                                            && rule.upperParameter().equals(right[1])));
+            if (!published) {
+                throw new IllegalArgumentException("Constraint is not published by the selected Strategy version");
+            }
+            accepted.add("PARAMETER_LT|" + constraint.left() + '|' + constraint.right());
+        }
+        return accepted.stream().sorted().distinct().toList();
+    }
+
     private ResolvedStrategyInput resolveSystemStrategy(Request request) {
         SemanticVersion strategyVersion = SemanticVersion.parse(request.strategyVersion());
         var descriptor = strategies.descriptor(request.strategyId(), strategyVersion);
         Map<String, ParameterDefinition> definitions = new TreeMap<>();
         descriptor.parameterSchema().definitions().forEach(value -> definitions.put(value.name(), value));
-        Map<String, SearchParameterDomain> domains = new TreeMap<>();
-        Map<String, StrategyParameterValue> representative = new TreeMap<>();
-        request.parameters().forEach((name, range) -> {
-            ParameterDefinition definition = definitions.get(name);
-            if (definition == null) throw new IllegalArgumentException("Unknown Strategy parameter: " + name);
-            SearchParameterDomain resolvedDomain = domain(definition.type(), range);
-            domains.put(name, resolvedDomain);
-            representative.put(name, resolvedDomain.options().getFirst());
-        });
+        Map<String, SearchParameterDomain> domains = resolveDomains(request.parameters(), definitions);
+        Map<String, StrategyParameterValue> representative = representative(domains);
         SearchSpace searchSpace = new SearchSpace(domains);
         var frozenParameters = strategies.resolveParameters(
                 request.strategyId(), strategyVersion, representative);
         var provenance = StrategyProvenanceSnapshot.single(
                 descriptor.reference(), frozenParameters, Optional.empty(),
                 fingerprints.single(descriptor.reference(), frozenParameters));
-        return new ResolvedStrategyInput(searchSpace, provenance, Map.of(
+        return new ResolvedStrategyInput(searchSpace, Optional.empty(), provenance, Map.of(
                 "strategyKind", "SINGLE",
                 "strategyId", request.strategyId().value(),
                 "strategyVersion", strategyVersion.toString()));
@@ -186,27 +311,99 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                             .toList(),
                     Optional.of(composite.userStrategyVersionId()), composite.fingerprint());
         }
-        return new ResolvedStrategyInput(new SearchSpace(Map.of()), provenance, Map.of(
+        return new ResolvedStrategyInput(new SearchSpace(Map.of()), Optional.empty(), provenance, Map.of(
                 "strategyKind", provenance.kind().name(),
                 "userStrategyVersionId", request.userStrategyVersionId().value()));
+    }
+
+    private static Map<String, SearchParameterDomain> resolveDomains(
+            Map<String, ParameterDomain> requested, Map<String, ParameterDefinition> definitions) {
+        if (requested == null) throw new IllegalArgumentException("Strategy parameter domains are required");
+        Map<String, SearchParameterDomain> domains = new TreeMap<>();
+        requested.forEach((name, range) -> {
+            ParameterDefinition definition = definitions.get(name);
+            if (definition == null) throw new IllegalArgumentException("Unknown Strategy parameter: " + name);
+            domains.put(name, domain(definition.type(), range));
+        });
+        definitions.forEach((name, definition) -> {
+            if (domains.containsKey(name)) return;
+            StrategyParameterValue value = definition.defaultValue().orElseThrow(() ->
+                    new IllegalArgumentException("A Search domain is required for parameter: " + name));
+            domains.put(name, new SearchParameterDomain(definition.type(), List.of(value)));
+        });
+        return Map.copyOf(domains);
+    }
+
+    private static Map<String, StrategyParameterValue> representative(
+            Map<String, SearchParameterDomain> domains) {
+        Map<String, StrategyParameterValue> values = new TreeMap<>();
+        domains.forEach((name, domain) -> values.put(name, domain.options().getFirst()));
+        return values;
     }
 
     private static SearchParameterDomain domain(ParameterType type, ParameterDomain request) {
         Objects.requireNonNull(request, "parameter range");
         if (request.options() != null && !request.options().isEmpty()) {
-            if (type != ParameterType.ENUM && type != ParameterType.TEXT) throw new IllegalArgumentException("Options are only supported for ENUM/TEXT parameters");
-            return new SearchParameterDomain(type, request.options().stream().map(value -> type == ParameterType.ENUM
-                    ? new StrategyParameterValue.EnumValue(value) : new StrategyParameterValue.TextValue(value))
-                    .map(StrategyParameterValue.class::cast).toList());
+            if (request.kind() != null && !request.kind().equals("CHOICES")) {
+                throw new IllegalArgumentException("Parameter domain kind does not match discrete choices");
+            }
+            return new SearchParameterDomain(type, request.options().stream()
+                    .map(value -> parseOption(type, value)).toList());
         }
-        if (type != ParameterType.INTEGER || request.minimum() == null || request.maximum() == null) throw new IllegalArgumentException("MVP Search requires an integer range or discrete options");
-        long size;
-        try { size = Math.addExact(Math.subtractExact(request.maximum(), request.minimum()), 1L); }
-        catch (ArithmeticException failure) { throw new IllegalArgumentException("Integer Search domain is too large", failure); }
-        if (size < 1 || size > MAX_INTEGER_DOMAIN_SIZE) throw new IllegalArgumentException("Integer Search domain is empty or too large");
-        ArrayList<StrategyParameterValue> values = new ArrayList<>((int) size);
-        for (long offset = 0; offset < size; offset++) values.add(new StrategyParameterValue.IntegerValue(request.minimum() + offset));
+        if ((type != ParameterType.INTEGER && type != ParameterType.DECIMAL)
+                || request.minimum() == null || request.maximum() == null) {
+            throw new IllegalArgumentException("Search requires a numeric range or discrete choices");
+        }
+        String expectedKind = type == ParameterType.DECIMAL ? "DECIMAL_RANGE" : "INTEGER_RANGE";
+        if (request.kind() != null && !request.kind().equals(expectedKind)) {
+            throw new IllegalArgumentException("Parameter domain kind must be " + expectedKind);
+        }
+        BigDecimal step = request.step() == null ? BigDecimal.ONE : request.step();
+        if (step.signum() <= 0) throw new IllegalArgumentException("Numeric Search domain step must be positive");
+        BigDecimal distance = request.maximum().subtract(request.minimum());
+        if (distance.signum() < 0) throw new IllegalArgumentException("Numeric Search domain is empty");
+        BigDecimal[] division = distance.divideAndRemainder(step);
+        if (division[1].signum() != 0) {
+            throw new IllegalArgumentException("Numeric Search domain maximum must align with its step");
+        }
+        BigInteger size = division[0].toBigIntegerExact().add(BigInteger.ONE);
+        if (size.signum() < 1 || size.compareTo(BigInteger.valueOf(MAX_INTEGER_DOMAIN_SIZE)) > 0) {
+            throw new IllegalArgumentException("Numeric Search domain is empty or too large");
+        }
+        ArrayList<StrategyParameterValue> values = new ArrayList<>(size.intValueExact());
+        for (int offset = 0; offset < size.intValueExact(); offset++) {
+            BigDecimal value = request.minimum().add(step.multiply(BigDecimal.valueOf(offset)));
+            if (type == ParameterType.INTEGER) {
+                try {
+                    values.add(new StrategyParameterValue.IntegerValue(value.longValueExact()));
+                } catch (ArithmeticException failure) {
+                    throw new IllegalArgumentException("Integer Search domain contains a non-integer value", failure);
+                }
+            } else {
+                values.add(new StrategyParameterValue.DecimalValue(value));
+            }
+        }
         return new SearchParameterDomain(type, values);
+    }
+
+    private static StrategyParameterValue parseOption(ParameterType type, String value) {
+        Objects.requireNonNull(value, "parameter option");
+        try {
+            return switch (type) {
+                case INTEGER -> new StrategyParameterValue.IntegerValue(Long.parseLong(value));
+                case DECIMAL -> new StrategyParameterValue.DecimalValue(new BigDecimal(value));
+                case BOOLEAN -> {
+                    if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
+                        throw new IllegalArgumentException("Boolean choice must be true or false");
+                    }
+                    yield new StrategyParameterValue.BooleanValue(Boolean.parseBoolean(value));
+                }
+                case TEXT -> new StrategyParameterValue.TextValue(value);
+                case ENUM -> new StrategyParameterValue.EnumValue(value);
+            };
+        } catch (NumberFormatException failure) {
+            throw new IllegalArgumentException("Invalid " + type + " parameter choice", failure);
+        }
     }
 
     private static Map<String, Object> canonicalDomains(SearchSpace searchSpace) {
@@ -216,8 +413,33 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         return Map.copyOf(result);
     }
 
+    private static Map<String, Object> canonicalCompositeSpace(CompositeSearchSpace searchSpace) {
+        return Map.of(
+                "schemaVersion", CompositeSearchSpace.SCHEMA_VERSION,
+                "minimumComponents", searchSpace.minimumComponents(),
+                "maximumComponents", searchSpace.maximumComponents(),
+                "combinationPolicy", Map.of(
+                        "policyId", searchSpace.combinationPolicy().policyId().value(),
+                        "version", searchSpace.combinationPolicy().version().toString(),
+                        "parameters", Map.of()),
+                "constraints", searchSpace.constraints(),
+                "strategyPool", searchSpace.strategyPool().stream().map(entry -> Map.of(
+                        "strategyVersionId", entry.strategy().strategyVersionId().value(),
+                        "strategyId", entry.strategy().pluginId().value(),
+                        "strategyVersion", entry.strategy().implementationVersion().toString(),
+                        "parameterDomains", canonicalDomains(new SearchSpace(entry.parameterDomains())),
+                        "constraints", entry.constraints().stream().map(constraint -> Map.of(
+                                "kind", "PARAMETER_LT",
+                                "lowerParameter", constraint.lowerParameter(),
+                                "upperParameter", constraint.upperParameter())).toList()))
+                        .toList(),
+                "cardinality", searchSpace.combinationCount().toString(),
+                "fingerprint", CompositeSearchCanonicalization.searchSpaceFingerprint(searchSpace));
+    }
+
     private record ResolvedStrategyInput(
             SearchSpace searchSpace,
+            Optional<CompositeSearchSpace> compositeSearchSpace,
             StrategyProvenanceSnapshot provenance,
             Map<String, Object> identity) {}
 

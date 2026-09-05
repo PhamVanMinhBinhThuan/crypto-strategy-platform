@@ -34,6 +34,7 @@ import com.cryptostrategy.platform.marketdata.api.port.in.CreateDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.LoadHistoricalCandlesUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.ResolveTradingPairUseCase;
+import com.cryptostrategy.platform.api.idempotency.IdempotencyCommandExecutor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
@@ -43,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -92,8 +94,19 @@ class MarketApiContractTest {
     @MockitoBean
     private GetDatasetUseCase getDataset;
 
+    @MockitoBean
+    private IdempotencyCommandExecutor idempotency;
+
     @BeforeEach
     void publishMarketFixtures() {
+        when(idempotency.execute(any(), org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString(), any(),
+                org.mockito.ArgumentMatchers.<Class<MarketDtos.DatasetResponse>>any(), any()))
+                .thenAnswer(invocation -> {
+                    @SuppressWarnings("unchecked")
+                    BiFunction<String, String, MarketDtos.DatasetResponse> command = invocation.getArgument(5);
+                    return command.apply(invocation.getArgument(2), "request-hash");
+                });
         when(pairs.resolveTradingPair(new AssetSymbol("BTC"), new AssetSymbol("USDT")))
                 .thenReturn(PAIR);
         when(historical.loadHistoricalCandles(any(HistoricalCandleQuery.class)))

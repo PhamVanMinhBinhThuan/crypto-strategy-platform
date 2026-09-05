@@ -9,7 +9,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 public final class JdbcCandleStoreAdapter implements ClosedCandleStore {
@@ -18,9 +17,8 @@ public final class JdbcCandleStoreAdapter implements ClosedCandleStore {
     @Override public PersistedCandle saveClosed(Candle candle) {
         if (!candle.closed()) throw new MarketDataException(MarketDataErrorCode.INVALID_MARKET_QUERY, "Only closed Candles may persist");
         TradingPair pair = references.resolveTradingPair(candle.key().tradingPair()); CandleId id = CandleId.generate();
-        try { jdbc.update(MarketDataSql.INSERT_CANDLE, id.value(), candle.key().provider().value(), pair.tradingPairId().value(), candle.key().timeframe().code(),
-                Timestamp.from(candle.key().openTime()), Timestamp.from(candle.closeTime()), candle.open(), candle.high(), candle.low(), candle.close(), candle.volume()); }
-        catch (DuplicateKeyException ignored) { }
+        jdbc.update(MarketDataSql.INSERT_CANDLE, id.value(), candle.key().provider().value(), pair.tradingPairId().value(), candle.key().timeframe().code(),
+                Timestamp.from(candle.key().openTime()), Timestamp.from(candle.closeTime()), candle.open(), candle.high(), candle.low(), candle.close(), candle.volume());
         PersistedCandle stored = findKey(candle, pair);
         if (!stored.candle().canonicalContentEquals(withPair(candle, pair))) throw new MarketDataException(MarketDataErrorCode.MARKET_DATA_INTEGRITY_CONFLICT, "Accepted Candle content differs");
         return stored;

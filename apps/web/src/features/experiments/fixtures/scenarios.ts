@@ -20,7 +20,14 @@ export const F013_SCENARIOS = [
   "leaderboard-empty",
   "leaderboard-page",
   "realtime-recovery",
-  "realtime-exhausted"
+  "realtime-exhausted",
+  "search-config-loading",
+  "search-config-empty",
+  "search-config-invalid",
+  "search-progress-degraded",
+  "search-no-improvement",
+  "candidate-detail",
+  "composite-leaderboard"
 ] as const;
 export type F013Scenario = (typeof F013_SCENARIOS)[number];
 export const isF013Scenario = (value: string): value is F013Scenario =>

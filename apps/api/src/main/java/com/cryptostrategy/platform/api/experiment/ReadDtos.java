@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import com.cryptostrategy.platform.execution.api.port.in.GetSearchProgressUseCase.SearchProgressSnapshot;
 
 public final class ReadDtos {
     private ReadDtos() {}
@@ -29,12 +30,32 @@ public final class ReadDtos {
             Instant startedAt,
             Instant completedAt,
             FailureResponse failure,
+            SearchProgressResponse searchProgress,
             Instant createdAt) {
         static ExperimentResponse from(
                 Experiment experiment, ExperimentManifest manifest, List<Job> jobs) {
+            return from(experiment, manifest, jobs, null);
+        }
+
+        static ExperimentResponse from(
+                Experiment experiment, ExperimentManifest manifest, List<Job> jobs,
+                SearchProgressSnapshot run) {
             FailureResponse failure = experiment.failureCode() == null
                     ? null
                     : new FailureResponse(experiment.failureCode(), experiment.failureMessage());
+            Job search = jobs.stream().filter(job -> job.jobType().name().equals("SEARCH"))
+                    .findFirst().orElse(null);
+            long allocated = jobs.stream().filter(job -> job.jobType().name().equals("BACKTEST")).count();
+            int configuredMaximum = integer(manifest.searchConfig(), "maximumCandidates",
+                    search == null ? 0 : search.totalWork());
+            SearchProgressResponse progress = search == null ? null : new SearchProgressResponse(
+                    Math.toIntExact(allocated),
+                    Math.max(0, Math.toIntExact(allocated) - search.completedWork() - search.failedWork()),
+                    search.completedWork(), search.failedWork(),
+                    Math.max(0, configuredMaximum - Math.toIntExact(allocated)),
+                    configuredMaximum, integer(manifest.searchConfig(), "topK", 10),
+                    decimal(search.bestScore()), search.startedAt(),
+                    terminalReason(experiment, allocated, configuredMaximum, search, run));
             return new ExperimentResponse(
                     experiment.experimentId(),
                     experiment.name(),
@@ -46,9 +67,14 @@ public final class ReadDtos {
                     experiment.startedAt(),
                     experiment.completedAt(),
                     failure,
+                    progress,
                     experiment.createdAt());
         }
     }
+
+    public record SearchProgressResponse(int allocated, int active, int completed, int failed,
+            int remainingCapacity, int configuredMaximum, int topK, String bestScore,
+            Instant startedAt, String terminalReason) {}
 
     public record FailureResponse(String code, String message) {}
 
@@ -118,5 +144,22 @@ public final class ReadDtos {
 
     private static String decimal(BigDecimal value) {
         return value == null ? null : value.toPlainString();
+    }
+
+    private static int integer(Map<String, Object> values, String name, int fallback) {
+        Object value = values.get(name);
+        return value instanceof Number number ? number.intValue() : fallback;
+    }
+
+    private static String terminalReason(Experiment experiment, long allocated,
+            int configuredMaximum, Job search, SearchProgressSnapshot run) {
+        if (run != null && run.terminalReason() != null) return run.terminalReason();
+        if (experiment.failureCode() != null) return experiment.failureCode();
+        return switch (experiment.status().name()) {
+            case "STOPPED" -> "EXPLICIT_STOP";
+            case "COMPLETED" -> allocated < configuredMaximum
+                    ? "SEARCH_SPACE_EXHAUSTED" : "MAXIMUM_CANDIDATES";
+            default -> null;
+        };
     }
 }

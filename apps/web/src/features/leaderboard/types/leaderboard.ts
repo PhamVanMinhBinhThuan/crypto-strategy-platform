@@ -5,6 +5,16 @@ export type LeaderboardEntry = Readonly<{
   score: string;
   maximumDrawdown: string;
   evaluationFingerprint: string;
+  candidateId?: string | null;
+  candidateFingerprint?: string | null;
+  candidateSummary?: string | null;
+  metrics?: Readonly<{
+    totalReturn: string;
+    winRate: string;
+    maximumDrawdown: string;
+    numberOfTrades: number;
+    metricVersion: string;
+  }> | null;
 }>;
 export type LeaderboardSnapshot = Readonly<{
   experimentId: string;

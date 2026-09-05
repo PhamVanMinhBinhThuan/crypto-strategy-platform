@@ -9,6 +9,18 @@ export const runningExperiment = {
   startedAt: "2026-09-03T02:00:00Z",
   completedAt: null,
   failure: null,
+  searchProgress: {
+    allocated: 46,
+    active: 2,
+    completed: 42,
+    failed: 2,
+    remainingCapacity: 54,
+    configuredMaximum: 100,
+    topK: 10,
+    bestScore: "0.8734000000",
+    startedAt: "2026-09-03T02:00:00Z",
+    terminalReason: null
+  },
   createdAt: "2026-09-03T01:59:00Z"
 } as const;
 export const runningJob = {

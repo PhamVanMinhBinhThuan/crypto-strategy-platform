@@ -16,7 +16,8 @@ public record AllocateSearchCandidateCommand(
         CandidateDefinition candidate,
         Job backtestJob,
         CoordinationDecision decision,
-        OutboxEvent outboxEvent) {
+        OutboxEvent outboxEvent,
+        int globalInFlightLimit) {
     public AllocateSearchCandidateCommand {
         Objects.requireNonNull(ownerUserId, "ownerUserId");
         Objects.requireNonNull(claim, "claim");
@@ -25,5 +26,13 @@ public record AllocateSearchCandidateCommand(
         Objects.requireNonNull(backtestJob, "backtestJob");
         Objects.requireNonNull(decision, "decision");
         Objects.requireNonNull(outboxEvent, "outboxEvent");
+        if (globalInFlightLimit < 1) throw new IllegalArgumentException("globalInFlightLimit must be positive");
+    }
+
+    public AllocateSearchCandidateCommand(UUID ownerUserId, SearchRunClaim claim,
+            SearchRun replacementRun, CandidateDefinition candidate, Job backtestJob,
+            CoordinationDecision decision, OutboxEvent outboxEvent) {
+        this(ownerUserId, claim, replacementRun, candidate, backtestJob, decision,
+                outboxEvent, Integer.MAX_VALUE);
     }
 }

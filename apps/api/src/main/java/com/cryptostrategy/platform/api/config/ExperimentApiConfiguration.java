@@ -23,6 +23,8 @@ import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyFingerprintCalculator;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyRegistry;
 import com.cryptostrategy.platform.strategy.api.port.in.ResolveStrategySnapshotUseCase;
+import com.cryptostrategy.platform.execution.api.port.in.GetSearchProgressUseCase;
+import com.cryptostrategy.platform.execution.api.port.in.ListSearchGeneratorsUseCase;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,6 +56,16 @@ public class ExperimentApiConfiguration {
     @Bean
     SearchPersistenceFactory.ExperimentTransactions searchExperimentTransactions(DataSource dataSource) {
         return new SearchPersistenceFactory(dataSource).createExperimentTransactions();
+    }
+
+    @Bean
+    GetSearchProgressUseCase getSearchProgressUseCase(DataSource dataSource) {
+        return new SearchPersistenceFactory(dataSource).createSearchProgressQuery();
+    }
+
+    @Bean
+    ListSearchGeneratorsUseCase listSearchGeneratorsUseCase() {
+        return ExperimentExecutionModuleFactory.searchGenerators();
     }
 
     @Bean

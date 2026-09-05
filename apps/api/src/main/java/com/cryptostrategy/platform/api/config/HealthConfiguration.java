@@ -28,7 +28,14 @@ public class HealthConfiguration {
 
     private static Health connectionHealth(DataSource dataSource) {
         try (Connection connection = dataSource.getConnection()) {
-            return connection.isValid(2) ? Health.up().build() : Health.down().build();
+            if (!connection.isValid(2)) return Health.down().build();
+            try (var statement = connection.prepareStatement(
+                    "select to_regclass('market.dataset_access') is not null");
+                    var result = statement.executeQuery()) {
+                return result.next() && result.getBoolean(1)
+                        ? Health.up().build()
+                        : Health.down().withDetail("reason", "pending_database_migrations").build();
+            }
         } catch (Exception ignored) {
             return Health.down().build();
         }

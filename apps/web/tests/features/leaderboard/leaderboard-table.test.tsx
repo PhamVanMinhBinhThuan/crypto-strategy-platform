@@ -7,18 +7,24 @@ import {
   leaderboardPage
 } from "@/src/features/leaderboard/fixtures/leaderboard-fixtures";
 describe("Leaderboard table", () => {
-  it("renders exactly the six released data columns and result action", () => {
+  it("renders composite identity and the four authoritative released metrics", () => {
     render(<LeaderboardTable snapshot={mapLeaderboard(leaderboardPage)} />);
     const headers = screen.getAllByRole("columnheader").map((x) => x.textContent);
-    expect(headers.slice(0, 6)).toEqual([
+    expect(headers.slice(0, 7)).toEqual([
       "Rank",
-      "Evaluation Result ID",
-      "Backtest Result ID",
+      "Candidate",
       "Score",
+      "Total Return",
+      "Win Rate",
       "Maximum Drawdown",
-      "Evaluation Fingerprint"
+      "Trades"
     ]);
-    expect(screen.queryByText(/Sharpe|Win Rate|Trades|Total Return/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sharpe/)).not.toBeInTheDocument();
+    expect(screen.getByText("ma-crossover + rsi")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Candidate detail" })).toHaveAttribute(
+      "href",
+      "/search/experiment-013?candidateId=candidate-013"
+    );
     expect(screen.getAllByRole("link", { name: "View Backtest" })[0]).toHaveAttribute(
       "href",
       "/backtests?resultId=result-013"

@@ -76,4 +76,10 @@ public final class MarketDtos {
                     snapshot.createdAt());
         }
     }
+
+    public record DatasetListResponse(List<DatasetResponse> items) {
+        public DatasetListResponse {
+            items = List.copyOf(items);
+        }
+    }
 }

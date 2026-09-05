@@ -61,3 +61,24 @@ tasks.register<Test>("supabaseIntegrationTest") {
         check(missing.isEmpty()) { "Missing required environment configuration: " }
     }
 }
+
+val performanceTest by sourceSets.creating {
+    compileClasspath += sourceSets.main.get().output
+    runtimeClasspath += sourceSets.main.get().output
+}
+
+configurations[performanceTest.implementationConfigurationName]
+    .extendsFrom(configurations.testImplementation.get())
+configurations[performanceTest.runtimeOnlyConfigurationName]
+    .extendsFrom(configurations.testRuntimeOnly.get())
+
+tasks.register<Test>("performanceTest") {
+    group = "verification"
+    description = "Runs opt-in F-015 1,000/10,000 candidate scale profiles."
+    testClassesDirs = performanceTest.output.classesDirs
+    classpath = performanceTest.runtimeClasspath
+    shouldRunAfter(tasks.test)
+    onlyIf {
+        project.findProperty("f015Performance")?.toString()?.toBoolean() == true
+    }
+}

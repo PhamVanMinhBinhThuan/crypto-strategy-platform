@@ -5,6 +5,7 @@ import com.cryptostrategy.platform.marketdata.api.port.in.CreateDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.LoadHistoricalCandlesUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.ListDatasetsUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.ResolveTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.SubscribeCandlesUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.out.MarketDataProvider;
@@ -64,6 +65,9 @@ public class MarketDataConfiguration {
     @Bean GetDatasetUseCase getDatasetUseCase(
             MarketDataModuleFactory.Components marketData) {
         return marketData.getDataset();
+    }
+    @Bean ListDatasetsUseCase listDatasetsUseCase(MarketDataModuleFactory.Components marketData) {
+        return marketData.listDatasets();
     }
     @Bean SubscribeCandlesUseCase subscribeCandlesUseCase(
             MarketDataModuleFactory.Components marketData) {

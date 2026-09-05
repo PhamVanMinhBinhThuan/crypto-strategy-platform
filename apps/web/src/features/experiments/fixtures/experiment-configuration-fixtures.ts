@@ -2,6 +2,24 @@ export const knownDataset = {
   datasetId: "dataset-btc-1h",
   label: "BTC/USDT 1h frozen dataset"
 } as const;
+export const frozenDatasetFixture = {
+  datasetId: "dataset-btc-1h",
+  version: "candle-v1",
+  provider: "BINANCE",
+  pair: "BTC/USDT",
+  timeframe: "1h",
+  normalizationVersion: "binance-v1",
+  startTime: "2026-08-01T00:00:00Z",
+  endTime: "2026-09-01T00:00:00Z",
+  membershipCount: 744,
+  checksum: `sha256:${"d".repeat(64)}`,
+  status: "READY",
+  createdAt: "2026-09-01T00:00:01Z"
+} as const;
+export const generatorPage = {
+  items: [{ generatorId: "random-search", version: "1.0.0", displayName: "Random Search" }]
+} as const;
+export const emptyUserStrategyPage = { items: [], nextCursor: null, hasMore: false } as const;
 export const fixtureGenerator = {
   generatorId: "random-search",
   version: "1.0.0",

@@ -1,18 +1,27 @@
 package com.cryptostrategy.platform.persistence.internal.marketdata;
 
 public final class MarketDataSql {
-    public static final String INSERT_ASSET = "insert into market.asset(asset_id,symbol,name,active) values (?,?,?,?)";
+    public static final String INSERT_ASSET = "insert into market.asset(asset_id,symbol,name,active) values (?,?,?,?) on conflict do nothing";
     public static final String FIND_ASSET = "select asset_id,symbol,name,active from market.asset where symbol=?";
-    public static final String INSERT_PAIR = "insert into market.trading_pair(trading_pair_id,base_asset_id,quote_asset_id,symbol,active) values (?,?,?,?,?)";
+    public static final String INSERT_PAIR = "insert into market.trading_pair(trading_pair_id,base_asset_id,quote_asset_id,symbol,active) values (?,?,?,?,?) on conflict do nothing";
     public static final String FIND_PAIR_BY_ID = pairSelect() + " where tp.trading_pair_id=?";
     public static final String FIND_PAIR_BY_ASSETS = pairSelect() + " where tp.base_asset_id=? and tp.quote_asset_id=?";
     public static final String FIND_PAIR_BY_SYMBOLS = pairSelect() + " where ba.symbol=? and qa.symbol=?";
-    public static final String INSERT_CANDLE = "insert into market.candle(candle_id,provider,trading_pair_id,timeframe,open_time,close_time,open,high,low,close,volume) values (?,?,?,?,?,?,?,?,?,?,?)";
+    public static final String INSERT_CANDLE = "insert into market.candle(candle_id,provider,trading_pair_id,timeframe,open_time,close_time,open,high,low,close,volume) values (?,?,?,?,?,?,?,?,?,?,?) on conflict on constraint candle_identity_unique do nothing";
     public static final String FIND_CANDLE_KEY = candleSelect() + " where c.provider=? and c.trading_pair_id=? and c.timeframe=? and c.open_time=?";
     public static final String FIND_CANDLE_RANGE = candleSelect() + " where c.provider=? and c.trading_pair_id=? and c.timeframe=? and c.open_time>=? and c.open_time<? order by c.open_time";
     public static final String INSERT_DATASET = "insert into market.dataset_version(dataset_version_id,version,provider,trading_pair_id,timeframe,normalization_version,range_start,range_end,candle_count,checksum,created_at) values (?,?,?,?,?,?,?,?,?,?,?)";
     public static final String FIND_DATASET_ID = datasetSelect() + " where dv.dataset_version_id=?";
     public static final String FIND_DATASET_CHECKSUM = datasetSelect() + " where dv.checksum=?";
+    public static final String LIST_RECENT_DATASETS = datasetSelect()
+            + " order by dv.created_at desc,dv.dataset_version_id limit ?";
+    public static final String LIST_RECENT_DATASETS_FOR_OWNER = datasetSelect()
+            + " join market.dataset_access da on da.dataset_version_id=dv.dataset_version_id"
+            + " where da.owner_user_id=? order by dv.created_at desc,dv.dataset_version_id limit ?";
+    public static final String GRANT_DATASET_ACCESS = """
+            insert into market.dataset_access(owner_user_id,dataset_version_id,granted_at)
+            values (?,?,now()) on conflict (owner_user_id,dataset_version_id) do nothing
+            """;
     public static final String INSERT_MEMBER = "insert into market.dataset_candle(dataset_version_id,sequence_no,candle_id) values (?,?,?)";
     public static final String READ_MEMBERS = "select dc.sequence_no," + candleColumns() + " from market.dataset_candle dc join market.candle c on c.candle_id=dc.candle_id join market.trading_pair tp on tp.trading_pair_id=c.trading_pair_id join market.asset ba on ba.asset_id=tp.base_asset_id join market.asset qa on qa.asset_id=tp.quote_asset_id where dc.dataset_version_id=? and dc.sequence_no>=? order by dc.sequence_no limit ?";
     private MarketDataSql() { }

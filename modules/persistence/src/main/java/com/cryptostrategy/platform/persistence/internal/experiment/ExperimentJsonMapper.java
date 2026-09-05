@@ -24,9 +24,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
+import com.cryptostrategy.platform.persistence.internal.search.SearchDefinitionJsonMapper;
 
 public class ExperimentJsonMapper {
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final SearchDefinitionJsonMapper searchDefinitions = new SearchDefinitionJsonMapper();
+
+    public String writeSearchConfig(Map<String, Object> value) {
+        return searchDefinitions.writeSearchConfig(value);
+    }
+
+    public Map<String, Object> readSearchConfig(String value) {
+        return searchDefinitions.readSearchConfig(value);
+    }
+
+    public String writeCandidateDefinition(Map<String, Object> value) {
+        return searchDefinitions.writeCandidateDefinition(value);
+    }
+
+    public Map<String, Object> readCandidateDefinition(String value) {
+        return searchDefinitions.readCandidateDefinition(value);
+    }
 
     public String writeJson(Object value) {
         if (value == null) return null;
