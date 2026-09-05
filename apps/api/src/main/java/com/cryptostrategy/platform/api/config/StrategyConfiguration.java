@@ -29,6 +29,11 @@ public class StrategyConfiguration {
     @Bean UserStrategyStore userStrategyStore(DataSource dataSource){return StrategyPersistenceFactory.userStrategies(dataSource);}
     @Bean Clock strategyClock(){return Clock.systemUTC();}
     @Bean StrategyCatalogSynchronization strategyCatalogSynchronizer(StrategyRegistry registry,StrategyCatalogStore store){return StrategyModuleFactory.catalogSynchronization(registry,store);}
-    @Bean ApplicationRunner strategyCatalogStartup(StrategyCatalogSynchronization synchronization){return ignored->synchronization.synchronize();}
+    @Bean ApplicationRunner strategyCatalogStartup(StrategyCatalogSynchronization synchronization,DataSource dataSource){return ignored->{
+        try(var connection=dataSource.getConnection()){
+            if(!"PostgreSQL".equalsIgnoreCase(connection.getMetaData().getDatabaseProductName()))return;
+        }
+        synchronization.synchronize();
+    };}
     @Bean UserStrategyApplication userStrategyService(StrategyRegistry registry,UserStrategyStore store,Clock strategyClock){return StrategyModuleFactory.userStrategies(registry,store,strategyClock);}
 }
