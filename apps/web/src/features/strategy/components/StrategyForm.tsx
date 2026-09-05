@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import type { StrategyDescriptor } from "../model/strategy";
 import type { StrategyDraft } from "../model/strategy-draft";
 import { validateStrategyParameters } from "../state/strategy-parameter-validator";
+import { serializeStrategyParameters } from "../state/strategy-parameter-serializer";
 export function StrategyForm({
   descriptor,
   systemStrategies,
@@ -65,19 +66,10 @@ export function StrategyForm({
       (kind === "COMPOSITE" && (componentIds.length < 2 || compositeInvalid))
     )
       return;
-    const serialize = (item: StrategyDescriptor, current: Record<string, string>) =>
-      Object.fromEntries(
-        item.parameters.map((field) => {
-          const value = current[field.name] ?? field.defaultValue ?? "";
-          if (field.type === "INTEGER") return [field.name, Number(value)];
-          if (field.type === "BOOLEAN") return [field.name, value === "true"];
-          return [field.name, value];
-        })
-      );
     const selection = (item: StrategyDescriptor) => ({
       strategyId: item.strategyId,
       version: item.version,
-      parameters: serialize(
+      parameters: serializeStrategyParameters(
         item,
         Object.fromEntries(item.parameters.map((field) => [field.name, field.defaultValue ?? ""]))
       )
@@ -92,7 +84,7 @@ export function StrategyForm({
               type: "SINGLE",
               strategy: {
                 ...selection(descriptor),
-                parameters: serialize(descriptor, effectiveValues)
+                parameters: serializeStrategyParameters(descriptor, effectiveValues)
               }
             }
           : {

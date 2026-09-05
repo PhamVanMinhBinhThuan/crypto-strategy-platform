@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -9,6 +10,8 @@ from .api.schemas.error import ErrorResponse
 from .core.config import Settings
 from .core.errors import ServiceError
 from .model.runtime import ModelRuntime
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
@@ -35,12 +38,28 @@ def create_app(settings: Settings | None = None, runtime=None) -> FastAPI:
         return await call_next(request)
 
     @app.exception_handler(ServiceError)
-    async def service_error(_request: Request, error: ServiceError):
+    async def service_error(request: Request, error: ServiceError):
+        logger.warning(
+            "Sentiment request rejected path=%s code=%s status=%s retryable=%s",
+            request.url.path,
+            error.code,
+            error.status_code,
+            error.retryable,
+        )
         body = ErrorResponse(requestId=error.request_id, code=error.code, message=error.message, retryable=error.retryable)
         return JSONResponse(status_code=error.status_code, content=body.model_dump(exclude_none=True))
 
     @app.exception_handler(RequestValidationError)
-    async def validation_error(_request: Request, _error: RequestValidationError):
+    async def validation_error(request: Request, error: RequestValidationError):
+        violations = [
+            {"location": ".".join(str(part) for part in violation["loc"]), "type": violation["type"]}
+            for violation in error.errors()
+        ]
+        logger.warning(
+            "Sentiment request rejected path=%s code=INVALID_REQUEST status=422 retryable=false violations=%s",
+            request.url.path,
+            violations,
+        )
         body = ErrorResponse(code="INVALID_REQUEST", message="Request validation failed", retryable=False)
         return JSONResponse(status_code=422, content=body.model_dump(exclude_none=True))
     return app

@@ -15,6 +15,7 @@ import com.cryptostrategy.platform.strategy.api.port.out.UserStrategyStore;
 import java.time.Clock;
 import java.util.List;
 import javax.sql.DataSource;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -28,5 +29,11 @@ public class StrategyConfiguration {
     @Bean UserStrategyStore userStrategyStore(DataSource dataSource){return StrategyPersistenceFactory.userStrategies(dataSource);}
     @Bean Clock strategyClock(){return Clock.systemUTC();}
     @Bean StrategyCatalogSynchronization strategyCatalogSynchronizer(StrategyRegistry registry,StrategyCatalogStore store){return StrategyModuleFactory.catalogSynchronization(registry,store);}
+    @Bean ApplicationRunner strategyCatalogStartup(StrategyCatalogSynchronization synchronization,DataSource dataSource){return ignored->{
+        try(var connection=dataSource.getConnection()){
+            if(!"PostgreSQL".equalsIgnoreCase(connection.getMetaData().getDatabaseProductName()))return;
+        }
+        synchronization.synchronize();
+    };}
     @Bean UserStrategyApplication userStrategyService(StrategyRegistry registry,UserStrategyStore store,Clock strategyClock){return StrategyModuleFactory.userStrategies(registry,store,strategyClock);}
 }

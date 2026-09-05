@@ -17,6 +17,7 @@ import { StrategyCatalog } from "./StrategyCatalog";
 import { StrategyDetail } from "./StrategyDetail";
 import { StrategyForm } from "./StrategyForm";
 import { StrategyActions } from "./StrategyActions";
+import { StrategyVersionForm } from "./StrategyVersionForm";
 import { AsyncStatus } from "../../shared/AsyncStatus";
 
 type MutationOutcome = { ok: boolean; error?: { code: string } };
@@ -32,7 +33,8 @@ export function StrategyWorkspace() {
     [systemError, setSystemError] = useState<string>(),
     [ownedError, setOwnedError] = useState<string>(),
     [pending, setPending] = useState(false),
-    [feedback, setFeedback] = useState<string>();
+    [feedback, setFeedback] = useState<string>(),
+    [editingVersion, setEditingVersion] = useState(false);
   const loadSystem = useCallback(async () => {
     const result = await listSystemStrategies(api);
     if (result.ok) setSystem(result.data.items);
@@ -67,6 +69,7 @@ export function StrategyWorkspace() {
     if (result.ok) {
       setSelectedOwned(result.data);
       setSelectedSystem(undefined);
+      setEditingVersion(false);
     } else setFeedback("Không thể truy cập Strategy này.");
   };
   const mutate = async (operation: () => Promise<MutationOutcome>) => {
@@ -79,8 +82,10 @@ export function StrategyWorkspace() {
       });
       if (result && !result.ok) throw new Error(result.error?.code ?? "MUTATION_FAILED");
       setFeedback("Đã đồng bộ trạng thái mới nhất.");
+      return Boolean(result);
     } catch {
       setFeedback("Chưa xác định kết quả. Đã tải lại trạng thái authoritative.");
+      return false;
     } finally {
       setPending(false);
     }
@@ -116,6 +121,7 @@ export function StrategyWorkspace() {
           onSelectSystem={(item) => {
             setSelectedSystem(item);
             setSelectedOwned(undefined);
+            setEditingVersion(false);
           }}
           onSelectOwned={(id) => void selectOwned(id)}
         />
@@ -139,44 +145,37 @@ export function StrategyWorkspace() {
               onArchive={() =>
                 void mutate(() => archiveUserStrategy(api, selectedOwned.userStrategyId))
               }
-              onNewVersion={() =>
-                void mutate(() =>
-                  createUserStrategyVersion(
-                    api,
-                    selectedOwned.userStrategyId,
-                    selectedOwned.latestVersion.versionNo,
-                    selectedOwned.latestVersion.source.type === "SINGLE"
-                      ? {
-                          type: "SINGLE",
-                          strategy: {
-                            strategyId: selectedOwned.latestVersion.source.strategy.strategyId,
-                            version: selectedOwned.latestVersion.source.strategy.version,
-                            parameters: selectedOwned.latestVersion.source.strategy.parameters
-                          }
-                        }
-                      : {
-                          type: "COMPOSITE",
-                          policyId: selectedOwned.latestVersion.source.policyId,
-                          policyVersion: selectedOwned.latestVersion.source.policyVersion,
-                          policyParameters: selectedOwned.latestVersion.source.policyParameters,
-                          components: selectedOwned.latestVersion.source.components.map((item) => ({
-                            strategyId: item.strategyId,
-                            version: item.version,
-                            parameters: item.parameters
-                          }))
-                        }
-                  )
-                )
-              }
+              onNewVersion={() => setEditingVersion(true)}
             />
           )}
         </div>
-        <StrategyForm
-          descriptor={selectedSystem}
-          systemStrategies={system}
-          pending={pending}
-          onSubmit={create}
-        />
+        {editingVersion && selectedOwned ? (
+          <StrategyVersionForm
+            key={`${selectedOwned.userStrategyId}:${selectedOwned.latestVersion.versionNo}`}
+            owned={selectedOwned}
+            systemStrategies={system}
+            pending={pending}
+            onCancel={() => setEditingVersion(false)}
+            onSubmit={async (source) => {
+              const succeeded = await mutate(() =>
+                createUserStrategyVersion(
+                  api,
+                  selectedOwned.userStrategyId,
+                  selectedOwned.latestVersion.versionNo,
+                  source
+                )
+              );
+              if (succeeded) setEditingVersion(false);
+            }}
+          />
+        ) : (
+          <StrategyForm
+            descriptor={selectedSystem}
+            systemStrategies={system}
+            pending={pending}
+            onSubmit={create}
+          />
+        )}
       </div>
     </main>
   );
