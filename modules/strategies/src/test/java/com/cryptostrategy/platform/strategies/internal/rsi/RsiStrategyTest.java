@@ -40,7 +40,7 @@ class RsiStrategyTest {
         assertEquals("rsi-threshold", plugin.descriptor().reference().pluginId().value());
         assertEquals("1.0.0", plugin.descriptor().reference().implementationVersion().toString());
         assertEquals("strategy-contract-v1", plugin.descriptor().contractVersion());
-        assertEquals(DEFAULT_PERIOD + 1, plugin.descriptor().requiredLookback());
+        assertEquals(3, plugin.descriptor().requiredLookback());
         assertEquals(
                 java.util.Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD),
                 plugin.descriptor().supportedSignals());

@@ -1,10 +1,16 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CandidateDetailPanel } from "@/src/features/experiments/components/CandidateDetailPanel";
 import { LeaderboardTable } from "@/src/features/leaderboard/components/LeaderboardTable";
 import { leaderboardPage } from "@/src/features/leaderboard/fixtures/leaderboard-fixtures";
 import { mapLeaderboard } from "@/src/features/leaderboard/mappers/leaderboard-mapper";
 import { MockApiClient } from "@/src/foundation/testing/mock-api-client";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/search/experiment-013",
+  useRouter: () => ({ replace: vi.fn() }),
+  useSearchParams: () => new URLSearchParams("view=results&candidateId=candidate-013")
+}));
 
 describe("F-015 composite leaderboard", () => {
   it("renders composite summary, four server metrics and authoritative actions without Sharpe", () => {
@@ -52,10 +58,12 @@ describe("F-015 composite leaderboard", () => {
       candidateFingerprint: `sha256:${"c".repeat(64)}`,
       dataset: {
         datasetId: "dataset-013",
+        version: "candle-v1",
         checksum: `sha256:${"d".repeat(64)}`,
         provider: "binance",
         pair: "BTC/USDT",
         timeframe: "1h",
+        normalizationVersion: "binance-v1",
         startTime: "2026-01-01T00:00:00Z",
         endTime: "2026-07-01T00:00:00Z",
         candleCount: 4344
@@ -68,7 +76,33 @@ describe("F-015 composite leaderboard", () => {
         maximumDrawdown: "0.0831",
         numberOfTrades: 1245,
         metricVersion: "metric-v1"
-      }
+      },
+      backtest: {
+        jobId: "job-013",
+        status: "SUCCEEDED",
+        backtestResultId: "result-013",
+        startedAt: "2026-01-01T00:00:00Z",
+        finishedAt: "2026-07-01T00:00:00Z",
+        attemptNo: 1,
+        nextRetryAt: null,
+        retryable: false,
+        failure: null
+      },
+      evaluation: {
+        status: "SUCCEEDED",
+        evaluationResultId: "evaluation-013",
+        score: "0.84",
+        totalReturn: "0.425",
+        winRate: "0.582",
+        maximumDrawdown: "0.0831",
+        numberOfTrades: 1245,
+        metricVersion: "metric-v1",
+        eligible: true,
+        eligibilityReason: null,
+        evaluatedAt: "2026-07-01T00:00:00Z"
+      },
+      ranking: { status: "RANKED", rank: 1, rankingVersion: "ranking-v1" },
+      failureStage: null
     });
 
     render(
@@ -79,12 +113,11 @@ describe("F-015 composite leaderboard", () => {
       />
     );
 
-    expect(await screen.findByRole("heading", { name: "Candidate #8" })).toBeInTheDocument();
-    expect(screen.getByText(/ma-crossover/)).toBeInTheDocument();
-    expect(screen.getByText(/majority-vote/)).toBeInTheDocument();
-    expect(screen.getByText(/fastPeriod/)).toBeInTheDocument();
+    expect(await screen.findByText("Candidate #8")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Moving Average Crossover/ })).toBeInTheDocument();
+    expect(screen.getByText(/Fast period 10/)).toBeInTheDocument();
     expect(screen.getByText(`sha256:${"d".repeat(64)}`)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "View authoritative Backtest" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "View full backtest result" })).toHaveAttribute(
       "href",
       "/backtests?resultId=result-013"
     );

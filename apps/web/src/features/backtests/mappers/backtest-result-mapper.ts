@@ -1,6 +1,12 @@
 import { z } from "zod";
 import type { BacktestResultViewModel } from "../types/backtest-result";
 const decimal = z.string().regex(/^-?\d+(?:\.\d+)?$/);
+const metrics = z.object({
+  totalReturn: decimal,
+  winRate: decimal,
+  maximumDrawdown: decimal,
+  numberOfTrades: z.number().int().nonnegative()
+}).strict();
 const trade = z
   .object({
     tradeId: z.string().min(1),
@@ -74,14 +80,7 @@ const schema = z
     backtestResultId: z.string().min(1),
     backtestId: z.string().min(1).nullish(),
     status: z.literal("COMPLETED"),
-    metrics: z
-      .object({
-        totalReturn: decimal,
-        winRate: decimal,
-        maximumDrawdown: decimal,
-        numberOfTrades: z.number().int().nonnegative()
-      })
-      .strict(),
+    metrics,
     trades: z.array(trade),
     provenance: z
       .object({
@@ -145,4 +144,26 @@ export function mapBacktestResult(value: unknown): BacktestResultViewModel {
       : undefined,
     backtestResultId: parsed.backtestResultId as BacktestResultViewModel["backtestResultId"]
   };
+}
+
+const historyPageSchema = z.object({
+  items: z.array(z.object({
+    backtestResultId: z.string().min(1),
+    experimentId: z.string().min(1),
+    candidateId: z.string().min(1),
+    generationIndex: z.number().int().nonnegative(),
+    experimentName: z.string().min(1),
+    definition: z.record(z.string(), z.unknown()),
+    strategySummary: z.string(),
+    metrics,
+    score: decimal.nullable(),
+    completedAt: z.string().datetime()
+  }).strict()),
+  nextCursor: z.string().nullable(),
+  hasMore: z.boolean(),
+  totalCount: z.number().int().nonnegative()
+}).strict();
+
+export function mapBacktestResultHistoryPage(value: unknown) {
+  return historyPageSchema.parse(value);
 }

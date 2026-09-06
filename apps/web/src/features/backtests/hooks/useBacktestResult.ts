@@ -3,7 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiClient } from "@/src/foundation/http/contracts";
 import { createBacktestResultService } from "../service/backtest-result-service";
 import type { BacktestLookup, BacktestQueryState } from "../types/backtest-result";
+import { forgetBacktestResult, rememberBacktestResult } from "@/src/foundation/navigation/resource-history";
+import { useRouter } from "next/navigation";
 export function useBacktestResult(api: ApiClient, lookup: BacktestLookup) {
+  const router = useRouter();
   const lookupKind = lookup.kind;
   const lookupId =
     lookup.kind === "backtestId" || lookup.kind === "resultId" ? lookup.id : undefined;
@@ -37,6 +40,7 @@ export function useBacktestResult(api: ApiClient, lookup: BacktestLookup) {
           );
     if (result.ok) {
       snapshot.current = result.data;
+      rememberBacktestResult(result.data.backtestResultId);
       setEligibleAt(0);
       setState({ status: "success", snapshot: result.data });
       return;
@@ -49,6 +53,9 @@ export function useBacktestResult(api: ApiClient, lookup: BacktestLookup) {
           : result.error.retryable
             ? "retryable-failure"
             : "terminal-failure";
+    if (result.error.code === "RESOURCE_NOT_FOUND" && lookupKind === "resultId" && lookupId) {
+      if (forgetBacktestResult(lookupId)) router.replace("/backtests");
+    }
     if (result.error.retryAfterSeconds !== undefined)
       setEligibleAt(Date.now() + result.error.retryAfterSeconds * 1000);
     setState({
@@ -56,7 +63,7 @@ export function useBacktestResult(api: ApiClient, lookup: BacktestLookup) {
       error: result.error,
       ...(snapshot.current ? { snapshot: snapshot.current } : {})
     });
-  }, [api, lookupId, lookupKind, lookupMessage]);
+  }, [api, lookupId, lookupKind, lookupMessage, router]);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- route identity starts an external API synchronization
     void load();

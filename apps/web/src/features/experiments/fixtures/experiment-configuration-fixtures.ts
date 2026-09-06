@@ -37,7 +37,7 @@ export const strategyDescriptorPage = {
       description: "Deterministic crossover strategy",
       category: "TREND",
       supportedSignals: ["BUY", "SELL"],
-      requiredLookback: 120,
+      requiredLookback: 3,
       parameters: [
         {
           name: "fastPeriod",
@@ -46,6 +46,7 @@ export const strategyDescriptorPage = {
           defaultValue: "12",
           minimum: "2",
           maximum: "50",
+          searchRangeHint: { minimum: "5", maximum: "20", step: "5" },
           allowedValues: [],
           description: "Fast moving-average period"
         },
@@ -56,6 +57,7 @@ export const strategyDescriptorPage = {
           defaultValue: "64",
           minimum: "10",
           maximum: "200",
+          searchRangeHint: { minimum: "20", maximum: "100", step: "10" },
           allowedValues: [],
           description: "Slow moving-average period"
         },
@@ -66,12 +68,13 @@ export const strategyDescriptorPage = {
           defaultValue: "CLOSE",
           minimum: null,
           maximum: null,
+          searchRangeHint: null,
           allowedValues: ["OPEN", "CLOSE"],
           description: "Input price"
         }
       ],
       constraints: [{ lowerParameter: "fastPeriod", upperParameter: "slowPeriod" }],
-      descriptorFingerprint: "strategy-descriptor-v1:ma-crossover:1.0.0"
+      descriptorFingerprint: "strategy-descriptor-v2:ma-crossover:1.0.0"
     }
   ],
   nextCursor: null,

@@ -304,9 +304,40 @@ public final class ExperimentSql {
                    ea.attempt_no, ea.started_at
             FROM experiment.execution_attempt ea
             JOIN experiment.job j ON j.job_id = ea.job_id
-            WHERE ea.status = 'RUNNING' AND ea.started_at < ?
+            WHERE ea.status = 'RUNNING' AND j.status = 'RUNNING' AND ea.started_at < ?
             ORDER BY ea.started_at ASC
             LIMIT ?
+            """;
+
+    public static final String SELECT_EXPERIMENT_PAGE = """
+            SELECT e.experiment_id, e.name, e.status,
+                   coalesce(m.dataset_provenance ->> 'provider', '') AS dataset_provider,
+                   coalesce(m.dataset_provenance ->> 'tradingPair', '') AS dataset_pair,
+                   coalesce(m.dataset_provenance ->> 'timeframe', '') AS dataset_timeframe,
+                   coalesce((m.dataset_provenance ->> 'candleCount')::bigint, 0) AS candle_count,
+                   coalesce((SELECT count(*) FROM experiment.job candidate_job
+                             WHERE candidate_job.experiment_id = e.experiment_id
+                               AND candidate_job.job_type = 'BACKTEST'), 0) AS total_candidates,
+                   coalesce((SELECT search_job.completed_work FROM experiment.job search_job
+                             WHERE search_job.experiment_id = e.experiment_id
+                               AND search_job.job_type = 'SEARCH'
+                             ORDER BY search_job.created_at DESC LIMIT 1), 0) AS succeeded_candidates,
+                   coalesce((SELECT search_job.failed_work FROM experiment.job search_job
+                             WHERE search_job.experiment_id = e.experiment_id
+                               AND search_job.job_type = 'SEARCH'
+                             ORDER BY search_job.created_at DESC LIMIT 1), 0) AS failed_candidates,
+                   e.started_at, e.completed_at, e.created_at
+            FROM experiment.experiment e
+            JOIN experiment.experiment_manifest m ON m.experiment_id = e.experiment_id
+            WHERE e.owner_user_id = ?
+              AND (cast(? as timestamptz) IS NULL
+                   OR (e.created_at, e.experiment_id) < (cast(? as timestamptz), ?))
+            ORDER BY e.created_at DESC, e.experiment_id DESC
+            LIMIT ?
+            """;
+
+    public static final String COUNT_EXPERIMENTS = """
+            SELECT count(*) FROM experiment.experiment WHERE owner_user_id = ?
             """;
 
     // Idempotency queries

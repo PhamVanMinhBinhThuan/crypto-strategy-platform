@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -52,6 +53,7 @@ final class BacktestRequestMapper {
     }
 
     StartStandaloneBacktestCommand map(
+            UUID ownerUserId,
             CommandDtos.StartBacktestRequest request,
             String idempotencyKey,
             String requestHash,
@@ -63,7 +65,7 @@ final class BacktestRequestMapper {
             throw invalid("Dataset, Strategy, and Backtest configuration are required");
         }
 
-        var dataset = datasets.getDataset(request.datasetId());
+        var dataset = datasets.getDataset(ownerUserId, request.datasetId());
         DatasetProvenanceSnapshot datasetProvenance = new DatasetProvenanceSnapshot(
                 dataset.datasetVersionId(),
                 dataset.version(),

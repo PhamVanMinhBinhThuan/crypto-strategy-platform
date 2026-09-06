@@ -77,9 +77,17 @@ public final class MarketDtos {
         }
     }
 
-    public record DatasetListResponse(List<DatasetResponse> items) {
+    public record DatasetListResponse(
+            List<DatasetResponse> items,
+            String nextCursor,
+            boolean hasMore,
+            long totalCount) {
         public DatasetListResponse {
             items = List.copyOf(items);
+        }
+
+        public DatasetListResponse(List<DatasetResponse> items) {
+            this(items, null, false, items.size());
         }
     }
 }

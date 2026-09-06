@@ -62,7 +62,7 @@ class SearchStartCommandFactoryServiceTest {
     void resolvesPublishedCompositeByOwnerAndFreezesItIntoManifest() {
         GetDatasetUseCase datasets = mock(GetDatasetUseCase.class);
         DatasetSnapshot dataset = dataset();
-        when(datasets.getDataset(DATASET_ID)).thenReturn(dataset);
+        when(datasets.getDataset(OWNER, DATASET_ID)).thenReturn(dataset);
         StrategyRegistry registry = mock(StrategyRegistry.class);
         ResolveStrategySnapshotUseCase userStrategies = mock(ResolveStrategySnapshotUseCase.class);
         StrategyFingerprintCalculator fingerprints = StrategyModuleFactory.fingerprints();
@@ -132,7 +132,7 @@ class SearchStartCommandFactoryServiceTest {
     void expandsExactDecimalRangesAndFreezesCanonicalOptions() {
         GetDatasetUseCase datasets = mock(GetDatasetUseCase.class);
         DatasetSnapshot dataset = dataset();
-        when(datasets.getDataset(DATASET_ID)).thenReturn(dataset);
+        when(datasets.getDataset(OWNER, DATASET_ID)).thenReturn(dataset);
         StrategyRegistry registry = mock(StrategyRegistry.class);
         ResolveStrategySnapshotUseCase userStrategies = mock(ResolveStrategySnapshotUseCase.class);
         StrategyFingerprintCalculator fingerprints = StrategyModuleFactory.fingerprints();
@@ -177,7 +177,7 @@ class SearchStartCommandFactoryServiceTest {
     void freezesConfiguredBacktestAssumptionsAndRetainsDefaultsWhenOmitted() {
         GetDatasetUseCase datasets = mock(GetDatasetUseCase.class);
         DatasetSnapshot dataset = dataset();
-        when(datasets.getDataset(DATASET_ID)).thenReturn(dataset);
+        when(datasets.getDataset(OWNER, DATASET_ID)).thenReturn(dataset);
         StrategyRegistry registry = mock(StrategyRegistry.class);
         ResolveStrategySnapshotUseCase userStrategies = mock(ResolveStrategySnapshotUseCase.class);
         StrategyFingerprintCalculator fingerprints = StrategyModuleFactory.fingerprints();

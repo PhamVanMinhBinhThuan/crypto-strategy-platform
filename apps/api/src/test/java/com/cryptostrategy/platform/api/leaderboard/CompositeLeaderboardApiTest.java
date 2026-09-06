@@ -58,7 +58,7 @@ class CompositeLeaderboardApiTest {
                 Map.of("schemaVersion", 2, "kind", "COMPOSITE"), Map.of("cursor", 8),
                 "sha256:" + "b".repeat(64),
                 new LeaderboardBacktestResultId("01J00000000000000000000503"),
-                "SUCCEEDED", evaluation);
+                "FAILED", evaluation);
         var dataset = new DatasetProvenanceSnapshot(
                 new DatasetVersionId("01J00000000000000000000505"), "candle-v1",
                 "sha256:" + "d".repeat(64), "BINANCE", "BTC/USDT", "1h", "binance-v1",
@@ -69,6 +69,7 @@ class CompositeLeaderboardApiTest {
         assertThat(response.candidateFingerprint()).isEqualTo(evidence.candidateFingerprint());
         assertThat(response.dataset().checksum()).isEqualTo(dataset.checksum());
         assertThat(response.backtestResultId()).isEqualTo(evidence.backtestResultId());
+        assertThat(response.backtestStatus()).isEqualTo("SUCCEEDED");
         assertThat(response.metrics().metricVersion()).isEqualTo("metric-v1");
     }
 }

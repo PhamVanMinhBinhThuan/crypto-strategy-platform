@@ -6,6 +6,7 @@ import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
 import com.cryptostrategy.platform.experiment.api.ExperimentStatus;
+import com.cryptostrategy.platform.experiment.api.ExperimentSummary;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
 import com.cryptostrategy.platform.experiment.api.port.out.ExperimentStore;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -108,6 +109,38 @@ public class JdbcExperimentStore implements ExperimentStore {
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public List<ExperimentSummary> listExperimentsPage(
+            UUID ownerUserId, Instant beforeCreatedAt, String beforeExperimentId, int limit) {
+        Timestamp boundary = toTimestamp(beforeCreatedAt);
+        return jdbcTemplate.query(
+                ExperimentSql.SELECT_EXPERIMENT_PAGE,
+                (rs, rowNum) -> new ExperimentSummary(
+                        new ExperimentId(rs.getString("experiment_id")),
+                        rs.getString("name"),
+                        ExperimentStatus.valueOf(rs.getString("status")),
+                        rs.getString("dataset_provider"),
+                        rs.getString("dataset_pair"),
+                        rs.getString("dataset_timeframe"),
+                        rs.getLong("candle_count"),
+                        rs.getInt("total_candidates"),
+                        rs.getInt("succeeded_candidates"),
+                        rs.getInt("failed_candidates"),
+                        rs.getTimestamp("started_at") == null
+                                ? null : rs.getTimestamp("started_at").toInstant(),
+                        rs.getTimestamp("completed_at") == null
+                                ? null : rs.getTimestamp("completed_at").toInstant(),
+                        rs.getTimestamp("created_at").toInstant()),
+                ownerUserId, boundary, boundary, beforeExperimentId, limit);
+    }
+
+    @Override
+    public long countExperiments(UUID ownerUserId) {
+        Long count = jdbcTemplate.queryForObject(
+                ExperimentSql.COUNT_EXPERIMENTS, Long.class, ownerUserId);
+        return count == null ? 0 : count;
     }
 
     @Override

@@ -13,9 +13,20 @@ export function useExperimentConfiguration() {
     <K extends keyof ExperimentDraft>(key: K, value: ExperimentDraft[K]) => {
       setDraft((d) => ({ ...d, [key]: value }));
       setErrors((current) => {
-        if (!(key in current)) return current;
+        const related = new Set<string>([String(key)]);
+        if (key === "maximumCandidates" || key === "maximumDurationSeconds")
+          related.add("stop");
+        if (
+          key === "maximumCandidates" ||
+          key === "minimumComponents" ||
+          key === "maximumComponents" ||
+          key === "strategyPool"
+        )
+          related.add("topK");
+        if (key === "strategyPool") related.add("componentBounds");
+        if (![...related].some((errorKey) => errorKey in current)) return current;
         const next = { ...current };
-        delete next[key];
+        for (const errorKey of related) delete next[errorKey];
         return next;
       });
     },
@@ -39,6 +50,7 @@ export function useExperimentConfiguration() {
       displayName?: string;
       userStrategyVersionId?: string;
       parameters: Record<string, SearchParameterDomain>;
+      parameterInfo?: Record<string, { description: string }>;
       constraints?: ReadonlyArray<{ lowerParameter: string; upperParameter: string }>;
     }) =>
       setDraft((d) => ({
@@ -54,6 +66,7 @@ export function useExperimentConfiguration() {
             strategyVersion: selection.strategyVersion || undefined,
             userStrategyVersionId: selection.userStrategyVersionId,
             parameters: selection.parameters,
+            parameterInfo: selection.parameterInfo,
             constraints: selection.constraints
           }
         ],
@@ -63,7 +76,7 @@ export function useExperimentConfiguration() {
     []
   );
   const updatePoolParameter = useCallback(
-    (key: string, name: string, domain: SearchParameterDomain) =>
+    (key: string, name: string, domain: SearchParameterDomain) => {
       setDraft((d) => ({
         ...d,
         strategyPool: d.strategyPool.map((entry) =>
@@ -71,7 +84,19 @@ export function useExperimentConfiguration() {
             ? { ...entry, parameters: { ...entry.parameters, [name]: domain } }
             : entry
         )
-      })),
+      }));
+      setErrors((current) => {
+        const errorKey = `parameter-${key}-${name}`;
+        const related = Object.keys(current).filter(
+          (keyName) => keyName === "strategyPool" || keyName === "topK" || keyName.startsWith(`parameter-${key}-`)
+        );
+        if (!(errorKey in current) && related.length === 0) return current;
+        const next = { ...current };
+        for (const keyName of related) delete next[keyName];
+        delete next[errorKey];
+        return next;
+      });
+    },
     []
   );
   const validate = () => {

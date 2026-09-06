@@ -5,9 +5,9 @@ export default async function Page({
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ candidateId?: string }>;
+  searchParams: Promise<{ candidateId?: string; view?: string }>;
 }) {
   const { id } = await params;
-  const { candidateId } = await searchParams;
-  return <SearchView id={id} candidateId={candidateId} />;
+  const { candidateId, view } = await searchParams;
+  return <SearchView id={id} candidateId={candidateId} view={view} />;
 }

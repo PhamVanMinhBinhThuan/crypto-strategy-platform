@@ -13,6 +13,7 @@ import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterType;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSchema;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue;
+import com.cryptostrategy.platform.strategy.api.model.parameter.SearchRangeHint;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -32,14 +33,16 @@ public final class BollingerBandsPlugin implements StrategyPlugin {
             "Compares the closing price with volatility bands around a moving average",
             "VOLATILITY",
             Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD),
-            20,
+            2,
             new StrategyParameterSchema(
                     List.of(
-                            integer("period", 20, 2, 500),
-                            decimal("standardDeviation", "2", "0.1", "10"),
+                            integer("period", 20, 2, 500, 10, 50, 5,
+                                    "Number of closing-price candles used for the moving average and volatility."),
+                            decimal("standardDeviation", "2", "0.1", "10", "1.5", "3", "0.25",
+                                    "Multiplier controlling band width; larger values produce fewer signals."),
                             enumeration("ruleMode", MEAN_REVERSION, Set.of(MEAN_REVERSION))),
                     List.of()),
-            "strategy-descriptor-v1:bollinger-bands:1.0.0");
+            "strategy-descriptor-v2:bollinger-bands:1.0.0");
 
     @Override
     public StrategyDescriptor descriptor() {
@@ -64,8 +67,9 @@ public final class BollingerBandsPlugin implements StrategyPlugin {
         return Math.toIntExact(period);
     }
 
-    private static ParameterDefinition integer(
-            String name, long defaultValue, long minimum, long maximum) {
+    private static ParameterDefinition integer(String name, long defaultValue, long minimum,
+            long maximum, long searchMinimum, long searchMaximum, long searchStep,
+            String description) {
         return new ParameterDefinition(
                 name,
                 ParameterType.INTEGER,
@@ -74,11 +78,14 @@ public final class BollingerBandsPlugin implements StrategyPlugin {
                 Optional.of(BigDecimal.valueOf(minimum)),
                 Optional.of(BigDecimal.valueOf(maximum)),
                 Set.of(),
-                name);
+                description,
+                Optional.of(new SearchRangeHint(BigDecimal.valueOf(searchMinimum),
+                        BigDecimal.valueOf(searchMaximum), BigDecimal.valueOf(searchStep))));
     }
 
-    private static ParameterDefinition decimal(
-            String name, String defaultValue, String minimum, String maximum) {
+    private static ParameterDefinition decimal(String name, String defaultValue, String minimum,
+            String maximum, String searchMinimum, String searchMaximum, String searchStep,
+            String description) {
         return new ParameterDefinition(
                 name,
                 ParameterType.DECIMAL,
@@ -87,7 +94,9 @@ public final class BollingerBandsPlugin implements StrategyPlugin {
                 Optional.of(new BigDecimal(minimum)),
                 Optional.of(new BigDecimal(maximum)),
                 Set.of(),
-                name);
+                description,
+                Optional.of(new SearchRangeHint(new BigDecimal(searchMinimum),
+                        new BigDecimal(searchMaximum), new BigDecimal(searchStep))));
     }
 
     private static ParameterDefinition enumeration(

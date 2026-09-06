@@ -112,7 +112,7 @@ class MarketApiContractTest {
         when(historical.loadHistoricalCandles(any(HistoricalCandleQuery.class)))
                 .thenAnswer(invocation -> candlesFor(invocation.getArgument(0)));
         when(createDataset.createDataset(any(CreateDatasetCommand.class))).thenReturn(DATASET);
-        when(getDataset.getDataset(new DatasetVersionId(DATASET_ID))).thenReturn(DATASET);
+        when(getDataset.getDataset(USER_A_ID, new DatasetVersionId(DATASET_ID))).thenReturn(DATASET);
     }
 
     @Test

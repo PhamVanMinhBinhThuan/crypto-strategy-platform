@@ -139,6 +139,19 @@ public class ExperimentApiConfiguration {
                     com.cryptostrategy.platform.experiment.api.ExperimentId experimentId) {
                 return components.getExperiment().getManifest(ownerUserId, experimentId);
             }
+
+            @Override
+            public java.util.List<com.cryptostrategy.platform.experiment.api.ExperimentSummary> listRecent(
+                    java.util.UUID ownerUserId, java.time.Instant beforeCreatedAt,
+                    String beforeExperimentId, int limit) {
+                return components.getExperiment().listRecent(
+                        ownerUserId, beforeCreatedAt, beforeExperimentId, limit);
+            }
+
+            @Override
+            public long count(java.util.UUID ownerUserId) {
+                return components.getExperiment().count(ownerUserId);
+            }
         };
     }
 

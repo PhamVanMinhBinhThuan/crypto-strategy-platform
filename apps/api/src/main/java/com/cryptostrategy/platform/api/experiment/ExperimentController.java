@@ -2,10 +2,12 @@ package com.cryptostrategy.platform.api.experiment;
 
 import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
 import com.cryptostrategy.platform.api.error.DependencyUnavailableException;
+import com.cryptostrategy.platform.api.error.RequestFieldValidationException;
 import com.cryptostrategy.platform.api.idempotency.IdempotencyCommandExecutor;
 import com.cryptostrategy.platform.api.observability.CorrelationContext;
 import com.cryptostrategy.platform.api.observability.CorrelationId;
 import com.cryptostrategy.platform.api.transport.PageRequestMapper;
+import com.cryptostrategy.platform.api.transport.HistoryCursor;
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.error.ResourceInaccessibleException;
@@ -147,8 +149,22 @@ public final class ExperimentController {
                 "START_SEARCH",
                 idempotencyKey,
                 request,
-                (key, requestHash) -> startSearch.start(startRequests.map(
-                        user.userId(), key, requestHash, correlationId(), request)));
+                (key, requestHash) -> {
+                    try {
+                        return startSearch.start(startRequests.map(
+                                user.userId(), key, requestHash, correlationId(), request));
+                    } catch (RequestFieldValidationException failure) {
+                        throw failure;
+                    } catch (IllegalArgumentException failure) {
+                        String message = failure.getMessage();
+                        String prefix = "searchSpace.strategyPool: ";
+                        if (message != null && message.startsWith(prefix)) {
+                            throw new RequestFieldValidationException(
+                                    "searchSpace.strategyPool", message.substring(prefix.length()));
+                        }
+                        throw failure;
+                    }
+                });
         var response = new CommandDtos.ExperimentAcceptedResponse(
                 accepted.experimentId(), accepted.searchJobId(), accepted.searchRunId(),
                 accepted.status(), accepted.configurationVersion(),
@@ -264,11 +280,102 @@ public final class ExperimentController {
                 .orElseThrow(ExperimentController::inaccessible);
         var manifest = experiments.getManifest(user.userId(), experimentId)
                 .orElseThrow(ExperimentController::inaccessible);
-        return leaderboards.getCandidate(experimentId, new CandidateId(candidateId))
-                .map(value -> LeaderboardDtos.CandidateDetailResponse.from(
-                        value, manifest.datasetProvenance()))
-                .orElseGet(() -> LeaderboardDtos.CandidateDetailResponse.from(
-                        candidate, manifest.datasetProvenance()));
+        var pipeline = leaderboards.getCandidatePipelineEntry(
+                experimentId, new CandidateId(candidateId)).orElse(null);
+        if (pipeline == null) {
+            var legacyEvidence = leaderboards.getCandidate(
+                    experimentId, new CandidateId(candidateId));
+            if (legacyEvidence.isPresent()) {
+                return LeaderboardDtos.CandidateDetailResponse.from(
+                        legacyEvidence.get(), manifest.datasetProvenance());
+            }
+        }
+        return LeaderboardDtos.CandidateDetailResponse.from(
+                candidate, manifest.datasetProvenance(), pipeline);
+    }
+
+    @GetMapping
+    public ReadDtos.ExperimentHistoryPage listExperiments(
+            @AuthenticationPrincipal AuthenticatedUserContext user,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor) {
+        var page = pages.map(limit, cursor, 10, 100);
+        HistoryCursor after = page.cursor()
+                .map(value -> HistoryCursor.decode(value, "experiments"))
+                .orElse(null);
+        var ordered = experiments.listRecent(
+                user.userId(),
+                after == null ? null : after.timestamp(),
+                after == null ? null : after.id(),
+                page.limit() + 1);
+        boolean hasMore = ordered.size() > page.limit();
+        var selected = hasMore ? ordered.subList(0, page.limit()) : ordered;
+        String nextCursor = hasMore && !selected.isEmpty()
+                ? new HistoryCursor("experiments", selected.getLast().createdAt(),
+                        selected.getLast().experimentId().value()).encode()
+                : null;
+        return new ReadDtos.ExperimentHistoryPage(
+                selected.stream().map(ReadDtos.ExperimentHistoryItem::from).toList(),
+                nextCursor, hasMore, experiments.count(user.userId()));
+    }
+
+    @GetMapping("/{id}/candidate-pipeline")
+    public ReadDtos.CandidatePipelinePage candidatePipeline(
+            @AuthenticationPrincipal AuthenticatedUserContext user,
+            @PathVariable String id,
+            @RequestParam(defaultValue = "ALL") String view,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false) String cursor) {
+        ExperimentId experimentId = new ExperimentId(id);
+        if (experiments.getExperiment(user.userId(), experimentId).isEmpty()) throw inaccessible();
+        String normalizedView = view.toUpperCase(java.util.Locale.ROOT);
+        if (!java.util.Set.of("RESULTS", "FAILED", "ALL").contains(normalizedView)) {
+            throw new IllegalArgumentException("view must be RESULTS, FAILED or ALL");
+        }
+        if (limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("limit must be between 1 and 100");
+        }
+        var all = leaderboards.getCandidatePipeline(experimentId);
+        int resultCount = (int) all.stream()
+                .filter(item -> "SUCCEEDED".equals(item.evaluation().status())).count();
+        int failedCount = (int) all.stream().filter(item -> item.failureStage() != null).count();
+        java.util.Comparator<com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry>
+                generationOrder = java.util.Comparator
+                        .comparingInt(com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry::generationIndex)
+                        .thenComparing(item -> item.candidateId().value());
+        java.util.Comparator<com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry>
+                resultOrder = java.util.Comparator
+                        .comparing((com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry item) ->
+                                item.evaluation().score(), java.util.Comparator.reverseOrder())
+                        .thenComparing(item -> item.evaluation().evaluatedAt())
+                        .thenComparing(item -> item.candidateId().value());
+        var filtered = all.stream().filter(item -> switch (normalizedView) {
+                    case "RESULTS" -> "SUCCEEDED".equals(item.evaluation().status());
+                    case "FAILED" -> item.failureStage() != null;
+                    default -> true;
+                })
+                .sorted("RESULTS".equals(normalizedView) ? resultOrder : generationOrder)
+                .toList();
+        int start = 0;
+        if (cursor != null && !cursor.isBlank()) {
+            CandidatePipelineCursor decoded = CandidatePipelineCursor.decode(cursor);
+            if (!normalizedView.equals(decoded.view())) {
+                throw new IllegalArgumentException("Cursor does not belong to this pipeline view");
+            }
+            start = java.util.stream.IntStream.range(0, filtered.size())
+                    .filter(index -> filtered.get(index).candidateId().value().equals(decoded.candidateId()))
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException("Cursor is stale")) + 1;
+        }
+        int end = Math.min(filtered.size(), start + limit);
+        var selected = filtered.subList(start, end);
+        boolean hasMore = end < filtered.size();
+        String nextCursor = hasMore && !selected.isEmpty()
+                ? new CandidatePipelineCursor(normalizedView,
+                        selected.getLast().candidateId().value()).encode()
+                : null;
+        return new ReadDtos.CandidatePipelinePage(
+                selected.stream().map(ReadDtos.CandidatePipelineResponse::from).toList(),
+                nextCursor, hasMore, resultCount, failedCount, all.size());
     }
 
     private static DependencyUnavailableException searchCoordinatorUnavailable() {

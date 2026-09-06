@@ -55,17 +55,17 @@ test.describe("F-013 US1: Backtest standalone result", () => {
     await page.goto("/backtests?backtestId=backtest-013");
 
     // Page heading
-    await expect(page.getByRole("heading", { name: "Backtest Results" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /backtest/i })).toBeVisible();
 
     // Exactly four metrics (FR-003)
-    await expect(page.getByText("Total Return")).toBeVisible();
-    await expect(page.getByText("Win Rate")).toBeVisible();
-    await expect(page.getByText("Maximum Drawdown")).toBeVisible();
-    await expect(page.getByText("Number of Trades")).toBeVisible();
+    await expect(page.getByText("Total return")).toBeVisible();
+    await expect(page.getByText("Win rate")).toBeVisible();
+    await expect(page.getByText("Maximum drawdown")).toBeVisible();
+    await expect(page.getByText("Trades", { exact: true })).toBeVisible();
 
     // Capital summary (FR-005)
-    await expect(page.getByText("Initial Capital")).toBeVisible();
-    await expect(page.getByText("Final Capital")).toBeVisible();
+    await expect(page.getByText("Initial capital")).toBeVisible();
+    await expect(page.getByText("Final capital")).toBeVisible();
 
     // Trade history scroll region (FR-006)
     await expect(page.getByRole("region", { name: "Scrollable trade history" })).toBeVisible();
@@ -74,13 +74,14 @@ test.describe("F-013 US1: Backtest standalone result", () => {
     await expect(page.getByRole("columnheader", { name: /Entry/i })).toBeVisible();
     await expect(page.getByRole("columnheader", { name: /Exit/i })).toBeVisible();
 
-    // Provenance section (FR-007)
+    // Technical provenance (FR-007)
+    await page.getByText("Technical details & reproducibility").click();
     await expect(page.getByText(/Manifest Fingerprint/i)).toBeVisible();
     await expect(page.getByText(/Strategy Fingerprint/i)).toBeVisible();
 
     // Assumptions section (FR-008)
-    await expect(page.getByText(/Fee Rate/i)).toBeVisible();
-    await expect(page.getByText(/Position Mode/i)).toBeVisible();
+    await expect(page.getByText(/Transaction fee/i)).toBeVisible();
+    await expect(page.getByText("Position mode", { exact: true })).toBeVisible();
   });
 
   test("renders zero-trades empty state without treating it as an error", async ({ page }) => {
@@ -88,8 +89,8 @@ test.describe("F-013 US1: Backtest standalone result", () => {
     // Zero-trades fixture driven by resultId query
     await page.goto("/backtests?backtestId=backtest-zero");
 
-    await expect(page.getByText("Total Return")).toBeVisible();
-    await expect(page.getByText("Number of Trades")).toBeVisible();
+    await expect(page.getByText("Total return")).toBeVisible();
+    await expect(page.getByText("Trades", { exact: true })).toBeVisible();
     // Empty trade list notice, not an error panel
     await expect(page.getByText(/no.*trade/i)).toBeVisible();
     await expect(page.getByRole("alert")).not.toBeVisible();

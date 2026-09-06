@@ -20,6 +20,7 @@ import com.cryptostrategy.platform.search.api.model.*;
 import com.cryptostrategy.platform.search.api.SearchModuleFactory;
 import com.cryptostrategy.platform.search.api.CompositeSearchCanonicalization;
 import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
+import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
 import com.cryptostrategy.platform.strategy.api.model.user.*;
 import com.cryptostrategy.platform.strategy.api.model.user.query.ResolveStrategySnapshotQuery;
 import com.cryptostrategy.platform.strategy.api.model.parameter.*;
@@ -90,14 +91,15 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         Integer maximumWithoutImprovement = request.maximumWithoutImprovement() == null
                 ? null : positive(request.maximumWithoutImprovement(), "maximumWithoutImprovement");
         int topK = positive(request.topK(), "topK");
-        var dataset = datasets.getDataset(request.datasetId());
+        var dataset = datasets.getDataset(request.ownerUserId(), request.datasetId());
         var datasetSnapshot = new DatasetProvenanceSnapshot(dataset.datasetVersionId(), dataset.version(),
                 dataset.checksum(), dataset.provider().value(), dataset.tradingPair().canonicalSymbol(),
                 dataset.timeframe().code(), dataset.normalizationVersion(), dataset.rangeStart(),
                 dataset.rangeEnd(), dataset.candleCount());
         ResolvedStrategyInput strategyInput = compositeV2
-                ? resolveCompositeStrategyPool(request)
-                : userStrategy ? resolveUserStrategy(request) : resolveSystemStrategy(request);
+                ? resolveCompositeStrategyPool(request, dataset.candleCount())
+                : userStrategy ? resolveUserStrategy(request)
+                        : resolveSystemStrategy(request, dataset.candleCount());
         SearchSpace searchSpace = strategyInput.searchSpace();
         BigInteger finiteCardinality = strategyInput.compositeSearchSpace()
                 .map(CompositeSearchSpace::combinationCount)
@@ -175,7 +177,7 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 now.plus(Duration.ofHours(24)), experiment, manifest, searchJob, run, outbox);
     }
 
-    private ResolvedStrategyInput resolveCompositeStrategyPool(Request request) {
+    private ResolvedStrategyInput resolveCompositeStrategyPool(Request request, int candleCount) {
         int minimum = positive(request.minimumComponents(), "minimumComponents");
         int maximum = positive(request.maximumComponents(), "maximumComponents");
         if (!com.cryptostrategy.platform.search.api.model.SearchCombinationPolicy.MAJORITY_VOTE
@@ -199,6 +201,7 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 Map<String, SearchParameterDomain> domains = resolveDomains(entry.parameters(), definitions);
                 Map<String, StrategyParameterValue> representative = representative(domains);
                 StrategyParameterSet frozen = strategies.resolveParameters(entry.strategyId(), version, representative);
+                validateLookback(entry.strategyId(), version, domains, candleCount);
                 pool.add(new SearchStrategyPoolEntry(descriptor.reference(), domains,
                         descriptor.parameterSchema().constraints()));
                 snapshots.add(new StrategyComponentSnapshot(descriptor.reference(), frozen));
@@ -216,6 +219,8 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                         new SearchParameterDomain(value.type(), List.of(value))));
                 var descriptor = strategies.descriptor(single.source().strategyReference().pluginId(),
                         single.source().strategyReference().implementationVersion());
+                validateLookback(single.source().strategyReference().pluginId(),
+                        single.source().strategyReference().implementationVersion(), fixed, candleCount);
                 pool.add(new SearchStrategyPoolEntry(single.source().strategyReference(), fixed,
                         descriptor.parameterSchema().constraints()));
                 snapshots.add(new StrategyComponentSnapshot(
@@ -269,7 +274,7 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         return accepted.stream().sorted().distinct().toList();
     }
 
-    private ResolvedStrategyInput resolveSystemStrategy(Request request) {
+    private ResolvedStrategyInput resolveSystemStrategy(Request request, int candleCount) {
         SemanticVersion strategyVersion = SemanticVersion.parse(request.strategyVersion());
         var descriptor = strategies.descriptor(request.strategyId(), strategyVersion);
         Map<String, ParameterDefinition> definitions = new TreeMap<>();
@@ -279,6 +284,7 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         SearchSpace searchSpace = new SearchSpace(domains);
         var frozenParameters = strategies.resolveParameters(
                 request.strategyId(), strategyVersion, representative);
+        validateLookback(request.strategyId(), strategyVersion, domains, candleCount);
         var provenance = StrategyProvenanceSnapshot.single(
                 descriptor.reference(), frozenParameters, Optional.empty(),
                 fingerprints.single(descriptor.reference(), frozenParameters));
@@ -323,7 +329,7 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         requested.forEach((name, range) -> {
             ParameterDefinition definition = definitions.get(name);
             if (definition == null) throw new IllegalArgumentException("Unknown Strategy parameter: " + name);
-            domains.put(name, domain(definition.type(), range));
+            domains.put(name, domain(definition, range));
         });
         definitions.forEach((name, definition) -> {
             if (domains.containsKey(name)) return;
@@ -341,14 +347,32 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         return values;
     }
 
-    private static SearchParameterDomain domain(ParameterType type, ParameterDomain request) {
+    private void validateLookback(StrategyPluginId strategyId, SemanticVersion version,
+            Map<String, SearchParameterDomain> domains, int candleCount) {
+        Map<String, StrategyParameterValue> maximum = new TreeMap<>();
+        domains.forEach((name, domain) -> maximum.put(name, domain.options().getLast()));
+        strategies.descriptor(strategyId, version).parameterSchema().constraints()
+                .forEach(constraint -> maximum.put(constraint.lowerParameter(),
+                        domains.get(constraint.lowerParameter()).options().getFirst()));
+        int required = strategies.requiredLookback(strategyId, version, maximum);
+        if (required > candleCount) {
+            throw new IllegalArgumentException("searchSpace.strategyPool: " + strategyId.value()
+                    + " requires up to " + required + " candles, but the frozen Dataset has "
+                    + candleCount);
+        }
+    }
+
+    private static SearchParameterDomain domain(ParameterDefinition definition, ParameterDomain request) {
+        ParameterType type = definition.type();
         Objects.requireNonNull(request, "parameter range");
         if (request.options() != null && !request.options().isEmpty()) {
             if (request.kind() != null && !request.kind().equals("CHOICES")) {
                 throw new IllegalArgumentException("Parameter domain kind does not match discrete choices");
             }
-            return new SearchParameterDomain(type, request.options().stream()
-                    .map(value -> parseOption(type, value)).toList());
+            List<StrategyParameterValue> choices = request.options().stream()
+                    .map(value -> parseOption(type, value)).toList();
+            validateDomainBounds(definition, choices);
+            return new SearchParameterDomain(type, choices);
         }
         if ((type != ParameterType.INTEGER && type != ParameterType.DECIMAL)
                 || request.minimum() == null || request.maximum() == null) {
@@ -383,7 +407,28 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 values.add(new StrategyParameterValue.DecimalValue(value));
             }
         }
+        validateDomainBounds(definition, values);
         return new SearchParameterDomain(type, values);
+    }
+
+    private static void validateDomainBounds(ParameterDefinition definition,
+            List<StrategyParameterValue> values) {
+        for (StrategyParameterValue value : values) {
+            if (definition.type() == ParameterType.ENUM
+                    && !definition.allowedValues().contains(value.canonicalText())) {
+                throw new IllegalArgumentException("Unsupported option for " + definition.name());
+            }
+            if (definition.type() != ParameterType.INTEGER && definition.type() != ParameterType.DECIMAL)
+                continue;
+            BigDecimal numeric = new BigDecimal(value.canonicalText());
+            if ((definition.minimum().isPresent()
+                    && numeric.compareTo(definition.minimum().orElseThrow()) < 0)
+                    || (definition.maximum().isPresent()
+                    && numeric.compareTo(definition.maximum().orElseThrow()) > 0)) {
+                throw new IllegalArgumentException("Search domain is outside bounds for "
+                        + definition.name());
+            }
+        }
     }
 
     private static StrategyParameterValue parseOption(ParameterType type, String value) {

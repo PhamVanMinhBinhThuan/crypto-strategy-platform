@@ -12,12 +12,23 @@ public final class MarketDataSql {
     public static final String FIND_CANDLE_RANGE = candleSelect() + " where c.provider=? and c.trading_pair_id=? and c.timeframe=? and c.open_time>=? and c.open_time<? order by c.open_time";
     public static final String INSERT_DATASET = "insert into market.dataset_version(dataset_version_id,version,provider,trading_pair_id,timeframe,normalization_version,range_start,range_end,candle_count,checksum,created_at) values (?,?,?,?,?,?,?,?,?,?,?)";
     public static final String FIND_DATASET_ID = datasetSelect() + " where dv.dataset_version_id=?";
+    public static final String FIND_ACCESSIBLE_DATASET_ID = datasetSelect()
+            + " join market.dataset_access da on da.dataset_version_id=dv.dataset_version_id"
+            + " where da.owner_user_id=? and dv.dataset_version_id=?";
     public static final String FIND_DATASET_CHECKSUM = datasetSelect() + " where dv.checksum=?";
     public static final String LIST_RECENT_DATASETS = datasetSelect()
             + " order by dv.created_at desc,dv.dataset_version_id limit ?";
     public static final String LIST_RECENT_DATASETS_FOR_OWNER = datasetSelect()
             + " join market.dataset_access da on da.dataset_version_id=dv.dataset_version_id"
-            + " where da.owner_user_id=? order by dv.created_at desc,dv.dataset_version_id limit ?";
+            + " where da.owner_user_id=? order by dv.created_at desc,dv.dataset_version_id desc limit ?";
+    public static final String LIST_DATASET_PAGE_FOR_OWNER = datasetSelect()
+            + " join market.dataset_access da on da.dataset_version_id=dv.dataset_version_id"
+            + " where da.owner_user_id=?"
+            + " and (cast(? as timestamptz) is null"
+            + " or (dv.created_at,dv.dataset_version_id) < (cast(? as timestamptz),?))"
+            + " order by dv.created_at desc,dv.dataset_version_id desc limit ?";
+    public static final String COUNT_DATASETS_FOR_OWNER =
+            "select count(*) from market.dataset_access where owner_user_id=?";
     public static final String GRANT_DATASET_ACCESS = """
             insert into market.dataset_access(owner_user_id,dataset_version_id,granted_at)
             values (?,?,now()) on conflict (owner_user_id,dataset_version_id) do nothing

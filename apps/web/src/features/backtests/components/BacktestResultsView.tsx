@@ -4,14 +4,20 @@ import { useClients } from "@/src/foundation/composition/client-provider";
 import { parseBacktestLookup } from "../types/backtest-result";
 import { useBacktestResult } from "../hooks/useBacktestResult";
 import { ResultSummary } from "./ResultSummary";
-import { ResultEvidence } from "./ResultEvidence";
+import { ResultEvidence, ResultTechnicalDetails } from "./ResultEvidence";
 import { TradeHistory } from "./TradeHistory";
+import { quoteCurrency } from "./backtest-presentation";
+import Link from "next/link";
+import { RecentBacktestResults } from "./RecentBacktestResults";
+import { safeExperimentReturnUrl } from "@/src/foundation/navigation/resource-history";
 export function BacktestResultsView({
   resultId,
-  backtestId
+  backtestId,
+  returnTo
 }: {
   resultId?: string;
   backtestId?: string;
+  returnTo?: string;
 }) {
   const { api } = useClients();
   const lookup = useMemo(
@@ -19,23 +25,17 @@ export function BacktestResultsView({
     [resultId, backtestId]
   );
   const { state, retry, canRetry } = useBacktestResult(api, lookup);
-  if (state.status === "idle" || state.status === "loading" || state.status === "refreshing")
+  if (lookup.kind === "none")
+    return (
+      <main className="feature-page">
+        <header className="feature-header"><div><p className="eyebrow">Backtest evidence</p><h1>Backtest Results</h1><p className="muted">Open a completed result and inspect its immutable evidence.</p></div></header>
+        <RecentBacktestResults api={api} />
+      </main>
+    );
+  if (state.status === "idle" || state.status === "loading" || state.status === "refreshing" || state.status === "empty-identifier")
     return (
       <main className="feature-page" aria-busy="true">
         <p role="status">Loading backtest result…</p>
-      </main>
-    );
-  if (state.status === "empty-identifier")
-    return (
-      <main className="feature-page">
-        <h1>Backtest Results</h1>
-        <section className="panel empty-state">
-          <h2>Select a result</h2>
-          <p>
-            Choose an evaluated candidate from the Leaderboard or supply a valid backtest
-            identifier.
-          </p>
-        </section>
       </main>
     );
   if (state.status !== "success")
@@ -56,14 +56,28 @@ export function BacktestResultsView({
               Retry{state.error.retryAfterSeconds ? ` in ${state.error.retryAfterSeconds}s` : ""}
             </button>
           )}
+          <p><Link className="button secondary" href="/backtests">All backtest results</Link></p>
         </section>
       </main>
     );
   return (
-    <main className="feature-page">
+    <main className="feature-page backtest-result-page">
+      <nav className="page-actions backtest-navigation" aria-label="Backtest result navigation">
+        <Link className="backtest-return-link" href={safeExperimentReturnUrl(
+          returnTo,
+          state.snapshot.provenance.experimentId,
+          state.snapshot.provenance.candidateId
+        )}>&larr; Back to experiment</Link>
+        <Link className="button secondary" href="/backtests">All backtest results</Link>
+      </nav>
       <ResultSummary result={state.snapshot} />
       <ResultEvidence result={state.snapshot} />
-      <TradeHistory trades={state.snapshot.trades} />
+      <TradeHistory
+        key={state.snapshot.backtestResultId}
+        trades={state.snapshot.trades}
+        quoteCurrency={quoteCurrency(state.snapshot.provenance.dataset?.tradingPair)}
+      />
+      <ResultTechnicalDetails result={state.snapshot} />
     </main>
   );
 }

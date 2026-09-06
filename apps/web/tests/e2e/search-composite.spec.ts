@@ -152,7 +152,7 @@ test("keyboard flow creates a frozen range and starts a two-strategy composite s
   await page.getByLabel("Timeframe").selectOption("1h");
   await page.getByLabel("Start UTC").fill("2026-01-01T00:00");
   await page.getByLabel("End UTC").fill("2026-02-01T00:00");
-  const createDataset = page.getByRole("button", { name: "Create dataset" });
+  const createDataset = page.getByRole("button", { name: "Create new frozen dataset" });
   await createDataset.focus();
   await expect(createDataset).toBeFocused();
   await page.keyboard.press("Enter");

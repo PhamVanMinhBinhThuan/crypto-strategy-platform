@@ -32,9 +32,33 @@ public final class DatasetService implements CreateDatasetUseCase, GetDatasetUse
         if (!verifier.verify(snapshot).valid()) throw new MarketDataException(MarketDataErrorCode.DATASET_INTEGRITY_FAILED, "Dataset integrity failed");
         return snapshot;
     }
+    @Override public DatasetSnapshot getDataset(java.util.UUID ownerUserId, DatasetVersionId datasetId) {
+        if (ownerUserId == null) throw new IllegalArgumentException("Dataset owner is required");
+        DatasetSnapshot snapshot = store.findAccessible(ownerUserId, datasetId)
+                .orElseThrow(() -> new MarketDataException(
+                        MarketDataErrorCode.DATASET_NOT_FOUND, "Dataset not found or inaccessible"));
+        if (!verifier.verify(snapshot).valid()) throw new MarketDataException(MarketDataErrorCode.DATASET_INTEGRITY_FAILED, "Dataset integrity failed");
+        return snapshot;
+    }
     @Override public DatasetIntegrityResult verifyDataset(DatasetVersionId datasetId) { return store.find(datasetId).map(verifier::verify).orElseThrow(() -> new MarketDataException(MarketDataErrorCode.DATASET_NOT_FOUND, "Dataset not found")); }
     @Override public java.util.List<DatasetSnapshot> listRecentDatasets(java.util.UUID ownerUserId, int limit) {
         if (limit < 1 || limit > 100) throw new IllegalArgumentException("Dataset list limit must be between 1 and 100");
         return store.listRecent(ownerUserId, limit);
+    }
+    @Override public java.util.List<DatasetSnapshot> listDatasetsPage(
+            java.util.UUID ownerUserId, java.time.Instant beforeCreatedAt,
+            String beforeDatasetId, int limit) {
+        if (ownerUserId == null) throw new IllegalArgumentException("Dataset owner is required");
+        if ((beforeCreatedAt == null) != (beforeDatasetId == null)) {
+            throw new IllegalArgumentException("Dataset cursor boundary is incomplete");
+        }
+        if (limit < 1 || limit > 101) {
+            throw new IllegalArgumentException("Dataset page limit is invalid");
+        }
+        return store.listPage(ownerUserId, beforeCreatedAt, beforeDatasetId, limit);
+    }
+    @Override public long countDatasets(java.util.UUID ownerUserId) {
+        if (ownerUserId == null) throw new IllegalArgumentException("Dataset owner is required");
+        return store.count(ownerUserId);
     }
 }

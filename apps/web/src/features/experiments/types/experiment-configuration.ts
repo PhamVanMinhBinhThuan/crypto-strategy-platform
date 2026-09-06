@@ -15,6 +15,7 @@ export type StrategyPoolEntryDraft = {
   strategyVersion?: string;
   userStrategyVersionId?: string;
   parameters: Record<string, SearchParameterDomain>;
+  parameterInfo?: Record<string, { description: string }>;
   constraints?: ReadonlyArray<{ lowerParameter: string; upperParameter: string }>;
 };
 
@@ -83,7 +84,7 @@ export function validateExperimentDraft(d: ExperimentDraft) {
   const errors: Record<string, string> = {};
   const decimal = /^(?:\d+(?:\.\d*)?|\.\d+)$/;
   if (!d.name.trim()) errors.name = "Name is required.";
-  if (!d.datasetId.trim()) errors.datasetId = "Dataset must be created or selected.";
+  if (!d.datasetId.trim()) errors.datasetId = "Select or create a frozen dataset.";
   if (!d.pair.trim()) errors.pair = "Pair is required.";
   if (!d.timeframe) errors.timeframe = "Timeframe is required.";
   const start = Date.parse(`${d.startUtc}Z`);
@@ -109,7 +110,7 @@ export function validateExperimentDraft(d: ExperimentDraft) {
   if (!d.generatorId || !d.generatorVersion)
     errors.generatorId = "Generator identity and version are required.";
   if (!/^-?\d+$/.test(d.seed)) errors.seed = "Seed must be an integer.";
-  if (d.strategyPool.length === 0) errors.strategyPool = "Select at least one Strategy.";
+  if (d.strategyPool.length === 0) errors.strategyPool = "Select at least one strategy.";
   if (
     !Number.isInteger(d.minimumComponents) ||
     !Number.isInteger(d.maximumComponents) ||
@@ -117,34 +118,48 @@ export function validateExperimentDraft(d: ExperimentDraft) {
     d.maximumComponents < d.minimumComponents ||
     d.maximumComponents > d.strategyPool.length
   )
-    errors.componentBounds = "Component bounds must fit inside the selected Strategy pool.";
+    errors.componentBounds = "Component bounds must fit inside the selected strategy pool.";
   if (
     !Number.isInteger(d.requestedConcurrency) ||
     d.requestedConcurrency < 1 ||
     d.requestedConcurrency > 64
   )
-    errors.requestedConcurrency = "Worker concurrency must be an integer from 1 to 64.";
+    errors.requestedConcurrency = "Parallel backtests must be a whole number from 1 to 64.";
   const positive = (v: string) => Number.isFinite(Number(v)) && Number(v) > 0;
   if (!positive(d.maximumCandidates) && !positive(d.maximumDurationSeconds))
     errors.stop = "At least one positive finite stop bound is required.";
   if (d.maximumWithoutImprovement && !positive(d.maximumWithoutImprovement))
     errors.maximumWithoutImprovement = "No-improvement threshold must be positive when set.";
   if (!Number.isInteger(d.topK) || d.topK < 1 || d.topK > 100)
-    errors.topK = "Top-K must be an integer from 1 to 100.";
+    errors.topK = "Leaderboard size must be a whole number from 1 to 100.";
   for (const entry of d.strategyPool)
     for (const [name, domain] of Object.entries(entry.parameters)) {
       if (domain.kind === "RANGE") {
         const numeric = /^-?(?:\d+(?:\.\d*)?|\.\d+)$/;
         const integer = /^-?\d+$/;
         const pattern = domain.valueType === "DECIMAL" ? numeric : integer;
+        const stepPattern = domain.valueType === "DECIMAL" ? numeric : integer;
+        const minimum = Number(domain.minimum);
+        const maximum = Number(domain.maximum);
+        const step = Number(domain.step ?? "1");
         if (
           !pattern.test(domain.minimum) ||
           !pattern.test(domain.maximum) ||
-          Number(domain.minimum) > Number(domain.maximum) ||
-          (domain.step !== undefined && (!numeric.test(domain.step) || Number(domain.step) <= 0))
-        )
+          minimum > maximum ||
+          (domain.step !== undefined && (!stepPattern.test(domain.step) || step <= 0))
+        ) {
           errors[`parameter-${entry.key}-${name}`] =
             "Use an ordered numeric range and positive step.";
+          continue;
+        }
+        const intervals = (maximum - minimum) / step;
+        if (Math.abs(intervals - Math.round(intervals)) > 1e-9) {
+          errors[`parameter-${entry.key}-${name}`] =
+            "Maximum must align with Minimum using the selected Step.";
+        } else if (!Number.isSafeInteger(Math.round(intervals) + 1) || intervals + 1 > 10_000) {
+          errors[`parameter-${entry.key}-${name}`] =
+            "This range is too large; use a larger Step or narrower bounds.";
+        }
       } else if (domain.options.length === 0) {
         errors[`parameter-${entry.key}-${name}`] = "Select at least one option.";
       }

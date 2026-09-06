@@ -88,7 +88,7 @@ describe("Experiment configuration form", () => {
     await user.type(screen.getByLabelText("Slippage (%)"), "0.05");
     const select = screen.getByLabelText("Frozen Dataset", { exact: true });
     expect(select).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Create dataset" }));
+    await user.click(screen.getByRole("button", { name: "Create new frozen dataset" }));
     expect(await screen.findByText(/Frozen dataset ready with 24 candles/)).toBeInTheDocument();
     await screen.findByLabelText("Include Moving Average Crossover");
     await user.click(screen.getByRole("button", { name: "Start Experiment" }));
@@ -153,7 +153,7 @@ describe("Experiment configuration form", () => {
     });
     render(<ExperimentConfigurationForm api={api} fixture={false} />);
 
-    await userEvent.click(screen.getByRole("button", { name: "Create dataset" }));
+    await userEvent.click(screen.getByRole("button", { name: "Create new frozen dataset" }));
 
     expect(await screen.findByText(/Frozen dataset ready with 288 candles/)).toBeInTheDocument();
     expect(screen.getByLabelText("Frozen Dataset", { exact: true })).toHaveValue(

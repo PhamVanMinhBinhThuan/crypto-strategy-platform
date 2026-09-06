@@ -2,11 +2,13 @@ package com.cryptostrategy.platform.leaderboard.internal;
 
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.CandidateId;
+import com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardSnapshot;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardBacktestResultId;
 import com.cryptostrategy.platform.leaderboard.api.port.in.GetLeaderboardUseCase;
 import com.cryptostrategy.platform.leaderboard.api.port.out.LeaderboardStore;
 import java.util.Objects;
+import java.util.List;
 import java.util.Optional;
 
 public final class LeaderboardQueryService implements GetLeaderboardUseCase {
@@ -54,5 +56,18 @@ public final class LeaderboardQueryService implements GetLeaderboardUseCase {
         Objects.requireNonNull(experimentId, "experimentId");
         Objects.requireNonNull(candidateId, "candidateId");
         return store.findCandidateEvidence(experimentId, candidateId);
+    }
+
+    @Override
+    public List<CandidatePipelineEntry> getCandidatePipeline(ExperimentId experimentId) {
+        return store.listCandidatePipeline(Objects.requireNonNull(experimentId, "experimentId"));
+    }
+
+    @Override
+    public Optional<CandidatePipelineEntry>
+            getCandidatePipelineEntry(ExperimentId experimentId, CandidateId candidateId) {
+        Objects.requireNonNull(experimentId, "experimentId");
+        Objects.requireNonNull(candidateId, "candidateId");
+        return store.findCandidatePipelineEntry(experimentId, candidateId);
     }
 }

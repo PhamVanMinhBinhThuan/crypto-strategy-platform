@@ -3,7 +3,25 @@ export const runningExperiment = {
   name: "BTC trend search",
   status: "RUNNING",
   datasetId: "dataset-btc-1h",
+  dataset: {
+    datasetId: "dataset-btc-1h",
+    provider: "BINANCE",
+    pair: "BTC/USDT",
+    timeframe: "1h",
+    startTime: "2026-08-01T00:00:00Z",
+    endTime: "2026-09-01T00:00:00Z",
+    candleCount: 744,
+    checksum: `sha256:${"d".repeat(64)}`,
+    normalizationVersion: "binance-v1"
+  },
   jobIds: ["job-search-013"],
+  searchJob: {
+    jobId: "job-search-013", experimentId: "experiment-013", candidateId: null,
+    type: "SEARCH", status: "RUNNING", totalWork: 100, completedWork: 42,
+    failedWork: 2, bestScore: "0.8734000000", queuedAt: "2026-09-03T01:59:00Z",
+    startedAt: "2026-09-03T02:00:00Z", finishedAt: null, nextRetryAt: null,
+    failure: null, createdAt: "2026-09-03T01:59:00Z", updatedAt: "2026-09-03T04:00:00Z"
+  },
   derivedFromExperimentId: null,
   reproducesExperimentId: null,
   startedAt: "2026-09-03T02:00:00Z",
@@ -55,6 +73,72 @@ export const candidatePage = {
   ],
   nextCursor: null,
   hasMore: false
+} as const;
+export const experimentHistoryPage = {
+  items: [{
+    experimentId: runningExperiment.experimentId,
+    name: runningExperiment.name,
+    status: runningExperiment.status,
+    dataset: {
+      provider: runningExperiment.dataset.provider,
+      pair: runningExperiment.dataset.pair,
+      timeframe: runningExperiment.dataset.timeframe,
+      candleCount: runningExperiment.dataset.candleCount
+    },
+    progress: { processed: 44, total: 46, succeeded: 42, failed: 2 },
+    startedAt: runningExperiment.startedAt,
+    completedAt: runningExperiment.completedAt,
+    createdAt: runningExperiment.createdAt
+  }],
+  nextCursor: null,
+  hasMore: false,
+  totalCount: 1
+} as const;
+export const candidatePipelinePage = {
+  items: [
+    {
+      candidateId: "candidate-013",
+      generationIndex: 42,
+      definition: {
+        kind: "COMPOSITE",
+        components: [{ strategyId: "ma-crossover", parameters: { fastPeriod: 12, slowPeriod: 64 } }]
+      },
+      candidateSummary: "ma-crossover",
+      candidateFingerprint: "sha256:candidate013",
+      createdAt: "2026-09-03T03:50:00Z",
+      backtest: {
+        jobId: "job-backtest-013",
+        status: "SUCCEEDED",
+        backtestResultId: "result-013",
+        startedAt: "2026-09-03T03:50:01Z",
+        finishedAt: "2026-09-03T03:50:05Z",
+        attemptNo: 1,
+        nextRetryAt: null,
+        retryable: false,
+        failure: null
+      },
+      evaluation: {
+        status: "SUCCEEDED",
+        evaluationResultId: "evaluation-013",
+        score: "0.8734",
+        totalReturn: "0.425",
+        winRate: "0.582",
+        maximumDrawdown: "0.0831",
+        numberOfTrades: 1245,
+        metricVersion: "metric-v1",
+        eligible: true,
+        eligibilityReason: null,
+        evaluatedAt: "2026-09-03T03:50:06Z"
+      },
+      ranking: { status: "RANKED", rank: 1, rankingVersion: "ranking-v1" },
+      failureStage: null
+    }
+  ],
+  nextCursor: null,
+  hasMore: false,
+  resultCount: 1,
+  failedCount: 0,
+  totalCount: 1
 } as const;
 export const experimentStates = [
   "CREATED",

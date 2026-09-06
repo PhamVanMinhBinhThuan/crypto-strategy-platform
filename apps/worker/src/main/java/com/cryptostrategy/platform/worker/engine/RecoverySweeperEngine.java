@@ -3,6 +3,7 @@ package com.cryptostrategy.platform.worker.engine;
 import com.cryptostrategy.platform.contracts.api.BacktestJobPayload;
 import com.cryptostrategy.platform.contracts.api.MessageEnvelope;
 import com.cryptostrategy.platform.contracts.api.MessageTypes;
+import com.cryptostrategy.platform.experiment.api.error.InvalidStateTransitionException;
 import com.cryptostrategy.platform.experiment.api.job.DueRetryJob;
 import com.cryptostrategy.platform.experiment.api.job.FailureClassification;
 import com.cryptostrategy.platform.experiment.api.job.RecoverableQueuedJob;
@@ -137,6 +138,10 @@ public class RecoverySweeperEngine {
                         nextRetry
                 );
                 cleaned++;
+            } catch (InvalidStateTransitionException terminalRace) {
+                log.debug(
+                        "Stale attempt '{}' for job '{}' was already finalized: {}",
+                        stale.attemptId(), stale.jobId(), terminalRace.getMessage());
             } catch (Exception ex) {
                 log.error("Failed to finalize stale attempt '{}' for job '{}': {}", stale.attemptId(), stale.jobId(), ex.getMessage());
             }
