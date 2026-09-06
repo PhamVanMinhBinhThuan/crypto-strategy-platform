@@ -31,6 +31,17 @@ export function StrategyVersionForm({
       ? current.components.map((item) => selectionKey(item.strategyId, item.version))
       : []
   );
+  const [componentValues, setComponentValues] = useState<Record<string, Record<string, string>>>(
+    () =>
+      current.type === "COMPOSITE"
+        ? Object.fromEntries(
+            current.components.map((item) => [
+              item.strategyVersionId,
+              stringValues(item.parameters)
+            ])
+          )
+        : {}
+  );
   const [policyId, setPolicyId] = useState<"majority-vote" | "weighted-vote">(() =>
     current.type === "COMPOSITE" && current.policyId === "weighted-vote"
       ? "weighted-vote"
@@ -57,16 +68,12 @@ export function StrategyVersionForm({
     () => (descriptor ? validateStrategyParameters(descriptor, values) : {}),
     [descriptor, values]
   );
-  const selection = (item: StrategyDescriptor): StrategySelectionDraft => {
-    const previous =
-      current.type === "COMPOSITE"
-        ? current.components.find(
-            (component) =>
-              component.strategyId === item.strategyId && component.version === item.version
-          )
-        : undefined;
+  const selection = (
+    item: StrategyDescriptor,
+    configuredValues?: Readonly<Record<string, string>>
+  ): StrategySelectionDraft => {
     const sourceValues =
-      previous?.parameters ??
+      configuredValues ??
       Object.fromEntries(item.parameters.map((field) => [field.name, field.defaultValue ?? ""]));
     return {
       strategyId: item.strategyId,
@@ -76,6 +83,17 @@ export function StrategyVersionForm({
   };
   const selectedDescriptors = systemStrategies.filter((item) =>
     componentKeys.includes(selectionKey(item.strategyId, item.version))
+  );
+  const resolvedComponentValues = (item: StrategyDescriptor) =>
+    Object.fromEntries(
+      item.parameters.map((field) => [
+        field.name,
+        componentValues[item.strategyVersionId]?.[field.name] ?? field.defaultValue ?? ""
+      ])
+    );
+  const componentParametersValid = selectedDescriptors.every(
+    (item) =>
+      Object.keys(validateStrategyParameters(item, resolvedComponentValues(item))).length === 0
   );
   const weightsValid =
     policyId === "majority-vote" ||
@@ -106,7 +124,9 @@ export function StrategyVersionForm({
                   ])
                 )
               : {},
-          components: selectedDescriptors.map(selection)
+          components: selectedDescriptors.map((item) =>
+            selection(item, resolvedComponentValues(item))
+          )
         }
       : undefined;
   const originalSource: StrategySourceDraft | undefined = descriptor
@@ -124,14 +144,14 @@ export function StrategyVersionForm({
           policyId: current.policyId,
           policyVersion: current.policyVersion,
           policyParameters: current.policyParameters,
-          components: systemStrategies
-            .filter((item) =>
-              current.components.some(
-                (component) =>
-                  component.strategyId === item.strategyId && component.version === item.version
-              )
-            )
-            .map(selection)
+          components: current.components.flatMap((component) => {
+            const item = systemStrategies.find(
+              (candidate) =>
+                candidate.strategyId === component.strategyId &&
+                candidate.version === component.version
+            );
+            return item ? [selection(item, component.parameters)] : [];
+          })
         }
       : undefined;
   const changed = JSON.stringify(nextSource) !== JSON.stringify(originalSource);
@@ -139,6 +159,7 @@ export function StrategyVersionForm({
     !nextSource ||
     Object.keys(issues).length > 0 ||
     (nextSource.type === "COMPOSITE" && nextSource.components.length < 2) ||
+    !componentParametersValid ||
     !weightsValid ||
     !changed;
 
@@ -222,6 +243,8 @@ export function StrategyVersionForm({
           {systemStrategies.map((item) => {
             const key = selectionKey(item.strategyId, item.version);
             const selected = componentKeys.includes(key);
+            const resolvedValues = resolvedComponentValues(item);
+            const componentIssues = validateStrategyParameters(item, resolvedValues);
             return (
               <div
                 className={`composite-component${selected ? " is-selected" : ""}`}
@@ -244,23 +267,76 @@ export function StrategyVersionForm({
                     <small>v{item.version}</small>
                   </span>
                 </label>
-                {selected && policyId === "weighted-vote" && (
-                  <label className="component-weight">
-                    Trọng số biểu quyết
-                    <input
-                      aria-label={`${item.displayName} · trọng số biểu quyết`}
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      value={componentWeights[item.strategyVersionId] ?? "1"}
-                      onChange={(event) =>
-                        setComponentWeights((existing) => ({
-                          ...existing,
-                          [item.strategyVersionId]: event.target.value
-                        }))
-                      }
-                    />
-                  </label>
+                {selected && (
+                  <>
+                    {policyId === "weighted-vote" && (
+                      <label className="component-weight">
+                        Trọng số biểu quyết
+                        <input
+                          aria-label={`${item.displayName} · trọng số biểu quyết`}
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={componentWeights[item.strategyVersionId] ?? "1"}
+                          onChange={(event) =>
+                            setComponentWeights((existing) => ({
+                              ...existing,
+                              [item.strategyVersionId]: event.target.value
+                            }))
+                          }
+                        />
+                      </label>
+                    )}
+                    <div className="composite-parameter-grid">
+                      {item.parameters.length ? (
+                        item.parameters.map((field) => {
+                          const update = (value: string) =>
+                            setComponentValues((existing) => ({
+                              ...existing,
+                              [item.strategyVersionId]: {
+                                ...existing[item.strategyVersionId],
+                                [field.name]: value
+                              }
+                            }));
+                          return (
+                            <label key={field.name}>
+                              {field.name}
+                              {field.type === "ENUM" || field.type === "BOOLEAN" ? (
+                                <select
+                                  aria-label={`${item.displayName} · ${field.name}`}
+                                  value={resolvedValues[field.name]}
+                                  onChange={(event) => update(event.target.value)}
+                                  aria-invalid={Boolean(componentIssues[field.name])}
+                                >
+                                  {(field.type === "BOOLEAN"
+                                    ? ["true", "false"]
+                                    : field.allowedValues
+                                  ).map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  aria-label={`${item.displayName} · ${field.name}`}
+                                  inputMode={field.type === "INTEGER" ? "numeric" : "decimal"}
+                                  value={resolvedValues[field.name]}
+                                  onChange={(event) => update(event.target.value)}
+                                  aria-invalid={Boolean(componentIssues[field.name])}
+                                />
+                              )}
+                              {componentIssues[field.name] && (
+                                <small role="alert">{componentIssues[field.name]}</small>
+                              )}
+                            </label>
+                          );
+                        })
+                      ) : (
+                        <small>Strategy này không có tham số cần cấu hình.</small>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             );

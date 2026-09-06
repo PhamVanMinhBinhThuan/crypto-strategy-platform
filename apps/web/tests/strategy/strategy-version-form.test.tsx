@@ -60,6 +60,49 @@ const owned = {
   }
 } as UserStrategy;
 
+const rsiDescriptor = {
+  ...descriptor,
+  strategyId: "rsi-threshold",
+  strategyVersionId: "system-v2",
+  displayName: "RSI Threshold"
+} as StrategyDescriptor;
+
+const compositeOwned = {
+  ...owned,
+  userStrategyId: "owned-composite",
+  kind: "COMPOSITE",
+  name: "Composite Demo",
+  latestVersion: {
+    ...owned.latestVersion,
+    userStrategyVersionId: "version-composite-1",
+    userStrategyId: "owned-composite",
+    kind: "COMPOSITE",
+    source: {
+      type: "COMPOSITE",
+      policyId: "weighted-vote",
+      policyVersion: "1.0.0",
+      policyParameters: {
+        "weight.system-v1": "0.6",
+        "weight.system-v2": "0.4"
+      },
+      components: [
+        {
+          strategyId: "bollinger-bands",
+          strategyVersionId: "system-v1",
+          version: "1.0.0",
+          parameters: { period: "21" }
+        },
+        {
+          strategyId: "rsi-threshold",
+          strategyVersionId: "system-v2",
+          version: "1.0.0",
+          parameters: { period: "14" }
+        }
+      ]
+    }
+  }
+} as UserStrategy;
+
 describe("Strategy version form", () => {
   it("requires a change and submits typed parameters", async () => {
     const submit = vi.fn(async () => {});
@@ -85,6 +128,48 @@ describe("Strategy version form", () => {
         version: "1.0.0",
         parameters: { period: 22 }
       }
+    });
+  });
+
+  it("edits parameters of each component when creating a composite version", async () => {
+    const submit = vi.fn(async () => {});
+    render(
+      <StrategyVersionForm
+        owned={compositeOwned}
+        systemStrategies={[descriptor, rsiDescriptor]}
+        pending={false}
+        onSubmit={submit}
+        onCancel={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText("Bollinger Bands · period")).toHaveValue("21");
+    expect(screen.getByLabelText("RSI Threshold · period")).toHaveValue("14");
+
+    await userEvent.clear(screen.getByLabelText("Bollinger Bands · period"));
+    await userEvent.type(screen.getByLabelText("Bollinger Bands · period"), "30");
+    await userEvent.click(screen.getByRole("button", { name: "Lưu version mới" }));
+
+    expect(submit).toHaveBeenCalledWith({
+      type: "COMPOSITE",
+      policyId: "weighted-vote",
+      policyVersion: "1.0.0",
+      policyParameters: {
+        "weight.system-v1": "0.6",
+        "weight.system-v2": "0.4"
+      },
+      components: [
+        {
+          strategyId: "bollinger-bands",
+          version: "1.0.0",
+          parameters: { period: 30 }
+        },
+        {
+          strategyId: "rsi-threshold",
+          version: "1.0.0",
+          parameters: { period: 14 }
+        }
+      ]
     });
   });
 });

@@ -158,7 +158,11 @@ export function StrategyWorkspace() {
           onSelectOwned={(id) => void selectOwned(id)}
         />
         <div className="strategy-center">
-          <StrategyDetail descriptor={selectedSystem} owned={selectedOwned} />
+          <StrategyDetail
+            descriptor={selectedSystem}
+            owned={selectedOwned}
+            systemStrategies={system}
+          />
           {selectedOwned ? (
             <StrategyVersionHistory versions={versions} loading={versionsLoading} />
           ) : null}
