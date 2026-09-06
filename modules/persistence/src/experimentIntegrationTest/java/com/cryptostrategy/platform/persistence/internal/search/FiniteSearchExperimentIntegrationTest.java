@@ -78,6 +78,78 @@ public class FiniteSearchExperimentIntegrationTest {
         });
     }
 
+    @Test
+    void oneHundredCandidatesRefillThroughAWindowOfFourWithoutDuplicates() {
+        var dataSource = SearchAllocationConcurrencyIntegrationTest.dataSource();
+        new TransactionTemplate(new DataSourceTransactionManager(dataSource)).executeWithoutResult(tx -> {
+            tx.setRollbackOnly();
+            JdbcTemplate jdbc = new JdbcTemplate(dataSource);
+            SearchAllocationConcurrencyIntegrationTest.seed(jdbc);
+            seedManifest(jdbc);
+            String options = java.util.stream.IntStream.rangeClosed(1, 100)
+                    .mapToObj(Integer::toString).collect(java.util.stream.Collectors.joining("\",\""));
+            String config = "{\"maximumCandidates\":100,\"searchSpace\":{\"period\":{\"type\":\"INTEGER\",\"options\":[\""
+                    + options + "\"]}}}";
+            jdbc.update("update experiment.experiment_manifest set search_config=?::jsonb where experiment_id=?",
+                    config, SearchAllocationConcurrencyIntegrationTest.EXPERIMENT);
+            jdbc.update("update search.search_run set maximum_candidates=100,max_in_flight=4 where search_run_id=?",
+                    SearchAllocationConcurrencyIntegrationTest.RUN);
+            jdbc.update("update experiment.job set total_work=100 where job_id=?",
+                    SearchAllocationConcurrencyIntegrationTest.SEARCH_JOB);
+
+            JdbcSearchRunStore runStore = new JdbcSearchRunStore(jdbc);
+            var search = SearchModuleFactory.baseline(runStore);
+            var allocator = new SearchCandidateAllocationService(runStore, search.generation(),
+                    new JdbcSearchAllocationContextGateway(jdbc),
+                    new JdbcSearchExperimentTransaction(dataSource),
+                    Clock.fixed(SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(2), ZoneOffset.UTC),
+                    new com.fasterxml.jackson.databind.ObjectMapper());
+            var command = new SearchCoordinationCommand(
+                    new com.cryptostrategy.platform.experiment.api.job.JobId(
+                            SearchAllocationConcurrencyIntegrationTest.SEARCH_JOB),
+                    new com.cryptostrategy.platform.experiment.api.ExperimentId(
+                            SearchAllocationConcurrencyIntegrationTest.EXPERIMENT),
+                    4, 20, 10, "finite-100");
+
+            int peakActive = 0;
+            while (true) {
+                allocator.fillAvailableSlots(command);
+                int allocated = jdbc.queryForObject("select count(*) from experiment.candidate_definition where experiment_id=?",
+                        Integer.class, SearchAllocationConcurrencyIntegrationTest.EXPERIMENT);
+                int active = jdbc.queryForObject("select count(*) from experiment.job where experiment_id=? and job_type='BACKTEST' and status in ('QUEUED','RUNNING','RETRY_SCHEDULED')",
+                        Integer.class, SearchAllocationConcurrencyIntegrationTest.EXPERIMENT);
+                peakActive = Math.max(peakActive, active);
+                assertThat(active).isLessThanOrEqualTo(4);
+                if (allocated == 100) {
+                    jdbc.update("update experiment.job set status='FAILED',failure_code='FIXTURE_FAILURE',failure_message='terminal fixture',finished_at=?,updated_at=? where experiment_id=? and job_type='BACKTEST' and status='QUEUED'",
+                            Timestamp.from(SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(3)),
+                            Timestamp.from(SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(3)),
+                            SearchAllocationConcurrencyIntegrationTest.EXPERIMENT);
+                    break;
+                }
+                jdbc.update("update experiment.job set status='FAILED',failure_code='FIXTURE_FAILURE',failure_message='terminal fixture',finished_at=?,updated_at=? where experiment_id=? and job_type='BACKTEST' and status='QUEUED'",
+                        Timestamp.from(SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(3)),
+                        Timestamp.from(SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(3)),
+                        SearchAllocationConcurrencyIntegrationTest.EXPERIMENT);
+            }
+
+            var outcome = new TrustedSearchCoordinationService(
+                    new JdbcTrustedSearchCoordinationGateway(dataSource), Clock.systemUTC())
+                    .reconcileRun(new TrustedSearchCoordinationUseCase.ReconciliationTrigger(
+                            new com.cryptostrategy.platform.experiment.api.ExperimentId(
+                                    SearchAllocationConcurrencyIntegrationTest.EXPERIMENT),
+                            SearchAllocationConcurrencyIntegrationTest.NOW.plusSeconds(5), "finite-100"));
+
+            assertThat(peakActive).isEqualTo(4);
+            assertThat(outcome.status()).isEqualTo(SearchRunStatus.COMPLETED);
+            assertThat(outcome.failedWork()).isEqualTo(100);
+            assertThat(jdbc.queryForObject("select count(distinct fingerprint) from experiment.candidate_definition where experiment_id=?",
+                    Integer.class, SearchAllocationConcurrencyIntegrationTest.EXPERIMENT)).isEqualTo(100);
+            assertThat(jdbc.queryForObject("select count(*) from platform.outbox_event where event_type='BACKTEST_JOB' and aggregate_id in (select job_id from experiment.job where experiment_id=? and job_type='BACKTEST')",
+                    Integer.class, SearchAllocationConcurrencyIntegrationTest.EXPERIMENT)).isEqualTo(100);
+        });
+    }
+
     public static void seedManifest(JdbcTemplate jdbc) {
         jdbc.update("insert into market.asset(asset_id,symbol) values (?, 'F010BASE'),(?,'F010QUOTE')", BASE, QUOTE);
         jdbc.update("insert into market.trading_pair(trading_pair_id,base_asset_id,quote_asset_id,symbol) values (?,?,?,'F010BASEF010QUOTE')",

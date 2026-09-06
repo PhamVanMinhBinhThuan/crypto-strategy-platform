@@ -14,6 +14,7 @@ import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterType;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSchema;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue;
+import com.cryptostrategy.platform.strategy.api.model.parameter.SearchRangeHint;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -32,14 +33,17 @@ public final class RsiPlugin implements StrategyPlugin {
             "Uses Relative Strength Index thresholds to identify oversold and overbought conditions",
             "MOMENTUM",
             Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD),
-            15,
+            3,
             new StrategyParameterSchema(
                     List.of(
-                            integer("period", 14, 2, 500),
-                            decimal("buyThreshold", "30", "0", "100"),
-                            decimal("sellThreshold", "70", "0", "100")),
+                            integer("period", 14, 2, 500, 7, 28, 7,
+                                    "Number of price changes used to calculate RSI."),
+                            decimal("buyThreshold", "30", "0", "100", "20", "40", "5",
+                                    "RSI at or below this value emits BUY."),
+                            decimal("sellThreshold", "70", "0", "100", "60", "80", "5",
+                                    "RSI at or above this value emits SELL.")),
                     List.of(new CrossParameterConstraint("buyThreshold", "sellThreshold"))),
-            "strategy-descriptor-v1:rsi-threshold:1.0.0");
+            "strategy-descriptor-v2:rsi-threshold:1.0.0");
 
     @Override
     public StrategyDescriptor descriptor() {
@@ -63,8 +67,9 @@ public final class RsiPlugin implements StrategyPlugin {
         return Math.addExact(Math.toIntExact(period), 1);
     }
 
-    private static ParameterDefinition integer(
-            String name, long defaultValue, long minimum, long maximum) {
+    private static ParameterDefinition integer(String name, long defaultValue, long minimum,
+            long maximum, long searchMinimum, long searchMaximum, long searchStep,
+            String description) {
         return new ParameterDefinition(
                 name,
                 ParameterType.INTEGER,
@@ -73,11 +78,14 @@ public final class RsiPlugin implements StrategyPlugin {
                 Optional.of(BigDecimal.valueOf(minimum)),
                 Optional.of(BigDecimal.valueOf(maximum)),
                 Set.of(),
-                name);
+                description,
+                Optional.of(new SearchRangeHint(BigDecimal.valueOf(searchMinimum),
+                        BigDecimal.valueOf(searchMaximum), BigDecimal.valueOf(searchStep))));
     }
 
-    private static ParameterDefinition decimal(
-            String name, String defaultValue, String minimum, String maximum) {
+    private static ParameterDefinition decimal(String name, String defaultValue, String minimum,
+            String maximum, String searchMinimum, String searchMaximum, String searchStep,
+            String description) {
         return new ParameterDefinition(
                 name,
                 ParameterType.DECIMAL,
@@ -86,6 +94,8 @@ public final class RsiPlugin implements StrategyPlugin {
                 Optional.of(new BigDecimal(minimum)),
                 Optional.of(new BigDecimal(maximum)),
                 Set.of(),
-                name);
+                description,
+                Optional.of(new SearchRangeHint(new BigDecimal(searchMinimum),
+                        new BigDecimal(searchMaximum), new BigDecimal(searchStep))));
     }
 }

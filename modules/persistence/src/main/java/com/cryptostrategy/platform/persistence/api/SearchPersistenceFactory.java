@@ -13,6 +13,8 @@ import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionGate
 import com.cryptostrategy.platform.persistence.internal.search.JdbcSearchReproductionVerificationGateway;
 import com.cryptostrategy.platform.execution.api.port.in.GetSearchReproductionVerificationUseCase;
 import com.cryptostrategy.platform.persistence.internal.search.JdbcSearchReproductionVerificationQuery;
+import com.cryptostrategy.platform.execution.api.port.in.GetSearchProgressUseCase;
+import com.cryptostrategy.platform.persistence.internal.search.JdbcSearchProgressQuery;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 import javax.sql.DataSource;
@@ -35,6 +37,10 @@ public final class SearchPersistenceFactory {
 
     public SearchRunStore createSearchRunStore() {
         return new JdbcSearchRunStore(jdbc);
+    }
+
+    public GetSearchProgressUseCase createSearchProgressQuery() {
+        return new JdbcSearchProgressQuery(jdbc);
     }
 
     public TrustedSearchCoordinationGateway createTrustedCoordinationGateway() {

@@ -43,7 +43,11 @@ class StartExperimentIntegrationTest {
                 "/api/v1/experiments/61000000000000000000000001");
         assertThat(response.getBody()).isEqualTo(new CommandDtos.ExperimentAcceptedResponse(
                 new ExperimentId("61000000000000000000000001"),
-                new JobId("61000000000000000000000002"), "QUEUED"));
+                new JobId("61000000000000000000000002"),
+                new com.cryptostrategy.platform.execution.api.SearchRunReferenceId(
+                        "61000000000000000000000002"),
+                "QUEUED", 1, "legacy:unknown",
+                "/search/61000000000000000000000001"));
         verify(fixture.mapper).map(org.mockito.ArgumentMatchers.eq(OWNER),
                 org.mockito.ArgumentMatchers.eq("key-1"), org.mockito.ArgumentMatchers.eq("request-hash"),
                 argThat(value -> value.length() == 26 && !value.contains("key-1")),

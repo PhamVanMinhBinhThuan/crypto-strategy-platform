@@ -4,6 +4,7 @@ import com.cryptostrategy.platform.marketdata.api.port.in.CreateDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.LoadHistoricalCandlesUseCase;
+import com.cryptostrategy.platform.marketdata.api.port.in.ListDatasetsUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.ResolveTradingPairUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.SubscribeCandlesUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.VerifyDatasetUseCase;
@@ -78,7 +79,7 @@ public final class MarketDataModuleFactory {
                         recovery.maxAttempts(), recovery.initialDelay(), recovery.maxDelay(),
                         recovery.historicalPageSize(), recovery.historicalMaxPages()));
         RealtimeSubscriptionService realtime = new RealtimeSubscriptionService(new SharedSubscriptionRegistry(recoveringProvider), candles);
-        return new Components(historical, dataset, dataset, dataset, realtime);
+        return new Components(historical, dataset, dataset, dataset, dataset, realtime);
     }
     public record RecoverySettings(int maxAttempts, Duration initialDelay, Duration maxDelay,
                                    int historicalPageSize, int historicalMaxPages) {
@@ -92,6 +93,7 @@ public final class MarketDataModuleFactory {
         }
     }
     public record Components(LoadHistoricalCandlesUseCase historical, CreateDatasetUseCase createDataset,
-                             GetDatasetUseCase getDataset, VerifyDatasetUseCase verifyDataset,
+                             GetDatasetUseCase getDataset, ListDatasetsUseCase listDatasets,
+                             VerifyDatasetUseCase verifyDataset,
                              SubscribeCandlesUseCase realtime) { }
 }

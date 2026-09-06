@@ -74,6 +74,21 @@ class MarketDataPersistenceIntegrationTest {
     }
 
     @Test
+    void reusesAnExistingCandleWithoutAbortingTheSurroundingTransaction() {
+        MarketDataPersistenceFactory.Components components = MarketDataPersistenceFactory.create(dataSource);
+        TransactionTemplate transaction = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
+
+        transaction.executeWithoutResult(status -> {
+            var first = components.candles().saveClosed(candle(0));
+            var reused = components.candles().saveClosed(candle(0));
+
+            assertEquals(first.candleId(), reused.candleId());
+            assertTrue(first.candle().canonicalContentEquals(reused.candle()));
+            status.setRollbackOnly();
+        });
+    }
+
+    @Test
     void rollsBackCandleAndMetadataWhenMembershipFinalizationFails() {
         MarketDataPersistenceFactory.Components components = MarketDataPersistenceFactory.create(dataSource);
         DatasetVersionId datasetId = DatasetVersionId.generate();

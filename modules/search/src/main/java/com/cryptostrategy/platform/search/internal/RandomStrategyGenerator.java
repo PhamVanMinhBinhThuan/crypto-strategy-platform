@@ -46,6 +46,9 @@ public final class RandomStrategyGenerator implements StrategyGenerator {
 
     @Override
     public GenerationOutcome generateNext(GenerationRequest request) {
+        if (request.compositeSearchSpace().isPresent()) {
+            return generateComposite(request);
+        }
         if (BigInteger.valueOf(request.acceptedCandidateFingerprints().size())
                 .compareTo(request.searchSpace().combinationCount()) >= 0) {
             return new GenerationOutcome.Exhausted(currentState(request));
@@ -68,6 +71,19 @@ public final class RandomStrategyGenerator implements StrategyGenerator {
                         request.expectedGenerationIndex(),
                         CanonicalSearchSpace.candidateFingerprint(parameters)),
                 nextState);
+    }
+
+    private static GenerationOutcome generateComposite(GenerationRequest request) {
+        var space = request.compositeSearchSpace().orElseThrow();
+        var candidate = CanonicalCompositeSearchSpace.generate(
+                space, request.seed(), request.expectedGenerationIndex());
+        if (candidate.isEmpty()) {
+            return new GenerationOutcome.Exhausted(currentState(request));
+        }
+        PrngState state = restore(request).next();
+        return new GenerationOutcome.Generated(
+                GeneratedCandidate.composite(candidate.orElseThrow()),
+                encodeState(state.rawState(), state.drawIndex()));
     }
 
     private static PrngState restore(GenerationRequest request) {

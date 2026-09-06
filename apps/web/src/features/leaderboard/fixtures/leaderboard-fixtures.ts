@@ -11,11 +11,21 @@ export const leaderboardPage = {
   items: [
     {
       rank: 1,
+      candidateId: "candidate-013",
+      candidateFingerprint: "sha256:candidate013",
+      candidateSummary: "ma-crossover + rsi",
       evaluationResultId: "evaluation-001",
       backtestResultId: "result-013",
       score: "0.873400000000000001",
       maximumDrawdown: "0.0831",
-      evaluationFingerprint: "sha256:evaluation001"
+      evaluationFingerprint: "sha256:evaluation001",
+      metrics: {
+        totalReturn: "0.425",
+        winRate: "0.582",
+        maximumDrawdown: "0.0831",
+        numberOfTrades: 1245,
+        metricVersion: "metric-v1"
+      }
     },
     {
       rank: 2,

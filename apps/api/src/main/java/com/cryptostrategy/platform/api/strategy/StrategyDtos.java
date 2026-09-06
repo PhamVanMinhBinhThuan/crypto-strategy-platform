@@ -83,7 +83,8 @@ public final class StrategyDtos {
             String minimum,
             String maximum,
             List<String> allowedValues,
-            String description) {
+            String description,
+            SearchRangeHintResponse searchRangeHint) {
         static ParameterRuleResponse from(ParameterDefinition definition) {
             return new ParameterRuleResponse(
                     definition.name(),
@@ -95,7 +96,16 @@ public final class StrategyDtos {
                     definition.minimum().map(value -> value.toPlainString()).orElse(null),
                     definition.maximum().map(value -> value.toPlainString()).orElse(null),
                     definition.allowedValues().stream().sorted().toList(),
-                    definition.description());
+                    definition.description(),
+                    definition.searchRangeHint().map(SearchRangeHintResponse::from).orElse(null));
+        }
+    }
+
+    public record SearchRangeHintResponse(String minimum, String maximum, String step) {
+        static SearchRangeHintResponse from(
+                com.cryptostrategy.platform.strategy.api.model.parameter.SearchRangeHint hint) {
+            return new SearchRangeHintResponse(hint.minimum().toPlainString(),
+                    hint.maximum().toPlainString(), hint.step().toPlainString());
         }
     }
 

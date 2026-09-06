@@ -2,6 +2,7 @@ package com.cryptostrategy.platform.persistence.internal.experiment;
 
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.error.InvalidStateTransitionException;
 import com.cryptostrategy.platform.experiment.api.job.AttemptId;
 import com.cryptostrategy.platform.experiment.api.job.AttemptStatus;
 import com.cryptostrategy.platform.experiment.api.job.ExecutionAttempt;
@@ -47,6 +48,11 @@ public class JdbcExecutionAttemptStore implements ExecutionAttemptStore {
             );
             if (job == null) {
                 throw new IllegalStateException("Parent job not found for jobId: " + jobId);
+            }
+            if (job.status() != JobStatus.QUEUED) {
+                throw new InvalidStateTransitionException(
+                        "Cannot start another attempt for job " + jobId
+                                + " while it is " + job.status());
             }
 
             // 2. Compute next attempt number

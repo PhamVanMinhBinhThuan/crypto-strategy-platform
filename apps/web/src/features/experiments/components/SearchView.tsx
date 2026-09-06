@@ -1,45 +1,55 @@
 "use client";
-import { useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useClients } from "@/src/foundation/composition/client-provider";
 import { terminalExperiment } from "../types/experiment";
 import { useExperimentMonitor } from "../hooks/useExperimentMonitor";
-import { useLeaderboard } from "../../leaderboard/hooks/useLeaderboard";
 import { useExperimentRealtime } from "../hooks/useExperimentRealtime";
-import { useLeaderboardRealtime } from "../../leaderboard/hooks/useLeaderboardRealtime";
-import { ExperimentStatus } from "./ExperimentStatus";
+import { ExperimentSummary } from "./ExperimentSummary";
 import { JobProgressList } from "./JobProgressList";
-import { CandidateDiscoveryTimeline } from "./CandidateDiscoveryTimeline";
 import { ExperimentActions } from "./ExperimentActions";
 import { ExperimentConfigurationForm } from "./ExperimentConfigurationForm";
 import { RealtimeStatus } from "./RealtimeStatus";
-import { LeaderboardControls } from "../../leaderboard/components/LeaderboardControls";
-import { LeaderboardTable } from "../../leaderboard/components/LeaderboardTable";
+import { CandidateDetailPanel } from "./CandidateDetailPanel";
+import { CandidatePipelineTabs } from "./CandidatePipelineTabs";
+import type { CandidatePipelineView } from "../types/experiment";
+import { rememberExperiment } from "@/src/foundation/navigation/resource-history";
+import Link from "next/link";
+import { RecentExperiments } from "./RecentExperiments";
 export function SearchView({
   id,
+  candidateId,
+  view,
+  mode,
   initialUserStrategyVersionId
 }: {
   id?: string;
+  candidateId?: string;
+  view?: string;
+  mode?: string;
   initialUserStrategyVersionId?: string;
 }) {
   const { api, realtime, fixtures } = useClients();
   const monitor = useExperimentMonitor(api, id);
-  const board = useLeaderboard(api, id);
+  const activeView: CandidatePipelineView =
+    view?.toUpperCase() === "FAILED" ? "FAILED" : view?.toUpperCase() === "ALL" ? "ALL" : "RESULTS";
+  const [pipelineSignal, setPipelineSignal] = useState(0);
+  useEffect(() => {
+    if (monitor.status === "success" && monitor.experiment) {
+      rememberExperiment(monitor.experiment.experimentId, activeView.toLowerCase());
+    }
+  }, [activeView, monitor.experiment, monitor.status]);
   const monitorRefresh = monitor.refresh;
-  const boardRefresh = board.refresh;
   const refreshExperiment = useCallback(() => {
     void monitorRefresh();
   }, [monitorRefresh]);
-  const refreshBoard = useCallback(() => {
-    void boardRefresh();
-  }, [boardRefresh]);
+  const refreshPipeline = useCallback(() => setPipelineSignal((value) => value + 1), []);
   const rt = useExperimentRealtime(
     realtime,
     id,
     refreshExperiment,
-    refreshExperiment,
+    refreshPipeline,
     monitor.experiment ? terminalExperiment(monitor.experiment.status) : false
   );
-  useLeaderboardRealtime(realtime, id, board.snapshot?.revision ?? 0, refreshBoard);
   if (!id)
     return (
       <main className="feature-page">
@@ -48,15 +58,26 @@ export function SearchView({
             <p className="eyebrow">F-013 · contract-driven search</p>
             <h1>Search &amp; Leaderboard</h1>
             <p className="muted">
-              Configure a reproducible experiment or open an existing experiment ID.
+              Review previous searches or configure a reproducible experiment.
             </p>
           </div>
         </header>
-        <ExperimentConfigurationForm
-          api={api}
-          fixture={fixtures}
-          initialUserStrategyVersionId={initialUserStrategyVersionId}
-        />
+        {mode === "new" || initialUserStrategyVersionId ? (
+          <>
+            <div className="page-actions">
+              <Link className="button secondary" href="/search">
+                All experiments
+              </Link>
+            </div>
+            <ExperimentConfigurationForm
+              api={api}
+              fixture={fixtures}
+              initialUserStrategyVersionId={initialUserStrategyVersionId}
+            />
+          </>
+        ) : (
+          <RecentExperiments api={api} />
+        )}
       </main>
     );
   return (
@@ -71,39 +92,47 @@ export function SearchView({
       )}
       {monitor.error && (
         <section role="alert" className="panel error-state">
-          {monitor.error}
+          <p>{monitor.error}</p>
+          <Link className="button secondary" href="/search">
+            All experiments
+          </Link>
         </section>
       )}
       {monitor.experiment && (
         <>
-          <ExperimentStatus experiment={monitor.experiment} />
+          <ExperimentSummary experiment={monitor.experiment} />
+          <nav className="page-actions" aria-label="Experiment navigation">
+            <Link className="button secondary" href="/search">
+              All experiments
+            </Link>
+            <Link className="button secondary" href="/search?mode=new">
+              New experiment
+            </Link>
+          </nav>
           <ExperimentActions
             api={api}
             experiment={monitor.experiment}
             onRefresh={refreshExperiment}
           />
-          <div className="search-grid">
-            <JobProgressList jobs={monitor.jobs} />
-            <CandidateDiscoveryTimeline candidates={monitor.candidates} />
-          </div>
-        </>
-      )}
-      {board.snapshot && (
-        <>
-          <LeaderboardControls
-            limit={board.limit}
-            configuredTopK={board.snapshot.topK}
-            onChange={board.setLimit}
+          {monitor.experiment.searchJob && (
+            <JobProgressList jobs={[monitor.experiment.searchJob]} title="Search coordinator" />
+          )}
+          <CandidatePipelineTabs
+            api={api}
+            experimentId={monitor.experiment.experimentId}
+            view={activeView}
+            refreshVersion={pipelineSignal}
           />
-          <LeaderboardTable snapshot={board.snapshot} />
         </>
       )}
-      {board.error && <p role="alert">{board.error}</p>}
-      <ExperimentConfigurationForm
-        api={api}
-        fixture={fixtures}
-        initialUserStrategyVersionId={initialUserStrategyVersionId}
-      />
+      {id && candidateId && (
+        <CandidateDetailPanel
+          api={api}
+          experimentId={id}
+          candidateId={candidateId}
+          returnView={activeView.toLowerCase()}
+        />
+      )}
     </main>
   );
 }

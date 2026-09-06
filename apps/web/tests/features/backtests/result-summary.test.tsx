@@ -14,18 +14,19 @@ describe("result summary", () => {
       </>
     );
     expect(
-      within(screen.getByLabelText("Released performance metrics")).getAllByRole("article")
+      within(screen.getByLabelText("Backtest performance")).getAllByRole("article")
     ).toHaveLength(4);
     for (const label of [
-      "Total Return",
-      "Win Rate",
-      "Maximum Drawdown",
-      "Number of Trades",
+      "Total return",
+      "Win rate",
+      "Maximum drawdown",
+      "Trades",
       "Initial capital",
       "Final capital",
+      "Net profit",
       "Total fees",
       "Manifest fingerprint",
-      "Fee rate"
+      "Transaction fee"
     ])
       expect(screen.getByText(label)).toBeInTheDocument();
     expect(container).not.toHaveTextContent(/Sharpe|Sortino|Profit Factor/);

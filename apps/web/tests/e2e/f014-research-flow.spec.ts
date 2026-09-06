@@ -265,7 +265,7 @@ test("tạo Strategy cá nhân, publish composite rồi dùng trong Search và m
   await expect(result).toBeVisible();
   await result.click();
   await expect(page).toHaveURL(/\/backtests\?resultId=/);
-  await expect(page.getByText("Total Return")).toBeVisible();
-  await expect(page.getByText(/Entry\/Exit evidence/)).toBeVisible();
+  await expect(page.getByText("Total return")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Trade history" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Scrollable trade history" })).toBeVisible();
 });

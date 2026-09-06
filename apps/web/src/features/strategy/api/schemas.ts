@@ -9,7 +9,16 @@ export const parameterDescriptorSchema = z
     minimum: decimalStringSchema.nullable(),
     maximum: decimalStringSchema.nullable(),
     allowedValues: z.array(z.string()),
-    description: z.string()
+    description: z.string(),
+    searchRangeHint: z
+      .object({
+        minimum: decimalStringSchema,
+        maximum: decimalStringSchema,
+        step: decimalStringSchema
+      })
+      .strict()
+      .nullable()
+      .optional()
   })
   .strict();
 export const strategyDescriptorSchema = z

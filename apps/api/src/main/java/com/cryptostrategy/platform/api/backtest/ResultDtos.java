@@ -2,6 +2,7 @@ package com.cryptostrategy.platform.api.backtest;
 
 import com.cryptostrategy.platform.backtesting.api.model.BacktestResult;
 import com.cryptostrategy.platform.backtesting.api.model.BacktestResultId;
+import com.cryptostrategy.platform.backtesting.api.model.BacktestResultSummary;
 import com.cryptostrategy.platform.backtesting.api.model.Trade;
 import com.cryptostrategy.platform.backtesting.api.model.TradeId;
 import com.cryptostrategy.platform.domain.api.market.DatasetVersionId;
@@ -32,6 +33,36 @@ import java.util.Map;
 
 public final class ResultDtos {
     private ResultDtos() {}
+
+    public record BacktestResultHistoryPage(
+            List<BacktestResultHistoryItem> items,
+            String nextCursor,
+            boolean hasMore,
+            long totalCount) {}
+
+    public record BacktestResultHistoryItem(
+            @JsonSerialize(using = TypedUlidSerializer.class) BacktestResultId backtestResultId,
+            @JsonSerialize(using = TypedUlidSerializer.class) ExperimentId experimentId,
+            @JsonSerialize(using = TypedUlidSerializer.class) CandidateId candidateId,
+            int generationIndex,
+            String experimentName,
+            Map<String, Object> definition,
+            String strategySummary,
+            MetricsResponse metrics,
+            String score,
+            Instant completedAt) {
+        static BacktestResultHistoryItem from(BacktestResultSummary value) {
+            return new BacktestResultHistoryItem(
+                    value.backtestResultId(), value.experimentId(), value.candidateId(),
+                    value.generationIndex(), value.experimentName(), value.candidateDefinition(),
+                    candidateSummary(value.candidateDefinition()),
+                    new MetricsResponse(value.totalReturn().toPlainString(),
+                            value.winRate().toPlainString(), value.maximumDrawdown().toPlainString(),
+                            value.numberOfTrades()),
+                    value.score() == null ? null : value.score().toPlainString(),
+                    value.completedAt());
+        }
+    }
 
     public record BacktestResultResponse(
             @JsonSerialize(using = TypedUlidSerializer.class) BacktestResultId backtestResultId,
@@ -236,6 +267,18 @@ public final class ResultDtos {
             return new CandidateEvidenceResponse(candidate.candidateId(), candidate.generationIndex(),
                     candidate.definition(), candidate.fingerprint(), candidate.createdAt());
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String candidateSummary(Map<String, Object> definition) {
+        Object components = definition.get("components");
+        if (components instanceof List<?> list) {
+            String summary = list.stream().filter(Map.class::isInstance).map(Map.class::cast)
+                    .map(item -> String.valueOf(item.getOrDefault("strategyId", "Strategy")))
+                    .collect(java.util.stream.Collectors.joining(" + "));
+            if (!summary.isBlank()) return summary;
+        }
+        return String.valueOf(definition.getOrDefault("strategyId", "Strategy"));
     }
 
     private static Map<String, Object> assumptions(BacktestResult result) {

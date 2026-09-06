@@ -2,6 +2,8 @@ package com.cryptostrategy.platform.marketdata.internal.application;
 
 import com.cryptostrategy.platform.domain.api.market.Candle;
 import com.cryptostrategy.platform.domain.api.market.DatasetVersionId;
+import com.cryptostrategy.platform.marketdata.api.error.MarketDataErrorCode;
+import com.cryptostrategy.platform.marketdata.api.error.MarketDataException;
 import com.cryptostrategy.platform.marketdata.api.model.CreateDatasetCommand;
 import com.cryptostrategy.platform.marketdata.api.model.DatasetFinalization;
 import com.cryptostrategy.platform.marketdata.api.model.DatasetSnapshot;
@@ -21,7 +23,11 @@ public final class DatasetAssembler {
         if (!CandleV1Checksum.VERSION.equals(command.version())) {
             throw new IllegalArgumentException("Unsupported Dataset version: " + command.version());
         }
-        if (candles.isEmpty()) throw new IllegalArgumentException("Dataset requires at least one Candle");
+        if (candles.isEmpty()) {
+            throw new MarketDataException(
+                    MarketDataErrorCode.MARKET_DATA_GAP,
+                    "The provider returned no candles for the requested range");
+        }
         List<Candle> canonical = CandleSetValidator.normalizeComplete(command.query(), candles);
         String digest = checksum.calculate(canonical);
         DatasetSnapshot snapshot = new DatasetSnapshot(DatasetVersionId.generate(), command.version(), command.query().provider(),

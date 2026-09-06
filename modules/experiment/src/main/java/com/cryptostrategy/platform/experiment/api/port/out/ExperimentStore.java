@@ -6,6 +6,7 @@ import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
 import com.cryptostrategy.platform.experiment.api.ExperimentStatus;
+import com.cryptostrategy.platform.experiment.api.ExperimentSummary;
 import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.StopCandidateExperiment;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
@@ -19,6 +20,11 @@ public interface ExperimentStore {
     void insertExperiment(UUID ownerUserId, Experiment experiment, ExperimentManifest draftManifest);
     Optional<Experiment> findExperimentById(UUID ownerUserId, ExperimentId experimentId);
     Optional<ExperimentManifest> findManifestByExperimentId(UUID ownerUserId, ExperimentId experimentId);
+    default List<ExperimentSummary> listExperimentsPage(
+            UUID ownerUserId, Instant beforeCreatedAt, String beforeExperimentId, int limit) {
+        return List.of();
+    }
+    default long countExperiments(UUID ownerUserId) { return 0; }
     void updateManifest(UUID ownerUserId, ExperimentId experimentId, ExperimentManifest updatedManifest);
     void freezeAndQueueExperiment(UUID ownerUserId, ExperimentId experimentId, String fingerprint, Instant queuedAt, OutboxEvent outboxEvent);
     void updateExperimentStatus(UUID ownerUserId, ExperimentId experimentId, ExperimentStatus newStatus, Instant updatedAt);
