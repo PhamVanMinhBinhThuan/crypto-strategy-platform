@@ -12,12 +12,15 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
 import com.cryptostrategy.platform.strategy.api.model.UserStrategyVersionId;
+import com.cryptostrategy.platform.execution.api.SearchRunReferenceId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import java.io.IOException;
 import java.io.Serial;
+import java.math.BigDecimal;
 
 public final class CommandDtos {
     private CommandDtos() {}
@@ -28,15 +31,35 @@ public final class CommandDtos {
             BacktestConfigurationRequest configuration) {}
 
     public record StartExperimentRequest(
+            Integer configurationVersion,
             String name,
             @JsonDeserialize(using = DatasetVersionIdDeserializer.class) DatasetVersionId datasetId,
             GeneratorSelectionRequest generator,
             @JsonDeserialize(using = UserStrategyVersionIdDeserializer.class) UserStrategyVersionId userStrategyVersionId,
             SearchSpaceRequest searchSpace,
             StopConditionRequest stopCondition,
-            Integer topK) {
+            StopConditionRequest stopConditions,
+            Integer requestedConcurrency,
+            Integer topK,
+            SearchBacktestConfigurationRequest backtestConfiguration) {
         public StartExperimentRequest {
             topK = topK == null ? 10 : topK;
+        }
+
+        public StartExperimentRequest(Integer configurationVersion, String name,
+                DatasetVersionId datasetId, GeneratorSelectionRequest generator,
+                UserStrategyVersionId userStrategyVersionId, SearchSpaceRequest searchSpace,
+                StopConditionRequest stopCondition, StopConditionRequest stopConditions,
+                Integer requestedConcurrency, Integer topK) {
+            this(configurationVersion, name, datasetId, generator, userStrategyVersionId,
+                    searchSpace, stopCondition, stopConditions, requestedConcurrency, topK, null);
+        }
+
+        public StartExperimentRequest(String name, DatasetVersionId datasetId,
+                GeneratorSelectionRequest generator, UserStrategyVersionId userStrategyVersionId,
+                SearchSpaceRequest searchSpace, StopConditionRequest stopCondition, Integer topK) {
+            this(null, name, datasetId, generator, userStrategyVersionId, searchSpace,
+                    stopCondition, null, null, topK, null);
         }
     }
 
@@ -46,18 +69,58 @@ public final class CommandDtos {
             Long seed) {}
 
     public record SearchSpaceRequest(
+            Integer schemaVersion,
             @JsonDeserialize(using = StrategyPluginIdDeserializer.class) StrategyPluginId strategyId,
             String strategyVersion,
-            java.util.Map<String, ParameterRangeRequest> parameters) {}
+            java.util.Map<String, ParameterRangeRequest> parameters,
+            java.util.List<StrategyPoolEntryRequest> strategyPool,
+            @JsonAlias("minimumComponents") Integer minComponents,
+            @JsonAlias("maximumComponents") Integer maxComponents,
+            CombinationPolicyRequest combinationPolicy,
+            java.util.List<ConstraintRequest> constraints) {
+        public SearchSpaceRequest(StrategyPluginId strategyId, String strategyVersion,
+                java.util.Map<String, ParameterRangeRequest> parameters) {
+            this(null, strategyId, strategyVersion, parameters, java.util.List.of(),
+                    null, null, null, java.util.List.of());
+        }
+    }
+
+    public record StrategyPoolEntryRequest(
+            String artifactType,
+            @JsonDeserialize(using = StrategyPluginIdDeserializer.class) StrategyPluginId strategyId,
+            @JsonAlias("strategyVersion") String version,
+            @JsonDeserialize(using = UserStrategyVersionIdDeserializer.class)
+            UserStrategyVersionId userStrategyVersionId,
+            @JsonAlias("parameters") java.util.Map<String, ParameterRangeRequest> parameterDomains) {}
+
+    public record CombinationPolicyRequest(CombinationPolicyId policyId, String version,
+            java.util.Map<String, Object> configuration) {}
+
+    public record ConstraintRequest(String kind, String left, String right) {}
 
     public record ParameterRangeRequest(
-            Long minimum,
-            Long maximum,
-            java.util.List<String> options) {}
+            String kind,
+            @JsonAlias("minimum") BigDecimal min,
+            @JsonAlias("maximum") BigDecimal max,
+            BigDecimal step,
+            @JsonAlias("options") java.util.List<String> values) {
+        public ParameterRangeRequest(Long minimum, Long maximum, java.util.List<String> options) {
+            this(null, decimal(minimum), decimal(maximum), null, options);
+        }
+
+        private static BigDecimal decimal(Long value) {
+            return value == null ? null : BigDecimal.valueOf(value);
+        }
+    }
 
     public record StopConditionRequest(
             Integer maximumCandidates,
-            Integer maximumDurationSeconds) {}
+            Integer maximumDurationSeconds,
+            Integer maximumWithoutImprovement) {
+        public StopConditionRequest(Integer maximumCandidates, Integer maximumDurationSeconds) {
+            this(maximumCandidates, maximumDurationSeconds, null);
+        }
+    }
 
     public record ReproduceExperimentRequest(
             String name) {}
@@ -65,13 +128,19 @@ public final class CommandDtos {
     public record ExperimentAcceptedResponse(
             @JsonSerialize(using = TypedUlidSerializer.class) ExperimentId experimentId,
             @JsonSerialize(using = TypedUlidSerializer.class) JobId jobId,
-            String status) {
+            @JsonSerialize(using = TypedUlidSerializer.class)
+            SearchRunReferenceId searchRunId,
+            String status,
+            Integer configurationVersion,
+            String configurationFingerprint,
+            String monitorPath) {
+        public ExperimentAcceptedResponse(ExperimentId experimentId, JobId jobId, String status) {
+            this(experimentId, jobId, null, status, null, null,
+                    "/search/" + experimentId.value());
+        }
         public static ExperimentAcceptedResponse from(
                 com.cryptostrategy.platform.experiment.api.Experiment experiment, JobId jobId) {
-            return new ExperimentAcceptedResponse(
-                    experiment.experimentId(),
-                    jobId,
-                    "QUEUED"); // F-005 FreezeExperimentUseCase returns JobId, always queued initially
+            return new ExperimentAcceptedResponse(experiment.experimentId(), jobId, "QUEUED");
         }
     }
 
@@ -108,6 +177,25 @@ public final class CommandDtos {
         public GeneratorId {
             if (value == null || value.isBlank()) {
                 throw new IllegalArgumentException("generatorId is required");
+            }
+        }
+
+        @JsonValue
+        public String value() {
+            return value;
+        }
+    }
+
+    public record SearchBacktestConfigurationRequest(
+            String initialCapital,
+            String feeRate,
+            String slippageRate) {}
+
+    public record CombinationPolicyId(String value) {
+        @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+        public CombinationPolicyId {
+            if (value == null || !value.matches("^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")) {
+                throw new IllegalArgumentException("combinationPolicyId must be a lowercase slug");
             }
         }
 

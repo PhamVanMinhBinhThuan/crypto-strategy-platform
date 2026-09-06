@@ -1,5 +1,13 @@
 import type { ApiClient, ApiResult } from "@/src/foundation/http/contracts";
-import { mapCandidatePage, mapExperiment, mapJob } from "../mappers/experiment-job-mappers";
+import {
+  mapCandidateDetail,
+  mapCandidatePage,
+  mapCandidatePipelinePage,
+  mapExperimentHistoryPage,
+  mapExperiment,
+  mapJob
+} from "../mappers/experiment-job-mappers";
+import type { CandidatePipelineView } from "../types/experiment";
 const safe = async <T>(
   promise: Promise<ApiResult<unknown>>,
   mapper: (v: unknown) => T
@@ -28,6 +36,11 @@ const safe = async <T>(
   }
 };
 export const createExperimentService = (api: ApiClient) => ({
+  readRecentExperiments: (cursor?: string) =>
+    safe(
+      api.request(`/api/v1/experiments?limit=10${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`),
+      mapExperimentHistoryPage
+    ),
   readExperiment: (id: string) =>
     safe(api.request(`/api/v1/experiments/${encodeURIComponent(id)}`), mapExperiment),
   readJob: (id: string) => safe(api.request(`/api/v1/jobs/${encodeURIComponent(id)}`), mapJob),
@@ -39,7 +52,17 @@ export const createExperimentService = (api: ApiClient) => ({
       mapCandidatePage
     ),
   readCandidate: (eid: string, cid: string) =>
-    api.request(
-      `/api/v1/experiments/${encodeURIComponent(eid)}/candidates/${encodeURIComponent(cid)}`
+    safe(
+      api.request(
+        `/api/v1/experiments/${encodeURIComponent(eid)}/candidates/${encodeURIComponent(cid)}`
+      ),
+      mapCandidateDetail
+    ),
+  readCandidatePipeline: (id: string, view: CandidatePipelineView, cursor?: string) =>
+    safe(
+      api.request(
+        `/api/v1/experiments/${encodeURIComponent(id)}/candidate-pipeline?view=${view}&limit=10${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`
+      ),
+      mapCandidatePipelinePage
     )
 });

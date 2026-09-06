@@ -67,7 +67,7 @@ public class ExperimentRows {
                 datasetProvenance,
                 strategyProvenance,
                 jsonMapper.readMap(rs.getString("backtest_config")),
-                jsonMapper.readMap(rs.getString("search_config")),
+                jsonMapper.readSearchConfig(rs.getString("search_config")),
                 jsonMapper.readMap(rs.getString("evaluation_config")),
                 rs.getString("sentiment_config") != null ? jsonMapper.readMap(rs.getString("sentiment_config")) : null,
                 rs.getString("software_version"),
@@ -83,7 +83,7 @@ public class ExperimentRows {
                 new CandidateId(rs.getString("candidate_id")),
                 new ExperimentId(rs.getString("experiment_id")),
                 rs.getInt("generation_index"),
-                jsonMapper.readMap(rs.getString("definition")),
+                jsonMapper.readCandidateDefinition(rs.getString("definition")),
                 generatorStateJson != null ? jsonMapper.readMap(generatorStateJson) : null,
                 rs.getString("fingerprint"),
                 toInstant(rs.getTimestamp("created_at"))

@@ -54,6 +54,72 @@ public final class JdbcBacktestEvidenceReader implements BacktestResultReader {
         }
     }
 
+    @Override
+    public List<BacktestResultSummary> listRecent(
+            UUID ownerUserId, java.time.Instant beforeCompletedAt, String beforeResultId, int limit) {
+        java.sql.Timestamp boundary = beforeCompletedAt == null
+                ? null : java.sql.Timestamp.from(beforeCompletedAt);
+        return jdbc.query("""
+                select br.backtest_result_id, br.experiment_id, br.candidate_id,
+                       c.generation_index, e.name as experiment_name,
+                       c.definition::text as candidate_definition,
+                       coalesce(er.total_return,
+                           (br.final_capital - br.initial_capital) / nullif(br.initial_capital, 0), 0) as total_return,
+                       coalesce(er.win_rate,
+                           (select coalesce(sum(case when t.profit_loss > 0 then 1 else 0 end)::numeric
+                               / nullif(count(*), 0), 0)
+                            from experiment.trade t where t.backtest_result_id = br.backtest_result_id), 0) as win_rate,
+                       coalesce(er.maximum_drawdown,
+                           (br.equity_peak - br.equity_trough) / nullif(br.equity_peak, 0), 0) as maximum_drawdown,
+                       coalesce(er.number_of_trades,
+                           (select count(*) from experiment.trade t
+                            where t.backtest_result_id = br.backtest_result_id), 0) as number_of_trades,
+                       er.overall_score, br.completed_at
+                from experiment.backtest_result br
+                join experiment.experiment e on e.experiment_id = br.experiment_id
+                join experiment.candidate_definition c on c.candidate_id = br.candidate_id
+                left join lateral (
+                    select evaluation.total_return, evaluation.win_rate,
+                           evaluation.maximum_drawdown, evaluation.number_of_trades,
+                           evaluation.overall_score
+                    from experiment.evaluation_result evaluation
+                    where evaluation.backtest_result_id = br.backtest_result_id
+                    order by evaluation.evaluated_at desc, evaluation.evaluation_result_id desc
+                    limit 1
+                ) er on true
+                where e.owner_user_id = ?
+                  and (cast(? as timestamptz) is null
+                       or (br.completed_at, br.backtest_result_id)
+                          < (cast(? as timestamptz), ?))
+                order by br.completed_at desc, br.backtest_result_id desc
+                limit ?
+                """, (rs, row) -> new BacktestResultSummary(
+                        new BacktestResultId(rs.getString("backtest_result_id")),
+                        new ExperimentId(rs.getString("experiment_id")),
+                        new CandidateId(rs.getString("candidate_id")),
+                        rs.getInt("generation_index"),
+                        rs.getString("experiment_name"),
+                        json.readMap(rs.getString("candidate_definition")),
+                        rs.getBigDecimal("total_return"),
+                        rs.getBigDecimal("win_rate"),
+                        rs.getBigDecimal("maximum_drawdown"),
+                        rs.getInt("number_of_trades"),
+                        rs.getBigDecimal("overall_score"),
+                        rs.getTimestamp("completed_at").toInstant()),
+                ownerUserId, boundary, boundary, beforeResultId, limit);
+    }
+
+    @Override
+    public long count(UUID ownerUserId) {
+        Long count = jdbc.queryForObject("""
+                select count(*)
+                from experiment.backtest_result br
+                join experiment.experiment e on e.experiment_id = br.experiment_id
+                where e.owner_user_id = ?
+                """, Long.class, ownerUserId);
+        return count == null ? 0 : count;
+    }
+
     private List<Trade> readTrades(BacktestResultId resultId) {
         return jdbc.query("""
                 select trade_id,sequence_no,side,entry_time,exit_time,entry_price,exit_price,quantity,

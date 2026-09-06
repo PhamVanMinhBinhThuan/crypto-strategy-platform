@@ -56,6 +56,9 @@ public final class JdbcExecutionEvidenceReader implements ExecutionEvidenceReade
         );
         LeaderboardRevision leaderboard = leaderboards.isEmpty() ? null : leaderboards.getFirst();
 
-        return new ExecutionEvidence(backtest, evaluation, leaderboard);
+        List<String> candidateFingerprints = jdbc.query(
+                "select fingerprint from experiment.candidate_definition where experiment_id=? order by generation_index,candidate_id",
+                (rs, row) -> rs.getString(1), experimentId.value());
+        return new ExecutionEvidence(backtest, evaluation, leaderboard, candidateFingerprints);
     }
 }

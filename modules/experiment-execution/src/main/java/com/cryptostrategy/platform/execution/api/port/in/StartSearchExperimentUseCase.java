@@ -6,6 +6,7 @@ import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
 import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
+import com.cryptostrategy.platform.execution.api.SearchRunReferenceId;
 import com.cryptostrategy.platform.search.api.model.SearchRun;
 import java.time.Instant;
 import java.util.Objects;
@@ -46,14 +47,27 @@ public interface StartSearchExperimentUseCase {
         }
     }
 
-    record Acceptance(ExperimentId experimentId, JobId searchJobId, String status, boolean replay) {
+    record Acceptance(ExperimentId experimentId, JobId searchJobId,
+            SearchRunReferenceId searchRunId,
+            String configurationFingerprint, int configurationVersion,
+            String status, boolean replay) {
         public Acceptance {
             Objects.requireNonNull(experimentId, "experimentId");
             Objects.requireNonNull(searchJobId, "searchJobId");
+            Objects.requireNonNull(searchRunId, "searchRunId");
+            configurationFingerprint = Objects.requireNonNull(configurationFingerprint,
+                    "configurationFingerprint");
+            if (configurationVersion < 1) throw new IllegalArgumentException("configurationVersion must be positive");
             status = Objects.requireNonNull(status, "status");
             if (!"QUEUED".equals(status)) {
                 throw new IllegalArgumentException("Start acceptance status must be QUEUED");
             }
+        }
+
+        public Acceptance(ExperimentId experimentId, JobId searchJobId, String status, boolean replay) {
+            this(experimentId, searchJobId,
+                    new SearchRunReferenceId(searchJobId.value()),
+                    "legacy:unknown", 1, status, replay);
         }
     }
 }

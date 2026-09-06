@@ -1,12 +1,17 @@
 import type { Job } from "../types/experiment";
-export function JobProgressList({ jobs }: { jobs: readonly Job[] }) {
+import { TechnicalDetails } from "./TechnicalDetails";
+export function JobProgressList({
+  jobs,
+  title = "Job progress"
+}: {
+  jobs: readonly Job[];
+  title?: string;
+}) {
   return (
     <section className="panel">
       <div className="section-heading">
-        <h2>Job progress</h2>
-        <span>
-          {jobs.length} public job{jobs.length === 1 ? "" : "s"}
-        </span>
+        <h2>{title}</h2>
+        <span>Search allocation and completion</span>
       </div>
       {jobs.map((j) => {
         const ratio = Math.min(
@@ -18,7 +23,6 @@ export function JobProgressList({ jobs }: { jobs: readonly Job[] }) {
             <div>
               <strong>{j.type}</strong>
               <span className="status">{j.status}</span>
-              <small className="mono">{j.jobId}</small>
             </div>
             <div
               className="progress"
@@ -34,7 +38,7 @@ export function JobProgressList({ jobs }: { jobs: readonly Job[] }) {
               {j.completedWork} completed · {j.failedWork} failed · {j.totalWork} total{" "}
               {j.bestScore && (
                 <>
-                  · best <span className="numeric">{j.bestScore}</span>
+                  · best score <span className="numeric">{Number(j.bestScore).toFixed(4)}</span>
                 </>
               )}
             </p>
@@ -48,6 +52,7 @@ export function JobProgressList({ jobs }: { jobs: readonly Job[] }) {
                 {j.failure.code}: {j.failure.message}
               </p>
             )}
+            <TechnicalDetails values={[["Search job ID", j.jobId]]} />
           </article>
         );
       })}

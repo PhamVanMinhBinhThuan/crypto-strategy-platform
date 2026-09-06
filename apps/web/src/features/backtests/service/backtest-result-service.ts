@@ -1,5 +1,5 @@
 import type { ApiClient, ApiResult } from "@/src/foundation/http/contracts";
-import { mapBacktestResult } from "../mappers/backtest-result-mapper";
+import { mapBacktestResult, mapBacktestResultHistoryPage } from "../mappers/backtest-result-mapper";
 import type {
   BacktestId,
   BacktestResultId,
@@ -26,6 +26,20 @@ const mapped = (result: ApiResult<unknown>): ApiResult<BacktestResultViewModel> 
   }
 };
 export const createBacktestResultService = (api: ApiClient) => ({
+  async readRecent(cursor?: string) {
+    const result = await api.request(
+      `/api/v1/backtest-results?limit=10${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`
+    );
+    if (!result.ok) return result;
+    try {
+      return { ...result, data: mapBacktestResultHistoryPage(result.data) };
+    } catch {
+      return {
+        ok: false as const,
+        error: { code: "INVALID_RESPONSE", message: "The service returned an invalid result history.", retryable: false }
+      };
+    }
+  },
   async readByBacktestId(id: BacktestId) {
     return mapped(await api.request(`/api/v1/backtests/${encodeURIComponent(id)}/result`));
   },

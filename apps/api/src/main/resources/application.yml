@@ -11,6 +11,8 @@ spring:
     hikari:
       initialization-fail-timeout: -1
       connection-timeout: 3000
+      data-source-properties:
+        reWriteBatchedInserts: true
 
 platform:
   features:

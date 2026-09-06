@@ -17,6 +17,7 @@ import com.cryptostrategy.platform.evaluation.api.model.EvaluationResultId;
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.error.InvalidStateTransitionException;
 import com.cryptostrategy.platform.experiment.api.execution.FrozenBacktestExecution;
 import com.cryptostrategy.platform.experiment.api.job.AttemptId;
 import com.cryptostrategy.platform.experiment.api.job.AttemptStatus;
@@ -44,7 +45,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class BacktestJobHandlerTest {
@@ -142,5 +145,32 @@ class BacktestJobHandlerTest {
         verify(candidateEvaluatedPublisher).publishCandidateEvaluated(eq(expId), eq(jId), eq(candId), any(), any(), any(), eq("corr-1"));
         verify(idempotencyGuard).markProcessed(any(), eq(msgId), any());
         verify(messageReader).ack(any(), any(), eq(record.getId()));
+    }
+
+    @Test
+    void acknowledgesObsoleteDeliveryWithoutStartingDuplicateWork() throws Exception {
+        String msgId = "01J7K8M9N0P1Q2R3S4T5A6V7W5";
+        String expId = "01J7K8M9N0P1Q2R3S4T5A6V7W2";
+        String candId = "01J7K8M9N0P1Q2R3S4T5A6V7W3";
+        String jobId = "01J7K8M9N0P1Q2R3S4T5A6V7W4";
+        var envelope = new MessageEnvelope<>(msgId, 1, MessageTypes.BACKTEST_JOB,
+                Instant.now(), "corr-duplicate",
+                new BacktestJobPayload(expId, jobId, candId));
+        var record = MapRecord.create(
+                workerProperties.streams().getBacktestJobsStream(),
+                Map.of("messageId", msgId, "payload", objectMapper.writeValueAsString(envelope)))
+                .withId(RecordId.of("1700000000001-0"));
+
+        when(idempotencyGuard.isAlreadyProcessed(any(), eq(msgId))).thenReturn(false);
+        when(experimentUseCase.startNextAttempt(eq(new JobId(jobId)), any()))
+                .thenThrow(new InvalidStateTransitionException(
+                        "Cannot start another attempt while job is RUNNING"));
+
+        handler.handle(record);
+
+        verify(messageReader).ack(any(), any(), eq(record.getId()));
+        verify(experimentUseCase, never()).getFrozenExecution(any());
+        verifyNoInteractions(prepareBacktestUseCase, completeBacktestAttemptUseCase,
+                candidateEvaluatedPublisher, deadLetterPublisher);
     }
 }

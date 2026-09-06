@@ -6,7 +6,8 @@ final class SearchSql {
             generator_id, generator_version, seed, search_space_fingerprint,
             generator_state_contract_version, generator_state::text as generator_state,
             generator_state_fingerprint, next_generation_index, maximum_candidates,
-            maximum_duration_ms, max_in_flight, status, version, started_at, deadline_at,
+            maximum_duration_ms, maximum_without_improvement, max_in_flight, status,
+            terminal_reason, version, started_at, deadline_at,
             finished_at, failure_code, failure_message, created_at, updated_at
             """;
 
@@ -15,10 +16,11 @@ final class SearchSql {
                 search_run_id, experiment_id, search_job_id, mode, source_experiment_id,
                 generator_id, generator_version, seed, search_space_fingerprint,
                 generator_state_contract_version, generator_state, generator_state_fingerprint,
-                next_generation_index, maximum_candidates, maximum_duration_ms, max_in_flight,
-                status, version, started_at, deadline_at, finished_at, failure_code,
+                next_generation_index, maximum_candidates, maximum_duration_ms,
+                maximum_without_improvement, max_in_flight, status, terminal_reason,
+                version, started_at, deadline_at, finished_at, failure_code,
                 failure_message, created_at, updated_at
-            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
 
     static final String SELECT_BY_ID = "select " + COLUMNS
@@ -32,7 +34,7 @@ final class SearchSql {
             update search.search_run set
                 generator_state_contract_version = ?, generator_state = ?::jsonb,
                 generator_state_fingerprint = ?, next_generation_index = ?, status = ?,
-                version = ?, started_at = ?, deadline_at = ?, finished_at = ?,
+                terminal_reason = ?, version = ?, started_at = ?, deadline_at = ?, finished_at = ?,
                 failure_code = ?, failure_message = ?, updated_at = ?
             where search_run_id = ? and version = ?
               and status not in ('COMPLETED', 'STOPPED', 'FAILED')

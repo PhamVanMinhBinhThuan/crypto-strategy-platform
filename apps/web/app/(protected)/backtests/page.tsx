@@ -2,8 +2,8 @@ import { BacktestResultsView } from "@/src/features/backtests/components/Backtes
 export default async function Page({
   searchParams
 }: {
-  searchParams: Promise<{ resultId?: string; backtestId?: string }>;
+  searchParams: Promise<{ resultId?: string; backtestId?: string; returnTo?: string }>;
 }) {
   const params = await searchParams;
-  return <BacktestResultsView resultId={params.resultId} backtestId={params.backtestId} />;
+  return <BacktestResultsView resultId={params.resultId} backtestId={params.backtestId} returnTo={params.returnTo} />;
 }

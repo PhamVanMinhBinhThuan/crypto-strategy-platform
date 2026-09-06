@@ -13,6 +13,7 @@ import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterType;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSchema;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue;
+import com.cryptostrategy.platform.strategy.api.model.parameter.SearchRangeHint;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -32,14 +33,16 @@ public final class SupportResistancePlugin implements StrategyPlugin {
             "Uses recent price extremes as support and resistance bounce zones",
             "STRUCTURE",
             Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD),
-            21,
+            3,
             new StrategyParameterSchema(
                     List.of(
-                            integer("lookback", 20, 2, 500),
-                            decimal("tolerancePercent", "1", "0", "25"),
+                            integer("lookback", 20, 2, 500, 10, 100, 10,
+                                    "Number of historical candles used to find support and resistance."),
+                            decimal("tolerancePercent", "1", "0", "25", "0.5", "3", "0.5",
+                                    "Maximum percentage distance treated as near a price level."),
                             enumeration("ruleMode", BOUNCE, Set.of(BOUNCE))),
                     List.of()),
-            "strategy-descriptor-v1:support-resistance:1.0.0");
+            "strategy-descriptor-v2:support-resistance:1.0.0");
 
     @Override
     public StrategyDescriptor descriptor() {
@@ -64,8 +67,9 @@ public final class SupportResistancePlugin implements StrategyPlugin {
         return Math.addExact(Math.toIntExact(lookback), 1);
     }
 
-    private static ParameterDefinition integer(
-            String name, long defaultValue, long minimum, long maximum) {
+    private static ParameterDefinition integer(String name, long defaultValue, long minimum,
+            long maximum, long searchMinimum, long searchMaximum, long searchStep,
+            String description) {
         return new ParameterDefinition(
                 name,
                 ParameterType.INTEGER,
@@ -74,11 +78,14 @@ public final class SupportResistancePlugin implements StrategyPlugin {
                 Optional.of(BigDecimal.valueOf(minimum)),
                 Optional.of(BigDecimal.valueOf(maximum)),
                 Set.of(),
-                name);
+                description,
+                Optional.of(new SearchRangeHint(BigDecimal.valueOf(searchMinimum),
+                        BigDecimal.valueOf(searchMaximum), BigDecimal.valueOf(searchStep))));
     }
 
-    private static ParameterDefinition decimal(
-            String name, String defaultValue, String minimum, String maximum) {
+    private static ParameterDefinition decimal(String name, String defaultValue, String minimum,
+            String maximum, String searchMinimum, String searchMaximum, String searchStep,
+            String description) {
         return new ParameterDefinition(
                 name,
                 ParameterType.DECIMAL,
@@ -87,7 +94,9 @@ public final class SupportResistancePlugin implements StrategyPlugin {
                 Optional.of(new BigDecimal(minimum)),
                 Optional.of(new BigDecimal(maximum)),
                 Set.of(),
-                name);
+                description,
+                Optional.of(new SearchRangeHint(new BigDecimal(searchMinimum),
+                        new BigDecimal(searchMaximum), new BigDecimal(searchStep))));
     }
 
     private static ParameterDefinition enumeration(

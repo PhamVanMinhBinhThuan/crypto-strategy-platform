@@ -8,9 +8,17 @@ import com.cryptostrategy.platform.combination.api.CombinationPolicyReference;
 import com.cryptostrategy.platform.combination.api.CompositeStrategyMaterializer;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
 import com.cryptostrategy.platform.search.api.SearchModuleFactory;
+import com.cryptostrategy.platform.search.api.model.CompositeCandidateComponent;
+import com.cryptostrategy.platform.search.api.model.SearchCombinationPolicy;
+import com.cryptostrategy.platform.search.api.CompositeSearchCanonicalization;
 import com.cryptostrategy.platform.strategy.api.Strategy;
+import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
 import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
 import com.cryptostrategy.platform.strategy.api.model.StrategyReference;
+import com.cryptostrategy.platform.strategy.api.model.StrategyVersionId;
+import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterType;
+import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
+import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyFingerprintCalculator;
 import com.cryptostrategy.platform.strategy.api.port.in.StrategyRegistry;
 import java.util.Objects;
@@ -28,6 +36,9 @@ public final class RegistryFrozenStrategyResolver implements FrozenStrategyResol
     }
 
     @Override public ResolvedStrategy resolve(StrategyProvenanceSnapshot provenance, com.cryptostrategy.platform.experiment.api.CandidateDefinition candidate) {
+        if (Integer.valueOf(2).equals(candidate.definition().get("schemaVersion"))) {
+            return resolveCompositeCandidate(candidate);
+        }
         java.util.Map<String, com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue> overrides = parseCandidateParams(candidate.definition());
         if (provenance.singleStrategy().isPresent()) {
             StrategyReference reference = provenance.singleStrategy().orElseThrow();
@@ -72,6 +83,83 @@ public final class RegistryFrozenStrategyResolver implements FrozenStrategyResol
         Strategy strategy = composites.materialize(compositeReference,
                 new CombinationPolicyReference(policyId, policyVersion), resolved);
         return new ResolvedStrategy(strategy, lookback, actual);
+    }
+
+    @SuppressWarnings("unchecked")
+    private ResolvedStrategy resolveCompositeCandidate(
+            com.cryptostrategy.platform.experiment.api.CandidateDefinition candidate) {
+        Object rawPolicy = candidate.definition().get("combinationPolicy");
+        Object rawComponents = candidate.definition().get("components");
+        if (!(rawPolicy instanceof java.util.Map<?, ?> policy)
+                || !(rawComponents instanceof java.util.List<?> componentsRaw)) {
+            throw new BacktestException(BacktestErrorCode.INVALID_LINEAGE,
+                    "Composite candidate definition is incomplete");
+        }
+        SearchCombinationPolicy searchPolicy = new SearchCombinationPolicy(
+                new com.cryptostrategy.platform.strategy.api.model.CombinationPolicyId(
+                        String.valueOf(policy.get("policyId"))),
+                SemanticVersion.parse(String.valueOf(policy.get("version"))),
+                StrategyParameterSet.empty());
+        var components = new java.util.ArrayList<CompositeCandidateComponent>();
+        var strategies = new java.util.ArrayList<Strategy>();
+        var fingerprintComponents = new java.util.ArrayList<StrategyFingerprintCalculator.Component>();
+        int lookback = 0;
+        for (Object value : componentsRaw) {
+            if (!(value instanceof java.util.Map<?, ?> component)) {
+                throw new BacktestException(BacktestErrorCode.INVALID_LINEAGE,
+                        "Composite component definition is invalid");
+            }
+            StrategyReference reference = new StrategyReference(
+                    new StrategyVersionId(String.valueOf(component.get("strategyVersionId"))),
+                    new StrategyPluginId(String.valueOf(component.get("strategyId"))),
+                    SemanticVersion.parse(String.valueOf(component.get("strategyVersion"))));
+            StrategyParameterSet parameters = parseTypedParameters(component.get("parameters"));
+            components.add(new CompositeCandidateComponent(reference, parameters));
+            fingerprintComponents.add(new StrategyFingerprintCalculator.Component(reference, parameters));
+            strategies.add(registry.create(reference.pluginId(), reference.implementationVersion(),
+                    parameters.values()));
+            lookback = Math.max(lookback, registry.requiredLookback(
+                    reference.pluginId(), reference.implementationVersion(), parameters.values()));
+        }
+        requireFingerprint(candidate.fingerprint(),
+                CompositeSearchCanonicalization.candidateFingerprint(components, searchPolicy));
+        if (components.size() == 1) {
+            CompositeCandidateComponent only = components.getFirst();
+            return new ResolvedStrategy(strategies.getFirst(), lookback,
+                    fingerprints.single(only.strategy(), only.parameters()));
+        }
+        String actual = fingerprints.composite(searchPolicy.policyId(), searchPolicy.version(),
+                searchPolicy.parameters(), fingerprintComponents);
+        StrategyReference compositeReference = new StrategyReference(
+                components.getFirst().strategy().strategyVersionId(),
+                new StrategyPluginId("composite"), searchPolicy.version());
+        Strategy strategy = composites.materialize(compositeReference,
+                new CombinationPolicyReference(searchPolicy.policyId(), searchPolicy.version()), strategies);
+        return new ResolvedStrategy(strategy, lookback, actual);
+    }
+
+    private static StrategyParameterSet parseTypedParameters(Object raw) {
+        if (!(raw instanceof java.util.Map<?, ?> values)) {
+            throw new BacktestException(BacktestErrorCode.INVALID_LINEAGE,
+                    "Composite component parameters are invalid");
+        }
+        var result = new java.util.TreeMap<String, StrategyParameterValue>();
+        values.forEach((name, typedValue) -> {
+            if (!(typedValue instanceof java.util.Map<?, ?> encoded)) {
+                throw new BacktestException(BacktestErrorCode.INVALID_LINEAGE,
+                        "Composite parameter value is invalid");
+            }
+            ParameterType type = ParameterType.valueOf(String.valueOf(encoded.get("type")));
+            String value = String.valueOf(encoded.get("value"));
+            result.put(String.valueOf(name), switch (type) {
+                case INTEGER -> new StrategyParameterValue.IntegerValue(Long.parseLong(value));
+                case DECIMAL -> new StrategyParameterValue.DecimalValue(new java.math.BigDecimal(value));
+                case BOOLEAN -> new StrategyParameterValue.BooleanValue(Boolean.parseBoolean(value));
+                case TEXT -> new StrategyParameterValue.TextValue(value);
+                case ENUM -> new StrategyParameterValue.EnumValue(value);
+            });
+        });
+        return StrategyParameterSet.of(result);
     }
 
     private java.util.Map<String, com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue> parseCandidateParams(java.util.Map<String, Object> definition) {

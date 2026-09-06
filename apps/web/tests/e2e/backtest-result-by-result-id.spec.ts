@@ -43,8 +43,8 @@ test.describe("F-013 T041: Candidate result lookup by canonical result ID", () =
   }) => {
     await authenticate(page);
     await page.goto(`/backtests?resultId=${encodeURIComponent(targetResultId!)}`);
-    await expect(page.getByRole("heading", { name: "Backtest Results" })).toBeVisible();
-    await expect(page.getByText("Total Return")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /backtest/i })).toBeVisible();
+    await expect(page.getByText("Total return")).toBeVisible();
     await expect(page.getByRole("region", { name: "Scrollable trade history" })).toBeVisible();
   });
 });

@@ -5,6 +5,7 @@ import com.cryptostrategy.platform.execution.api.port.out.TrustedSearchCoordinat
 import com.cryptostrategy.platform.search.api.model.SearchRun;
 import com.cryptostrategy.platform.search.api.model.SearchRunStatus;
 import com.cryptostrategy.platform.search.api.model.SearchRunId;
+import com.cryptostrategy.platform.search.api.model.SearchTerminalReason;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import java.time.Clock;
 import java.time.Instant;
@@ -63,6 +64,10 @@ public final class TrustedSearchCoordinationService implements TrustedSearchCoor
         boolean deadlineReached = !observedAt.isBefore(run.deadlineAt());
         boolean allSettled = snapshot.activeWork() == 0;
         boolean generationFinished = snapshot.allocatedWork() >= run.stopConditions().maximumCandidates();
+        boolean noImprovementReached = !generationFinished
+                && run.stopConditions().maximumWithoutImprovement() != null
+                && snapshot.consecutiveWithoutImprovement()
+                        >= run.stopConditions().maximumWithoutImprovement();
         boolean completionWasOnTime = snapshot.latestAuthoritativeCompletedAt() == null
                 || !snapshot.latestAuthoritativeCompletedAt().isAfter(run.deadlineAt());
 
@@ -74,12 +79,26 @@ public final class TrustedSearchCoordinationService implements TrustedSearchCoor
         if (generationFinished && allSettled && completionWasOnTime) {
             Instant authoritativeCompletion = snapshot.latestAuthoritativeCompletedAt() == null
                     ? observedAt : snapshot.latestAuthoritativeCompletedAt();
-            commit(snapshot, run.complete(notBefore(authoritativeCompletion, run.updatedAt())), messageId);
+            SearchTerminalReason reason = snapshot.allocatedWork() < snapshot.configuredMaximumCandidates()
+                    ? SearchTerminalReason.SEARCH_SPACE_EXHAUSTED
+                    : SearchTerminalReason.MAXIMUM_CANDIDATES;
+            commit(snapshot, run.complete(notBefore(authoritativeCompletion, run.updatedAt()), reason), messageId);
             return outcome(reload(new ExperimentId(run.experimentId().value())), Decision.COMPLETE);
+        }
+        if (noImprovementReached) {
+            Instant transitionAt = notBefore(observedAt, run.updatedAt());
+            commit(snapshot, run.requestStop(transitionAt, SearchTerminalReason.NO_IMPROVEMENT), messageId);
+            var reloaded = reload(new ExperimentId(run.experimentId().value()));
+            if (reloaded.activeWork() == 0) {
+                commit(reloaded, reloaded.run().stop(
+                        notBefore(transitionAt, reloaded.run().updatedAt())), null);
+                return outcome(reload(new ExperimentId(run.experimentId().value())), Decision.STOP);
+            }
+            return outcome(reloaded, Decision.WAIT_FOR_COMPLETIONS);
         }
         if (deadlineReached) {
             Instant transitionAt = notBefore(observedAt, run.updatedAt());
-            SearchRun stopping = run.requestStop(transitionAt);
+            SearchRun stopping = run.requestStop(transitionAt, SearchTerminalReason.MAXIMUM_DURATION);
             commit(snapshot, stopping, messageId);
             var reloaded = reload(new ExperimentId(run.experimentId().value()));
             if (reloaded.activeWork() == 0) {

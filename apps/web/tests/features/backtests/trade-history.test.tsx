@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { TradeHistory } from "@/src/features/backtests/components/TradeHistory";
 import { mapBacktestResult } from "@/src/features/backtests/mappers/backtest-result-mapper";
@@ -8,12 +8,12 @@ import {
   zeroTradeBacktestResult
 } from "@/src/features/backtests/fixtures/backtest-result-fixtures";
 describe("trade history", () => {
-  it("renders every released column in authoritative order with local scrolling", () => {
+  it("renders the user-facing columns in authoritative order with local scrolling", () => {
     render(<TradeHistory trades={mapBacktestResult(manyTradeBacktestResult).trades} />);
     const region = screen.getByRole("region", { name: /trade history/i });
     expect(region).toHaveClass("table-scroll");
     expect(within(region).getAllByRole("row")).toHaveLength(7);
-    expect(screen.getByText(/authoritative execution evidence/i)).toBeInTheDocument();
+    expect(screen.getByText(/recorded entry, exit, fees/i)).toBeInTheDocument();
     expect(
       within(region)
         .getAllByRole("columnheader")
@@ -21,17 +21,14 @@ describe("trade history", () => {
     ).toEqual([
       "#",
       "Side",
-      "Entry time",
-      "Entry price",
-      "Exit time",
-      "Exit price",
+      "Entry",
+      "Exit",
       "Quantity",
-      "Entry fee",
-      "Exit fee",
-      "Total fee",
+      "Fees",
       "Realized P/L",
-      "Post-trade cash",
-      "Exit reason"
+      "Cash after trade",
+      "Exit reason",
+      "Actions"
     ]);
   });
   it("announces a valid zero-trade outcome", () => {
@@ -40,7 +37,9 @@ describe("trade history", () => {
   });
   it("discloses full decimal values", () => {
     render(<TradeHistory trades={mapBacktestResult(extremeDecimalBacktestResult).trades} />);
-    expect(screen.getByTitle("65000.123456789")).toHaveTextContent("65000.123456789");
+    expect(screen.getByTitle("65000.123456789")).toHaveTextContent("65,000.12345679");
+    fireEvent.click(screen.getAllByRole("button", { name: /View details for trade/ })[0]);
+    expect(screen.getByText("65000.123456789")).toBeInTheDocument();
   });
   it("rejects contradictory trade count and execution ordering", () => {
     expect(() =>

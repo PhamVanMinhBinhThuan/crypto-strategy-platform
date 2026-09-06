@@ -10,6 +10,7 @@ import com.cryptostrategy.platform.execution.api.BacktestCompletionOutcome;
 import com.cryptostrategy.platform.execution.api.port.in.CompleteBacktestAttemptUseCase;
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.error.InvalidStateTransitionException;
 import com.cryptostrategy.platform.experiment.api.job.ExecutionAttempt;
 import com.cryptostrategy.platform.experiment.api.job.FailureClassification;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
@@ -131,9 +132,21 @@ public class BacktestJobHandler implements MessageHandler {
         ExperimentId experimentId = new ExperimentId(payload.experimentId().value());
         CandidateId candidateId = new CandidateId(payload.candidateId().value());
 
-        ExecutionAttempt attempt = null;
+        ExecutionAttempt attempt;
         try {
-            attempt = experimentUseCase.startNextAttempt(jobId, new com.cryptostrategy.platform.experiment.api.job.WorkerId(consumerName));
+            attempt = experimentUseCase.startNextAttempt(
+                    jobId,
+                    new com.cryptostrategy.platform.experiment.api.job.WorkerId(consumerName));
+        } catch (InvalidStateTransitionException obsoleteDelivery) {
+            log.info(
+                    "Skipping obsolete backtest delivery for job '{}': {}",
+                    jobId,
+                    obsoleteDelivery.getMessage());
+            messageReader.ack(streamKey, consumerGroup, record.getId());
+            return;
+        }
+
+        try {
             UUID ownerUserId = experimentUseCase.getFrozenExecution(jobId)
                     .experiment()
                     .ownerUserId();
@@ -177,8 +190,8 @@ public class BacktestJobHandler implements MessageHandler {
 
         } catch (Exception ex) {
             log.error("Execution failed for job '{}': {}", jobId, ex.getMessage(), ex);
-            if (attempt != null) {
-                FailureClassification classification = FailureClassification.PERMANENT_LOGIC_ERROR;
+            FailureClassification classification = FailureClassification.PERMANENT_LOGIC_ERROR;
+            try {
                 experimentUseCase.finalizeFailure(
                         jobId,
                         attempt.attemptId(),
@@ -197,6 +210,11 @@ public class BacktestJobHandler implements MessageHandler {
                         ex.getMessage(),
                         attempt.attemptNo()
                 );
+            } catch (InvalidStateTransitionException completionAlreadyWon) {
+                log.info(
+                        "Ignoring failure finalization for job '{}' because another terminal outcome already won: {}",
+                        jobId,
+                        completionAlreadyWon.getMessage());
             }
             messageReader.ack(streamKey, consumerGroup, record.getId());
         }

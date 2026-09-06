@@ -50,6 +50,6 @@ test.describe("F-013 T074: Leaderboard row to candidate result navigation", () =
     await expect(resultLink).toBeVisible();
     await resultLink.click();
     await expect(page).toHaveURL(/\/backtests\?resultId=/);
-    await expect(page.getByText("Total Return")).toBeVisible();
+    await expect(page.getByText("Total return")).toBeVisible();
   });
 });

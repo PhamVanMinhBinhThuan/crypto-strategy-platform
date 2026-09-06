@@ -33,10 +33,11 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 search_run_id, experiment_id, search_job_id, mode, source_experiment_id,
                 generator_id, generator_version, seed, search_space_fingerprint,
                 generator_state_contract_version, generator_state, generator_state_fingerprint,
-                next_generation_index, maximum_candidates, maximum_duration_ms, max_in_flight,
-                status, version, started_at, deadline_at, finished_at, failure_code,
+                next_generation_index, maximum_candidates, maximum_duration_ms,
+                maximum_without_improvement, max_in_flight, status, terminal_reason,
+                version, started_at, deadline_at, finished_at, failure_code,
                 failure_message, created_at, updated_at
-            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
     private static final String LOCK_RUN = """
             select sr.version, sr.status
@@ -51,6 +52,12 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 generator_state_fingerprint=?, next_generation_index=?, status=?, version=?,
                 started_at=?, deadline_at=?, finished_at=?, failure_code=?, failure_message=?, updated_at=?
             where search_run_id=? and version=?
+            """;
+    private static final String LOCK_GLOBAL_ALLOCATION =
+            "select pg_advisory_xact_lock(15015015)";
+    private static final String COUNT_GLOBAL_ACTIVE_BACKTESTS = """
+            select count(*) from experiment.job
+            where job_type='BACKTEST' and status in ('QUEUED','RUNNING','RETRY_SCHEDULED')
             """;
     private static final String INSERT_DECISION = """
             insert into search.coordination_decision (
@@ -149,10 +156,11 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 insert into search.search_run(search_run_id,experiment_id,search_job_id,mode,source_experiment_id,
                     generator_id,generator_version,seed,search_space_fingerprint,generator_state_contract_version,
                     generator_state,generator_state_fingerprint,next_generation_index,maximum_candidates,
-                    maximum_duration_ms,max_in_flight,status,version,created_at,updated_at)
+                    maximum_duration_ms,maximum_without_improvement,max_in_flight,status,version,created_at,updated_at)
                 select ?,?,?, 'REPRODUCTION',sr.experiment_id,sr.generator_id,sr.generator_version,sr.seed,
                     sr.search_space_fingerprint,sr.generator_state_contract_version,sr.generator_state,
-                    sr.generator_state_fingerprint,?,greatest(1,?),sr.maximum_duration_ms,sr.max_in_flight,
+                    sr.generator_state_fingerprint,?,greatest(1,?),sr.maximum_duration_ms,
+                    sr.maximum_without_improvement,sr.max_in_flight,
                     'PENDING',0,?,? from search.search_run sr where sr.experiment_id=?
                 """, command.searchRunId().value(), command.experimentId().value(), command.searchJobId().value(),
                 command.candidates().size(), command.candidates().size(), timestamp(command.requestedAt()),
@@ -242,13 +250,18 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
 
         String body = json.writeJson(Map.of(
                 "experimentId", experiment.experimentId().value(),
-                "jobId", command.searchJob().jobId().value()));
+                "jobId", command.searchJob().jobId().value(),
+                "searchRunId", command.searchRun().searchRunId().value(),
+                "configurationFingerprint", command.manifest().fingerprint(),
+                "configurationVersion", "manifest-v2".equals(command.manifest().manifestVersion()) ? 2 : 1));
         if (jdbc.update(ExperimentSql.COMPLETE_IDEMPOTENCY_RECORD, 202, body,
                 command.ownerUserId(), command.operation(), command.idempotencyKey()) != 1) {
             throw new IllegalStateException("Failed to complete Start Search idempotency receipt");
         }
         return new StartSearchGraphResult(StartSearchGraphResult.Status.CREATED,
-                experiment.experimentId(), command.searchJob().jobId());
+                experiment.experimentId(), command.searchJob().jobId(), command.searchRun().searchRunId(),
+                command.manifest().fingerprint(),
+                "manifest-v2".equals(command.manifest().manifestVersion()) ? 2 : 1);
     }
 
     private StartSearchGraphResult replay(StartSearchGraphCommand command) {
@@ -270,13 +283,35 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
             throw new IllegalStateException("Start Search idempotency receipt is still in progress");
         }
         Map<String, Object> body = json.readMap(receipt.get("body"));
+        String replayExperimentId = required(body, "experimentId");
+        Map<String, Object> metadata = body.containsKey("searchRunId")
+                ? body
+                : jdbc.queryForObject("""
+                        select sr.search_run_id, m.fingerprint, m.manifest_version
+                        from search.search_run sr
+                        join experiment.experiment_manifest m on m.experiment_id=sr.experiment_id
+                        where sr.experiment_id=?
+                        """, (rs, row) -> Map.of(
+                                "searchRunId", rs.getString("search_run_id"),
+                                "configurationFingerprint", rs.getString("fingerprint"),
+                                "configurationVersion", "manifest-v2".equals(rs.getString("manifest_version")) ? 2 : 1),
+                        replayExperimentId);
         return new StartSearchGraphResult(
                 StartSearchGraphResult.Status.REPLAY,
-                new com.cryptostrategy.platform.experiment.api.ExperimentId(required(body, "experimentId")),
-                new com.cryptostrategy.platform.experiment.api.job.JobId(required(body, "jobId")));
+                new com.cryptostrategy.platform.experiment.api.ExperimentId(replayExperimentId),
+                new com.cryptostrategy.platform.experiment.api.job.JobId(required(body, "jobId")),
+                new com.cryptostrategy.platform.search.api.model.SearchRunId(required(metadata, "searchRunId")),
+                required(metadata, "configurationFingerprint"),
+                ((Number) metadata.get("configurationVersion")).intValue());
     }
 
     private SearchAllocationResult allocateInTransaction(AllocateSearchCandidateCommand command) {
+        jdbc.execute(LOCK_GLOBAL_ALLOCATION);
+        Integer globalActive = jdbc.queryForObject(COUNT_GLOBAL_ACTIVE_BACKTESTS, Integer.class);
+        if (globalActive != null && globalActive >= command.globalInFlightLimit()) {
+            return new SearchAllocationResult(SearchAllocationResult.Status.WINDOW_FULL,
+                    null, null, command.claim().expectedVersion());
+        }
         RunFence fence;
         try {
             fence = jdbc.queryForObject(LOCK_RUN,
@@ -316,7 +351,7 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 manifest.experimentId().value(), manifest.manifestVersion(),
                 manifest.datasetProvenance().datasetVersionId().value(), provenance.kind().name(),
                 reference, version, json.writeJson(provenance.parameters()),
-                json.writeJson(manifest.backtestConfig()), json.writeJson(manifest.searchConfig()),
+                json.writeJson(manifest.backtestConfig()), json.writeSearchConfig(manifest.searchConfig()),
                 json.writeJson(manifest.evaluationConfig()), json.writeJson(manifest.sentimentConfig()),
                 manifest.softwareVersion(), manifest.gitCommit(), manifest.fingerprint(),
                 timestamp(manifest.createdAt()), provenance.sourceUserStrategyVersionId()
@@ -332,15 +367,17 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 run.searchSpaceFingerprint(), run.generatorState().contractVersion(),
                 run.generatorState().canonicalState(), run.generatorState().fingerprint(),
                 run.nextGenerationIndex(), run.stopConditions().maximumCandidates(),
-                run.stopConditions().maximumDuration().toMillis(), run.maxInFlight(), run.status().name(),
-                run.version(), timestamp(run.startedAt()), timestamp(run.deadlineAt()), timestamp(run.finishedAt()),
+                run.stopConditions().maximumDuration().toMillis(),
+                run.stopConditions().maximumWithoutImprovement(), run.maxInFlight(), run.status().name(),
+                run.terminalReason() == null ? null : run.terminalReason().name(), run.version(),
+                timestamp(run.startedAt()), timestamp(run.deadlineAt()), timestamp(run.finishedAt()),
                 run.failureCode(), run.failureMessage(), timestamp(run.createdAt()), timestamp(run.updatedAt()));
     }
 
     private void insertCandidate(CandidateDefinition candidate) {
         jdbc.update(ExperimentSql.INSERT_CANDIDATE,
                 candidate.candidateId().value(), candidate.experimentId().value(), candidate.generationIndex(),
-                json.writeJson(candidate.definition()), json.writeJson(candidate.generatorState()),
+                json.writeCandidateDefinition(candidate.definition()), json.writeJson(candidate.generatorState()),
                 candidate.fingerprint(), timestamp(candidate.createdAt()));
     }
 

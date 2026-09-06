@@ -27,14 +27,12 @@ export function ExperimentActions({
   const reproducible = ["COMPLETED", "STOPPED"].includes(experiment.status);
   return (
     <section className="actions" aria-live="polite">
-      <button
-        ref={trigger}
-        className="button danger"
-        disabled={!stoppable || state.status === "submitting"}
-        onClick={() => setConfirm(true)}
-      >
-        Stop Experiment
-      </button>
+      {stoppable && (
+        <button ref={trigger} className="button danger"
+          disabled={state.status === "submitting"} onClick={() => setConfirm(true)}>
+          Stop Experiment
+        </button>
+      )}
       {confirm && (
         <div className="dialog-backdrop">
           <div role="dialog" aria-modal="true" aria-labelledby="stop-title" className="dialog">
@@ -75,17 +73,16 @@ export function ExperimentActions({
       {state.status === "conflict" && (
         <p role="alert">State changed; refreshing the authoritative experiment.</p>
       )}
-      <button
-        className="button secondary"
-        disabled={!reproducible || commands.reproduce.status === "submitting"}
-        onClick={() => void commands.reproduceExperiment(experiment.experimentId)}
-      >
-        Reproduce Experiment
-      </button>
+      {reproducible && (
+        <button className="button secondary" disabled={commands.reproduce.status === "submitting"}
+          onClick={() => void commands.reproduceExperiment(experiment.experimentId)}>
+          Reproduce Experiment
+        </button>
+      )}
       {commands.reproduce.status === "accepted" && (
         <p role="status">
           Reproduction accepted as a new linked Experiment; verification starts as PENDING.{" "}
-          <Link href={`/search?id=${encodeURIComponent(commands.reproduce.experimentId)}`}>
+          <Link href={`/search/${encodeURIComponent(commands.reproduce.experimentId)}`}>
             Open reproduced Experiment {commands.reproduce.experimentId}
           </Link>
         </p>

@@ -14,6 +14,7 @@ import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterType;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSchema;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue;
+import com.cryptostrategy.platform.strategy.api.model.parameter.SearchRangeHint;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -26,15 +27,22 @@ public final class MovingAverageCrossoverPlugin implements StrategyPlugin {
             new StrategyVersionId("01J00000000000000000000000"), PLUGIN_ID, VERSION);
     private static final StrategyDescriptor DESCRIPTOR = new StrategyDescriptor(REFERENCE, "strategy-contract-v1",
             "Moving Average Crossover", "Compares fast and slow simple moving averages", "TREND",
-            Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD), 25,
+            Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD), 3,
             new StrategyParameterSchema(List.of(
-                    integer("fastPeriod", 5, 2, 100), integer("slowPeriod", 25, 3, 500)),
+                    integer("fastPeriod", 5, 2, 100, 5, 20, 5,
+                            "Number of candles in the responsive moving average."),
+                    integer("slowPeriod", 25, 3, 500, 20, 100, 10,
+                            "Number of candles in the slower trend moving average.")),
                     List.of(new CrossParameterConstraint("fastPeriod", "slowPeriod"))),
-            "strategy-descriptor-v1:ma-crossover:1.0.0");
-    private static ParameterDefinition integer(String name, long defaultValue, long minimum, long maximum) {
+            "strategy-descriptor-v2:ma-crossover:1.0.0");
+    private static ParameterDefinition integer(String name, long defaultValue, long minimum,
+            long maximum, long searchMinimum, long searchMaximum, long searchStep,
+            String description) {
         return new ParameterDefinition(name, ParameterType.INTEGER, true,
                 Optional.of(new StrategyParameterValue.IntegerValue(defaultValue)),
-                Optional.of(BigDecimal.valueOf(minimum)), Optional.of(BigDecimal.valueOf(maximum)), Set.of(), name);
+                Optional.of(BigDecimal.valueOf(minimum)), Optional.of(BigDecimal.valueOf(maximum)), Set.of(),
+                description, Optional.of(new SearchRangeHint(BigDecimal.valueOf(searchMinimum),
+                        BigDecimal.valueOf(searchMaximum), BigDecimal.valueOf(searchStep))));
     }
     @Override public StrategyDescriptor descriptor() { return DESCRIPTOR; }
     @Override public Strategy create(StrategyParameterSet parameters) {

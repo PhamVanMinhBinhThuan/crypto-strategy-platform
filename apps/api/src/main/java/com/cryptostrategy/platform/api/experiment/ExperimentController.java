@@ -2,10 +2,12 @@ package com.cryptostrategy.platform.api.experiment;
 
 import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
 import com.cryptostrategy.platform.api.error.DependencyUnavailableException;
+import com.cryptostrategy.platform.api.error.RequestFieldValidationException;
 import com.cryptostrategy.platform.api.idempotency.IdempotencyCommandExecutor;
 import com.cryptostrategy.platform.api.observability.CorrelationContext;
 import com.cryptostrategy.platform.api.observability.CorrelationId;
 import com.cryptostrategy.platform.api.transport.PageRequestMapper;
+import com.cryptostrategy.platform.api.transport.HistoryCursor;
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.error.ResourceInaccessibleException;
@@ -15,6 +17,9 @@ import com.cryptostrategy.platform.experiment.api.port.in.ListCandidatesUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.StopExperimentUseCase;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUseCase;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchReproductionUseCase;
+import com.cryptostrategy.platform.execution.api.port.in.GetSearchProgressUseCase;
+import com.cryptostrategy.platform.leaderboard.api.port.in.GetLeaderboardUseCase;
+import com.cryptostrategy.platform.api.leaderboard.LeaderboardDtos;
 import java.time.Instant;
 import java.time.Duration;
 import java.time.Clock;
@@ -52,6 +57,8 @@ public final class ExperimentController {
     private final StartSearchReproductionUseCase reproduceSearch;
     private final boolean searchReproduceEnabled;
     private final Clock clock;
+    private final GetSearchProgressUseCase searchProgress;
+    private final GetLeaderboardUseCase leaderboards;
 
     public ExperimentController(
             IdempotencyCommandExecutor idempotency,
@@ -61,7 +68,7 @@ public final class ExperimentController {
             StopExperimentUseCase stopExperiment,
             PageRequestMapper pages) {
         this(idempotency, experiments, jobs, candidates, stopExperiment, pages, null, null, false, null, false,
-                Clock.systemUTC());
+                Clock.systemUTC(), ignored -> java.util.Optional.empty(), emptyLeaderboards());
     }
 
     ExperimentController(
@@ -70,7 +77,8 @@ public final class ExperimentController {
             PageRequestMapper pages, StartSearchExperimentUseCase startSearch,
             ExperimentRequestMapper startRequests, boolean searchStartEnabled) {
         this(idempotency, experiments, jobs, candidates, stopExperiment, pages, startSearch, startRequests,
-                searchStartEnabled, null, false, Clock.systemUTC());
+                searchStartEnabled, null, false, Clock.systemUTC(), ignored -> java.util.Optional.empty(),
+                emptyLeaderboards());
     }
 
     ExperimentController(
@@ -80,7 +88,20 @@ public final class ExperimentController {
             ExperimentRequestMapper startRequests, boolean searchStartEnabled,
             StartSearchReproductionUseCase reproduceSearch, boolean searchReproduceEnabled) {
         this(idempotency, experiments, jobs, candidates, stopExperiment, pages, startSearch, startRequests,
-                searchStartEnabled, reproduceSearch, searchReproduceEnabled, Clock.systemUTC());
+                searchStartEnabled, reproduceSearch, searchReproduceEnabled, Clock.systemUTC(),
+                ignored -> java.util.Optional.empty(), emptyLeaderboards());
+    }
+
+    ExperimentController(
+            IdempotencyCommandExecutor idempotency, GetExperimentUseCase experiments,
+            GetJobUseCase jobs, ListCandidatesUseCase candidates, StopExperimentUseCase stopExperiment,
+            PageRequestMapper pages, StartSearchExperimentUseCase startSearch,
+            ExperimentRequestMapper startRequests, boolean searchStartEnabled,
+            StartSearchReproductionUseCase reproduceSearch, boolean searchReproduceEnabled,
+            Clock clock) {
+        this(idempotency, experiments, jobs, candidates, stopExperiment, pages, startSearch,
+                startRequests, searchStartEnabled, reproduceSearch, searchReproduceEnabled, clock,
+                ignored -> java.util.Optional.empty(), emptyLeaderboards());
     }
 
     @Autowired
@@ -96,7 +117,9 @@ public final class ExperimentController {
             @Value("${platform.features.search-start-enabled:true}") boolean searchStartEnabled,
             StartSearchReproductionUseCase reproduceSearch,
             @Value("${platform.features.search-reproduce-enabled:true}") boolean searchReproduceEnabled,
-            @Qualifier("searchApiClock") Clock clock) {
+            @Qualifier("searchApiClock") Clock clock,
+            GetSearchProgressUseCase searchProgress,
+            GetLeaderboardUseCase leaderboards) {
         this.idempotency = Objects.requireNonNull(idempotency, "idempotency");
         this.experiments = Objects.requireNonNull(experiments, "experiments");
         this.jobs = Objects.requireNonNull(jobs, "jobs");
@@ -109,6 +132,8 @@ public final class ExperimentController {
         this.reproduceSearch = reproduceSearch;
         this.searchReproduceEnabled = searchReproduceEnabled;
         this.clock = Objects.requireNonNull(clock, "clock");
+        this.searchProgress = Objects.requireNonNull(searchProgress, "searchProgress");
+        this.leaderboards = Objects.requireNonNull(leaderboards, "leaderboards");
     }
 
     @PostMapping
@@ -124,10 +149,27 @@ public final class ExperimentController {
                 "START_SEARCH",
                 idempotencyKey,
                 request,
-                (key, requestHash) -> startSearch.start(startRequests.map(
-                        user.userId(), key, requestHash, correlationId(), request)));
+                (key, requestHash) -> {
+                    try {
+                        return startSearch.start(startRequests.map(
+                                user.userId(), key, requestHash, correlationId(), request));
+                    } catch (RequestFieldValidationException failure) {
+                        throw failure;
+                    } catch (IllegalArgumentException failure) {
+                        String message = failure.getMessage();
+                        String prefix = "searchSpace.strategyPool: ";
+                        if (message != null && message.startsWith(prefix)) {
+                            throw new RequestFieldValidationException(
+                                    "searchSpace.strategyPool", message.substring(prefix.length()));
+                        }
+                        throw failure;
+                    }
+                });
         var response = new CommandDtos.ExperimentAcceptedResponse(
-                accepted.experimentId(), accepted.searchJobId(), accepted.status());
+                accepted.experimentId(), accepted.searchJobId(), accepted.searchRunId(),
+                accepted.status(), accepted.configurationVersion(),
+                accepted.configurationFingerprint(),
+                "/search/" + accepted.experimentId().value());
         return ResponseEntity.accepted()
                 .location(URI.create("/api/v1/experiments/" + accepted.experimentId().value()))
                 .body(response);
@@ -143,7 +185,8 @@ public final class ExperimentController {
         var manifest = experiments.getManifest(user.userId(), experimentId)
                 .orElseThrow(ExperimentController::inaccessible);
         return ReadDtos.ExperimentResponse.from(
-                experiment, manifest, jobs.listJobs(user.userId(), experimentId));
+                experiment, manifest, jobs.listJobs(user.userId(), experimentId),
+                searchProgress.findByExperimentId(experimentId).orElse(null));
     }
 
     @PostMapping("/{id}/stop")
@@ -163,7 +206,8 @@ public final class ExperimentController {
                     var manifest = experiments.getManifest(user.userId(), experimentId)
                             .orElseThrow(ExperimentController::inaccessible);
                     return ReadDtos.ExperimentResponse.from(
-                            stopped, manifest, jobs.listJobs(user.userId(), experimentId));
+                            stopped, manifest, jobs.listJobs(user.userId(), experimentId),
+                            searchProgress.findByExperimentId(experimentId).orElse(null));
                 });
         return ResponseEntity.accepted()
                 .location(URI.create("/api/v1/experiments/" + id))
@@ -226,14 +270,112 @@ public final class ExperimentController {
     }
 
     @GetMapping("/{id}/candidates/{candidateId}")
-    public ReadDtos.CandidateResponse getCandidate(
+    public LeaderboardDtos.CandidateDetailResponse getCandidate(
             @AuthenticationPrincipal AuthenticatedUserContext user,
             @PathVariable String id,
             @PathVariable String candidateId) {
-        return candidates.getCandidate(
-                        user.userId(), new ExperimentId(id), new CandidateId(candidateId))
-                .map(ReadDtos.CandidateResponse::from)
+        ExperimentId experimentId = new ExperimentId(id);
+        var candidate = candidates.getCandidate(user.userId(), experimentId,
+                        new CandidateId(candidateId))
                 .orElseThrow(ExperimentController::inaccessible);
+        var manifest = experiments.getManifest(user.userId(), experimentId)
+                .orElseThrow(ExperimentController::inaccessible);
+        var pipeline = leaderboards.getCandidatePipelineEntry(
+                experimentId, new CandidateId(candidateId)).orElse(null);
+        if (pipeline == null) {
+            var legacyEvidence = leaderboards.getCandidate(
+                    experimentId, new CandidateId(candidateId));
+            if (legacyEvidence.isPresent()) {
+                return LeaderboardDtos.CandidateDetailResponse.from(
+                        legacyEvidence.get(), manifest.datasetProvenance());
+            }
+        }
+        return LeaderboardDtos.CandidateDetailResponse.from(
+                candidate, manifest.datasetProvenance(), pipeline);
+    }
+
+    @GetMapping
+    public ReadDtos.ExperimentHistoryPage listExperiments(
+            @AuthenticationPrincipal AuthenticatedUserContext user,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor) {
+        var page = pages.map(limit, cursor, 10, 100);
+        HistoryCursor after = page.cursor()
+                .map(value -> HistoryCursor.decode(value, "experiments"))
+                .orElse(null);
+        var ordered = experiments.listRecent(
+                user.userId(),
+                after == null ? null : after.timestamp(),
+                after == null ? null : after.id(),
+                page.limit() + 1);
+        boolean hasMore = ordered.size() > page.limit();
+        var selected = hasMore ? ordered.subList(0, page.limit()) : ordered;
+        String nextCursor = hasMore && !selected.isEmpty()
+                ? new HistoryCursor("experiments", selected.getLast().createdAt(),
+                        selected.getLast().experimentId().value()).encode()
+                : null;
+        return new ReadDtos.ExperimentHistoryPage(
+                selected.stream().map(ReadDtos.ExperimentHistoryItem::from).toList(),
+                nextCursor, hasMore, experiments.count(user.userId()));
+    }
+
+    @GetMapping("/{id}/candidate-pipeline")
+    public ReadDtos.CandidatePipelinePage candidatePipeline(
+            @AuthenticationPrincipal AuthenticatedUserContext user,
+            @PathVariable String id,
+            @RequestParam(defaultValue = "ALL") String view,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false) String cursor) {
+        ExperimentId experimentId = new ExperimentId(id);
+        if (experiments.getExperiment(user.userId(), experimentId).isEmpty()) throw inaccessible();
+        String normalizedView = view.toUpperCase(java.util.Locale.ROOT);
+        if (!java.util.Set.of("RESULTS", "FAILED", "ALL").contains(normalizedView)) {
+            throw new IllegalArgumentException("view must be RESULTS, FAILED or ALL");
+        }
+        if (limit < 1 || limit > 100) {
+            throw new IllegalArgumentException("limit must be between 1 and 100");
+        }
+        var all = leaderboards.getCandidatePipeline(experimentId);
+        int resultCount = (int) all.stream()
+                .filter(item -> "SUCCEEDED".equals(item.evaluation().status())).count();
+        int failedCount = (int) all.stream().filter(item -> item.failureStage() != null).count();
+        java.util.Comparator<com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry>
+                generationOrder = java.util.Comparator
+                        .comparingInt(com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry::generationIndex)
+                        .thenComparing(item -> item.candidateId().value());
+        java.util.Comparator<com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry>
+                resultOrder = java.util.Comparator
+                        .comparing((com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry item) ->
+                                item.evaluation().score(), java.util.Comparator.reverseOrder())
+                        .thenComparing(item -> item.evaluation().evaluatedAt())
+                        .thenComparing(item -> item.candidateId().value());
+        var filtered = all.stream().filter(item -> switch (normalizedView) {
+                    case "RESULTS" -> "SUCCEEDED".equals(item.evaluation().status());
+                    case "FAILED" -> item.failureStage() != null;
+                    default -> true;
+                })
+                .sorted("RESULTS".equals(normalizedView) ? resultOrder : generationOrder)
+                .toList();
+        int start = 0;
+        if (cursor != null && !cursor.isBlank()) {
+            CandidatePipelineCursor decoded = CandidatePipelineCursor.decode(cursor);
+            if (!normalizedView.equals(decoded.view())) {
+                throw new IllegalArgumentException("Cursor does not belong to this pipeline view");
+            }
+            start = java.util.stream.IntStream.range(0, filtered.size())
+                    .filter(index -> filtered.get(index).candidateId().value().equals(decoded.candidateId()))
+                    .findFirst().orElseThrow(() -> new IllegalArgumentException("Cursor is stale")) + 1;
+        }
+        int end = Math.min(filtered.size(), start + limit);
+        var selected = filtered.subList(start, end);
+        boolean hasMore = end < filtered.size();
+        String nextCursor = hasMore && !selected.isEmpty()
+                ? new CandidatePipelineCursor(normalizedView,
+                        selected.getLast().candidateId().value()).encode()
+                : null;
+        return new ReadDtos.CandidatePipelinePage(
+                selected.stream().map(ReadDtos.CandidatePipelineResponse::from).toList(),
+                nextCursor, hasMore, resultCount, failedCount, all.size());
     }
 
     private static DependencyUnavailableException searchCoordinatorUnavailable() {
@@ -243,6 +385,10 @@ public final class ExperimentController {
     private static String correlationId() {
         String current = CorrelationContext.current();
         return current == null ? CorrelationId.resolve(null) : current;
+    }
+
+    private static GetLeaderboardUseCase emptyLeaderboards() {
+        return experimentId -> java.util.Optional.empty();
     }
 
     private static ResourceInaccessibleException inaccessible() {
