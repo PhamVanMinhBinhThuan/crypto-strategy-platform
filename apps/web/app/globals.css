@@ -388,6 +388,9 @@ input {
   margin: 0;
   padding: 0.75rem;
 }
+.candle-chart-plot {
+  position: relative;
+}
 .candle-chart svg {
   display: block;
   width: 100%;
@@ -406,14 +409,41 @@ input {
 .candle-down {
   color: var(--danger);
 }
-.candle-chart figcaption {
+.candle-chart .candle-hitbox {
+  cursor: crosshair;
+  fill: transparent;
+  stroke: transparent;
+}
+.candle-chart .candle-crosshair {
+  color: #a7b8b0;
+  pointer-events: none;
+  stroke-dasharray: 3 3;
+  stroke-width: 0.75;
+}
+.candle-chart .candle-active line:not(.candle-crosshair),
+.candle-chart .candle-active rect:not(.candle-hitbox) {
+  filter: brightness(1.35) drop-shadow(0 0 2px currentColor);
+}
+.candle-tooltip-slot {
+  min-height: 4.15rem;
+  margin-bottom: 0.45rem;
+}
+.candle-tooltip {
   display: grid;
-  gap: 0.25rem;
-  color: var(--muted);
-  font:
-    0.72rem ui-monospace,
-    monospace;
-  overflow-wrap: anywhere;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.2rem 0.6rem;
+  min-height: 4.15rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #3f5a50;
+  border-radius: 8px;
+  background: #09100eee;
+  color: var(--text);
+  font: 0.7rem ui-monospace, monospace;
+}
+.candle-tooltip strong {
+  grid-column: 1 / -1;
+  color: var(--green);
+  font-size: 0.72rem;
 }
 .market-empty {
   min-height: 220px;
