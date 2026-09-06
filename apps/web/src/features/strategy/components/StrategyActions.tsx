@@ -1,7 +1,10 @@
+import Link from "next/link";
+
 export function StrategyActions({
   canPublish,
   archived,
   pending,
+  backtestVersionId,
   onPublish,
   onArchive,
   onNewVersion
@@ -9,12 +12,21 @@ export function StrategyActions({
   canPublish: boolean;
   archived: boolean;
   pending: boolean;
+  backtestVersionId?: string;
   onPublish: () => void;
   onArchive: () => void;
   onNewVersion: () => void;
 }) {
   return (
     <div className="strategy-actions">
+      {backtestVersionId ? (
+        <Link
+          className="strategy-backtest-link"
+          href={`/search?userStrategyVersionId=${encodeURIComponent(backtestVersionId)}`}
+        >
+          Backtest Strategy này
+        </Link>
+      ) : null}
       {!archived && (
         <button disabled={pending} onClick={onNewVersion}>
           Tạo version mới

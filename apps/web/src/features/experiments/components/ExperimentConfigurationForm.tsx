@@ -5,9 +5,10 @@ import type { ApiClient } from "@/src/foundation/http/contracts";
 import {
   getUserStrategy,
   listSystemStrategies,
+  listUserStrategyVersions,
   listUserStrategies
 } from "../../strategy/api/strategy-api";
-import type { StrategyDescriptor, UserStrategy } from "../../strategy/model/strategy";
+import type { StrategyDescriptor, UserStrategyVersion } from "../../strategy/model/strategy";
 import { useExperimentConfiguration } from "../hooks/useExperimentConfiguration";
 import { useExperimentCommands } from "../hooks/useExperimentCommands";
 import type { SearchParameterDomain } from "../types/experiment-configuration";
@@ -36,19 +37,25 @@ const searchDomains = (strategy: StrategyDescriptor): Record<string, SearchParam
   );
 
 type DatasetResponse = Readonly<{ datasetId: string; membershipCount: number }>;
+type PublishedStrategyOption = Readonly<{
+  name: string;
+  version: UserStrategyVersion;
+}>;
 
 export function ExperimentConfigurationForm({
   api,
-  fixture
+  fixture,
+  initialUserStrategyVersionId
 }: {
   api: ApiClient;
   fixture: boolean;
+  initialUserStrategyVersionId?: string;
 }) {
   const { draft, errors, update, updateParameter, selectStrategy, validate } =
     useExperimentConfiguration();
   const commands = useExperimentCommands(api);
   const [systemStrategies, setSystemStrategies] = useState<StrategyDescriptor[]>([]);
-  const [publishedStrategies, setPublishedStrategies] = useState<UserStrategy[]>([]);
+  const [publishedStrategies, setPublishedStrategies] = useState<PublishedStrategyOption[]>([]);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "error">("loading");
   const [datasetState, setDatasetState] = useState<
     | { status: "idle" | "creating" }
@@ -68,20 +75,34 @@ export function ExperimentConfigurationForm({
         setCatalogState("error");
         return;
       }
-      const details = await Promise.all(
-        ownedResult.data.items.map((item) => getUserStrategy(api, item.userStrategyId))
+      const strategies = await Promise.all(
+        ownedResult.data.items.map(async (item) => ({
+          details: await getUserStrategy(api, item.userStrategyId),
+          history: await listUserStrategyVersions(api, item.userStrategyId)
+        }))
       );
       if (!active) return;
-      const published = details.flatMap((result) =>
-        result.ok &&
-        result.data.status === "ACTIVE" &&
-        result.data.latestVersion.status === "PUBLISHED"
-          ? [result.data]
-          : []
-      );
+      const published = strategies.flatMap(({ details, history }) => {
+        if (!details.ok || !history.ok || details.data.status !== "ACTIVE") return [];
+        return history.data.items
+          .filter((version) => version.status === "PUBLISHED")
+          .map((version) => ({ name: details.data.name, version }));
+      });
       setSystemStrategies(systemResult.data.items);
       setPublishedStrategies(published);
       setCatalogState("ready");
+      const requested = published.find(
+        (item) => item.version.userStrategyVersionId === initialUserStrategyVersionId
+      );
+      if (requested) {
+        selectStrategy({
+          strategyId: "",
+          strategyVersion: "",
+          userStrategyVersionId: requested.version.userStrategyVersionId,
+          parameters: {}
+        });
+        return;
+      }
       const first = systemResult.data.items.find(supportedForSearch);
       if (first)
         selectStrategy({
@@ -95,7 +116,7 @@ export function ExperimentConfigurationForm({
     return () => {
       active = false;
     };
-  }, [api, selectStrategy]);
+  }, [api, initialUserStrategyVersionId, selectStrategy]);
 
   const selectedStrategy = useMemo(
     () =>
@@ -252,10 +273,10 @@ export function ExperimentConfigurationForm({
                 <optgroup label="Published personal Strategies">
                   {publishedStrategies.map((strategy) => (
                     <option
-                      key={strategy.latestVersion.userStrategyVersionId}
-                      value={`user:${strategy.latestVersion.userStrategyVersionId}`}
+                      key={strategy.version.userStrategyVersionId}
+                      value={`user:${strategy.version.userStrategyVersionId}`}
                     >
-                      {strategy.name}
+                      {strategy.name} · version {strategy.version.versionNo}
                     </option>
                   ))}
                 </optgroup>

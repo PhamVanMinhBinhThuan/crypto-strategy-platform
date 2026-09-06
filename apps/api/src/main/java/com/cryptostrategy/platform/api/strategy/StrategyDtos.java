@@ -234,6 +234,12 @@ public final class StrategyDtos {
         }
     }
 
+    public record UserStrategyVersionList(List<UserStrategyVersionResponse> items) {
+        public UserStrategyVersionList {
+            items = List.copyOf(items);
+        }
+    }
+
     public record UserStrategySummaryResponse(
             @JsonSerialize(using = TypedUlidSerializer.class) UserStrategyId userStrategyId,
             String kind,

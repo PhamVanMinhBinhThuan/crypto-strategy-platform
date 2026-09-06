@@ -1,7 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useClients } from "@/src/foundation/composition/client-provider";
-import type { StrategyDescriptor, UserStrategy, UserStrategySummary } from "../model/strategy";
+import type {
+  StrategyDescriptor,
+  UserStrategy,
+  UserStrategySummary,
+  UserStrategyVersion
+} from "../model/strategy";
 import type { StrategyDraft } from "../model/strategy-draft";
 import {
   archiveUserStrategy,
@@ -9,6 +14,7 @@ import {
   createUserStrategy,
   getUserStrategy,
   listSystemStrategies,
+  listUserStrategyVersions,
   listUserStrategies,
   publishUserStrategyVersion
 } from "../api/strategy-api";
@@ -18,6 +24,7 @@ import { StrategyDetail } from "./StrategyDetail";
 import { StrategyForm } from "./StrategyForm";
 import { StrategyActions } from "./StrategyActions";
 import { StrategyVersionForm } from "./StrategyVersionForm";
+import { StrategyVersionHistory } from "./StrategyVersionHistory";
 import { AsyncStatus } from "../../shared/AsyncStatus";
 
 type MutationOutcome = { ok: boolean; error?: { code: string } };
@@ -27,14 +34,16 @@ export function StrategyWorkspace() {
   const [system, setSystem] = useState<StrategyDescriptor[]>([]),
     [owned, setOwned] = useState<UserStrategySummary[]>([]),
     [selectedSystem, setSelectedSystem] = useState<StrategyDescriptor>(),
-    [selectedOwned, setSelectedOwned] = useState<UserStrategy>();
+    [selectedOwned, setSelectedOwned] = useState<UserStrategy>(),
+    [versions, setVersions] = useState<UserStrategyVersion[]>([]);
   const [systemLoading, setSystemLoading] = useState(true),
     [ownedLoading, setOwnedLoading] = useState(true),
     [systemError, setSystemError] = useState<string>(),
     [ownedError, setOwnedError] = useState<string>(),
     [pending, setPending] = useState(false),
     [feedback, setFeedback] = useState<string>(),
-    [editingVersion, setEditingVersion] = useState(false);
+    [editingVersion, setEditingVersion] = useState(false),
+    [versionsLoading, setVersionsLoading] = useState(false);
   const loadSystem = useCallback(async () => {
     const result = await listSystemStrategies(api);
     if (result.ok) setSystem(result.data.items);
@@ -65,12 +74,29 @@ export function StrategyWorkspace() {
     return () => clearTimeout(timer);
   }, [loadSystem, loadOwned]);
   const selectOwned = async (id: string) => {
-    const result = await getUserStrategy(api, id);
-    if (result.ok) {
+    setVersionsLoading(true);
+    setFeedback(undefined);
+    try {
+      const result = await getUserStrategy(api, id);
+      if (!result.ok) {
+        setFeedback("Không thể truy cập Strategy này. Vui lòng thử lại.");
+        return;
+      }
       setSelectedOwned(result.data);
       setSelectedSystem(undefined);
       setEditingVersion(false);
-    } else setFeedback("Không thể truy cập Strategy này.");
+      const history = await listUserStrategyVersions(api, id);
+      if (history.ok) setVersions(history.data.items);
+      else {
+        setVersions([]);
+        setFeedback("Đã mở Strategy nhưng chưa thể tải lịch sử version.");
+      }
+    } catch {
+      setVersions([]);
+      setFeedback("Không thể kết nối backend. Vui lòng thử lại.");
+    } finally {
+      setVersionsLoading(false);
+    }
   };
   const mutate = async (operation: () => Promise<MutationOutcome>) => {
     setPending(true);
@@ -93,7 +119,10 @@ export function StrategyWorkspace() {
   const create = async (draft: StrategyDraft) => {
     await mutate(async () => {
       const result = await createUserStrategy(api, draft);
-      if (result.ok) setSelectedOwned(result.data);
+      if (result.ok) {
+        setSelectedOwned(result.data);
+        setVersions([result.data.latestVersion]);
+      }
       return result;
     });
   };
@@ -118,20 +147,31 @@ export function StrategyWorkspace() {
           loadingOwned={ownedLoading}
           systemError={systemError}
           ownedError={ownedError}
+          selectedSystemId={selectedSystem?.strategyVersionId}
+          selectedOwnedId={selectedOwned?.userStrategyId}
           onSelectSystem={(item) => {
             setSelectedSystem(item);
             setSelectedOwned(undefined);
+            setVersions([]);
             setEditingVersion(false);
           }}
           onSelectOwned={(id) => void selectOwned(id)}
         />
         <div className="strategy-center">
           <StrategyDetail descriptor={selectedSystem} owned={selectedOwned} />
+          {selectedOwned ? (
+            <StrategyVersionHistory versions={versions} loading={versionsLoading} />
+          ) : null}
           {selectedOwned && (
             <StrategyActions
               pending={pending}
               archived={selectedOwned.status === "ARCHIVED"}
               canPublish={selectedOwned.latestVersion.status === "DRAFT"}
+              backtestVersionId={
+                selectedOwned.latestVersion.status === "PUBLISHED"
+                  ? selectedOwned.latestVersion.userStrategyVersionId
+                  : undefined
+              }
               onPublish={() =>
                 void mutate(() =>
                   publishUserStrategyVersion(

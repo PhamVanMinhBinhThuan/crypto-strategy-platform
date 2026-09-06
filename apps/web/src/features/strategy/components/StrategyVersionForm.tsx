@@ -31,6 +31,21 @@ export function StrategyVersionForm({
       ? current.components.map((item) => selectionKey(item.strategyId, item.version))
       : []
   );
+  const [policyId, setPolicyId] = useState<"majority-vote" | "weighted-vote">(() =>
+    current.type === "COMPOSITE" && current.policyId === "weighted-vote"
+      ? "weighted-vote"
+      : "majority-vote"
+  );
+  const [componentWeights, setComponentWeights] = useState<Record<string, string>>(() =>
+    current.type === "COMPOSITE"
+      ? Object.fromEntries(
+          current.components.map((item) => [
+            item.strategyVersionId,
+            current.policyParameters[`weight.${item.strategyVersionId}`] ?? "1"
+          ])
+        )
+      : {}
+  );
   const descriptor = singleSource
     ? systemStrategies.find(
         (item) =>
@@ -59,6 +74,15 @@ export function StrategyVersionForm({
       parameters: serializeStrategyParameters(item, sourceValues)
     };
   };
+  const selectedDescriptors = systemStrategies.filter((item) =>
+    componentKeys.includes(selectionKey(item.strategyId, item.version))
+  );
+  const weightsValid =
+    policyId === "majority-vote" ||
+    selectedDescriptors.every((item) => {
+      const raw = componentWeights[item.strategyVersionId] ?? "1";
+      return raw.trim() !== "" && Number.isFinite(Number(raw)) && Number(raw) > 0;
+    });
   const nextSource: StrategySourceDraft | undefined = descriptor
     ? {
         type: "SINGLE",
@@ -71,12 +95,18 @@ export function StrategyVersionForm({
     : current.type === "COMPOSITE"
       ? {
           type: "COMPOSITE",
-          policyId: current.policyId,
-          policyVersion: current.policyVersion,
-          policyParameters: current.policyParameters,
-          components: systemStrategies
-            .filter((item) => componentKeys.includes(selectionKey(item.strategyId, item.version)))
-            .map(selection)
+          policyId,
+          policyVersion: "1.0.0",
+          policyParameters:
+            policyId === "weighted-vote"
+              ? Object.fromEntries(
+                  selectedDescriptors.map((item) => [
+                    `weight.${item.strategyVersionId}`,
+                    componentWeights[item.strategyVersionId] ?? "1"
+                  ])
+                )
+              : {},
+          components: selectedDescriptors.map(selection)
         }
       : undefined;
   const originalSource: StrategySourceDraft | undefined = descriptor
@@ -109,6 +139,7 @@ export function StrategyVersionForm({
     !nextSource ||
     Object.keys(issues).length > 0 ||
     (nextSource.type === "COMPOSITE" && nextSource.components.length < 2) ||
+    !weightsValid ||
     !changed;
 
   if (!nextSource)
@@ -176,25 +207,65 @@ export function StrategyVersionForm({
       {current.type === "COMPOSITE" && (
         <fieldset>
           <legend>Thành phần (ít nhất 2)</legend>
+          <label className="combination-policy-select">
+            Quy tắc kết hợp
+            <select
+              value={policyId}
+              onChange={(event) =>
+                setPolicyId(event.target.value as "majority-vote" | "weighted-vote")
+              }
+            >
+              <option value="majority-vote">Majority Vote</option>
+              <option value="weighted-vote">Weighted Vote</option>
+            </select>
+          </label>
           {systemStrategies.map((item) => {
             const key = selectionKey(item.strategyId, item.version);
+            const selected = componentKeys.includes(key);
             return (
-              <label key={item.strategyVersionId}>
-                <input
-                  type="checkbox"
-                  checked={componentKeys.includes(key)}
-                  onChange={(event) =>
-                    setComponentKeys((existing) =>
-                      event.target.checked
-                        ? [...existing, key]
-                        : existing.filter((value) => value !== key)
-                    )
-                  }
-                />{" "}
-                {item.displayName} · v{item.version}
-              </label>
+              <div
+                className={`composite-component${selected ? " is-selected" : ""}`}
+                key={item.strategyVersionId}
+              >
+                <label className="composite-component-toggle">
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={(event) =>
+                      setComponentKeys((existing) =>
+                        event.target.checked
+                          ? [...existing, key]
+                          : existing.filter((value) => value !== key)
+                      )
+                    }
+                  />
+                  <span>
+                    <strong>{item.displayName}</strong>
+                    <small>v{item.version}</small>
+                  </span>
+                </label>
+                {selected && policyId === "weighted-vote" && (
+                  <label className="component-weight">
+                    Trọng số biểu quyết
+                    <input
+                      aria-label={`${item.displayName} · trọng số biểu quyết`}
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      value={componentWeights[item.strategyVersionId] ?? "1"}
+                      onChange={(event) =>
+                        setComponentWeights((existing) => ({
+                          ...existing,
+                          [item.strategyVersionId]: event.target.value
+                        }))
+                      }
+                    />
+                  </label>
+                )}
+              </div>
             );
           })}
+          {!weightsValid && <small role="alert">Mọi trọng số phải là số lớn hơn 0.</small>}
         </fieldset>
       )}
       {!changed && <small role="note">Hãy thay đổi ít nhất một tham số hoặc thành phần.</small>}

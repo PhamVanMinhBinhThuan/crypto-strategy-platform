@@ -14,7 +14,13 @@ import { ExperimentConfigurationForm } from "./ExperimentConfigurationForm";
 import { RealtimeStatus } from "./RealtimeStatus";
 import { LeaderboardControls } from "../../leaderboard/components/LeaderboardControls";
 import { LeaderboardTable } from "../../leaderboard/components/LeaderboardTable";
-export function SearchView({ id }: { id?: string }) {
+export function SearchView({
+  id,
+  initialUserStrategyVersionId
+}: {
+  id?: string;
+  initialUserStrategyVersionId?: string;
+}) {
   const { api, realtime, fixtures } = useClients();
   const monitor = useExperimentMonitor(api, id);
   const board = useLeaderboard(api, id);
@@ -46,7 +52,11 @@ export function SearchView({ id }: { id?: string }) {
             </p>
           </div>
         </header>
-        <ExperimentConfigurationForm api={api} fixture={fixtures} />
+        <ExperimentConfigurationForm
+          api={api}
+          fixture={fixtures}
+          initialUserStrategyVersionId={initialUserStrategyVersionId}
+        />
       </main>
     );
   return (
@@ -89,7 +99,11 @@ export function SearchView({ id }: { id?: string }) {
         </>
       )}
       {board.error && <p role="alert">{board.error}</p>}
-      <ExperimentConfigurationForm api={api} fixture={fixtures} />
+      <ExperimentConfigurationForm
+        api={api}
+        fixture={fixtures}
+        initialUserStrategyVersionId={initialUserStrategyVersionId}
+      />
     </main>
   );
 }
