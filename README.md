@@ -1,6 +1,6 @@
 <div align="center">
 
-# Crypto Strategy Lab
+# ₿ Crypto Strategy Lab 📈
 
 **Nền tảng thử nghiệm, kết hợp, backtest và đánh giá chiến lược giao dịch tiền mã hóa**
 
@@ -13,36 +13,35 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115.12-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20%2F%20Supabase-source%20of%20truth-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-Streams-DC382D?logo=redis&logoColor=white)](https://redis.io/)
-[![License](https://img.shields.io/badge/license-not%20specified-lightgrey)](#giấy-phép)
+[![License](https://img.shields.io/badge/license-not%20specified-lightgrey)](#license)
 
 Một đồ án môn **Kiến trúc phần mềm** tập trung vào khả năng thay đổi, mở rộng, phục hồi và kiểm chứng của một experiment platform — không nhằm đưa ra lời khuyên đầu tư hay cam kết lợi nhuận.
 
 </div>
 
-> [!WARNING]
-> Dự án phục vụ học tập và nghiên cứu. Kết quả backtest không bảo đảm hiệu quả giao dịch trong tương lai và không phải lời khuyên tài chính. Hệ thống không thực hiện giao dịch bằng tiền thật.
+## 📑 Mục lục
 
-## Mục lục
+- [🧭 Tổng quan](#overview)
+- [🚦 Trạng thái dự án](#project-status)
+- [✨ Tính năng](#features)
+- [🧰 Tech Stack](#tech-stack)
+- [🏗️ Kiến trúc](#architecture)
+- [🔄 Luồng nghiệp vụ chính](#business-flow)
+- [🧩 Module và trách nhiệm](#modules)
+- [🛡️ Reliability và Scalability](#reliability-scalability)
+- [📁 Cấu trúc repository](#repository-structure)
+- [🚀 Cài đặt và chạy local](#local-setup)
+- [⚙️ Biến môi trường](#environment)
+- [🧪 Kiểm thử](#testing)
+- [📝 Architectural Decisions](#architectural-decisions)
+- [📚 Tài liệu](#documentation)
+- [🗺️ Known Limitations và Roadmap](#limitations-roadmap)
+- [🤝 Quy ước phát triển](#development-guidelines)
+- [⚖️ Giấy phép](#license)
 
-- [Tổng quan](#tổng-quan)
-- [Trạng thái dự án](#trạng-thái-dự-án)
-- [Tính năng](#tính-năng)
-- [Tech Stack](#tech-stack)
-- [Kiến trúc](#kiến-trúc)
-- [Luồng nghiệp vụ chính](#luồng-nghiệp-vụ-chính)
-- [Module và trách nhiệm](#module-và-trách-nhiệm)
-- [Reliability và Scalability](#reliability-và-scalability)
-- [Cấu trúc repository](#cấu-trúc-repository)
-- [Cài đặt và chạy local](#cài-đặt-và-chạy-local)
-- [Biến môi trường](#biến-môi-trường)
-- [Kiểm thử](#kiểm-thử)
-- [Architectural Decisions](#architectural-decisions)
-- [Tài liệu](#tài-liệu)
-- [Known Limitations và Roadmap](#known-limitations-và-roadmap)
-- [Quy ước phát triển](#quy-ước-phát-triển)
-- [Giấy phép](#giấy-phép)
+<a id="overview"></a>
 
-## Tổng quan
+## 🧭 Tổng quan
 
 Crypto Strategy Lab cho phép người dùng lấy dữ liệu thị trường từ Binance, theo dõi tối đa bốn biểu đồ độc lập, xây dựng Strategy đơn hoặc Composite Strategy, chạy Backtest trên dataset bất biến, đánh giá kết quả và tìm kiếm candidate tốt hơn. Kết quả được xếp hạng trên Top-K Leaderboard và có thể truy ngược về Strategy, Dataset, tham số, assumption và lần chạy đã tạo ra nó.
 
@@ -58,7 +57,9 @@ Các architectural drivers chính:
 - **Reproducibility:** đóng băng Manifest, version, seed, checksum và fingerprint.
 - **Observability:** correlation ID, progress/lifecycle event và health/readiness endpoint.
 
-## Trạng thái dự án
+<a id="project-status"></a>
+
+## 🚦 Trạng thái dự án
 
 | Nhãn            | Ý nghĩa trong repository                                                   |
 | --------------- | -------------------------------------------------------------------------- |
@@ -92,7 +93,9 @@ Các architectural drivers chính:
 
 Nguồn trạng thái: [Implementation Roadmap](docs/implementation-roadmap.md), [F014 Release Review](docs/evidence/f014/release-review.md) và [Architecture Evidence](docs/architecture/architecture-evidence.md).
 
-## Tính năng
+<a id="features"></a>
+
+## ✨ Tính năng
 
 | Capability            | Trạng thái           | Nội dung đã có                                                                                  |
 | --------------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
@@ -112,7 +115,9 @@ Nguồn trạng thái: [Implementation Roadmap](docs/implementation-roadmap.md),
 | Web Application       | Implemented          | Auth, Market, Strategy, Backtest, Search/Leaderboard và News routes                             |
 | Full LIVE demo        | Planned verification | Automated/controlled gates có evidence; authenticated LIVE evidence chưa hoàn tất               |
 
-## Tech Stack
+<a id="tech-stack"></a>
+
+## 🧰 Tech Stack
 
 | Layer                 | Technology                                                     | Vai trò                                                                |
 | --------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------- |
@@ -128,7 +133,9 @@ Nguồn trạng thái: [Implementation Roadmap](docs/implementation-roadmap.md),
 
 Phiên bản được lấy từ `gradle/libs.versions.toml`, Gradle Wrapper, `apps/web/package.json`, `.nvmrc` và `apps/sentiment/pyproject.toml`.
 
-## Kiến trúc
+<a id="architecture"></a>
+
+## 🏗️ Kiến trúc
 
 Backend Java cốt lõi theo **Modular Monolith**: capability được chia thành module có public API/port rõ ràng và được composition trong `apps/api` hoặc `apps/worker`. Queue/event chỉ được dùng tại boundary cần xử lý nền, retry hoặc scale; không thay mọi direct call bằng event.
 
@@ -173,7 +180,9 @@ flowchart TB
 
 Chi tiết: [Architecture Overview](docs/architecture/architecture-overview.md), [Container View](docs/architecture/container-view.md), [Module View](docs/architecture/module-view.md) và [Dynamic Data Flows](docs/architecture/data-flows.md).
 
-## Luồng nghiệp vụ chính
+<a id="business-flow"></a>
+
+## 🔄 Luồng nghiệp vụ chính
 
 ```mermaid
 sequenceDiagram
@@ -213,7 +222,9 @@ Luồng tương ứng với sáu bước nghiệp vụ:
 
 Public contract: [OpenAPI](docs/api/openapi.yaml), [API Conventions](docs/api/conventions.md) và [WebSocket Events](docs/api/websocket-events.md).
 
-## Module và trách nhiệm
+<a id="modules"></a>
+
+## 🧩 Module và trách nhiệm
 
 | Module                 | Trách nhiệm chính                                                                   |
 | ---------------------- | ----------------------------------------------------------------------------------- |
@@ -234,7 +245,9 @@ Public contract: [OpenAPI](docs/api/openapi.yaml), [API Conventions](docs/api/co
 
 `apps/api` và `apps/worker` là composition roots; `apps/web` và `apps/sentiment` là runtime riêng, không import Java capability implementation.
 
-## Reliability và Scalability
+<a id="reliability-scalability"></a>
+
+## 🛡️ Reliability và Scalability
 
 | Cơ chế                                | Vấn đề được xử lý                                                 |
 | ------------------------------------- | ----------------------------------------------------------------- |
@@ -251,7 +264,9 @@ Public contract: [OpenAPI](docs/api/openapi.yaml), [API Conventions](docs/api/co
 
 Worker được thiết kế stateless theo business state. Có thể tăng instance với consumer name riêng, nhưng throughput không được giả định tăng tuyến tính: PostgreSQL connection pool, lock contention, network và Dataset I/O có thể trở thành bottleneck. Mọi tuyên bố scale phải gắn với phạm vi benchmark cụ thể.
 
-## Cấu trúc repository
+<a id="repository-structure"></a>
+
+## 📁 Cấu trúc repository
 
 ```text
 crypto-strategy-platform/
@@ -276,7 +291,9 @@ crypto-strategy-platform/
 └── README.md
 ```
 
-## Cài đặt và chạy local
+<a id="local-setup"></a>
+
+## 🚀 Cài đặt và chạy local
 
 ### Prerequisites
 
@@ -443,7 +460,9 @@ curl -fsS http://127.0.0.1:8000/health/ready
 
 Startup order, migration preflight, failure demo và cleanup đầy đủ: [macOS/Linux/WSL guide](docs/run.md), [Windows PowerShell guide](docs/RUN_LOCAL.md) và [F014 Demo Runbook](docs/demo/f014/runbook.md).
 
-## Biến môi trường
+<a id="environment"></a>
+
+## ⚙️ Biến môi trường
 
 Giá trị dưới đây chỉ là placeholder an toàn. Danh sách canonical nằm trong [.env.example](.env.example) và [apps/web/.env.example](apps/web/.env.example).
 
@@ -476,7 +495,9 @@ Không đặt `DATABASE_PASSWORD`, service-role key hoặc `SENTIMENT_SERVICE_TO
 > [!NOTE]
 > `.env.example` hiện liệt kê `NEWS_AUDIT_SERVICE_TOKEN`, trong khi API runtime bind internal audit token từ `PLATFORM_SECURITY_INTERNAL_NEWS_AUDIT_TOKEN`. Hãy đối chiếu `apps/api/src/main/resources/application.yml` trước khi bật internal audit endpoint; đây là config-parity gap chưa nên che giấu.
 
-## Kiểm thử
+<a id="testing"></a>
+
+## 🧪 Kiểm thử
 
 Các lệnh dưới đây chạy từ repository root. Trên Windows dùng `.\gradlew.bat` thay `./gradlew`.
 
@@ -531,7 +552,9 @@ npm run test:e2e
 
 `npm run check` chạy Prettier check, ESLint, TypeScript, Vitest và production build. CI hiện chạy Java tests, Python contract/tests và Web verification theo path trong `.github/workflows/`.
 
-## Architectural Decisions
+<a id="architectural-decisions"></a>
+
+## 📝 Architectural Decisions
 
 | ADR                                                                   | Quyết định                                                |
 | --------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -553,7 +576,9 @@ npm run test:e2e
 
 Xem danh sách đầy đủ và trạng thái từng quyết định tại [ADR Index](docs/adr/README.md). ADR ở trạng thái Proposed không được xem là governance approval chỉ vì đã có implementation liên quan.
 
-## Tài liệu
+<a id="documentation"></a>
+
+## 📚 Tài liệu
 
 ### Yêu cầu và kiến trúc
 
@@ -569,6 +594,7 @@ Xem danh sách đầy đủ và trạng thái từng quyết định tại [ADR 
 
 ### API, database và vận hành
 
+- [Setup, cài đặt và build](docs/SETUP.md)
 - [API Documentation](docs/api/README.md)
 - [OpenAPI Contract](docs/api/openapi.yaml)
 - [Database Documentation](docs/database/README.md)
@@ -582,7 +608,9 @@ Xem danh sách đầy đủ và trạng thái từng quyết định tại [ADR 
 
 - [23 câu hỏi và câu trả lời kiến trúc](docs/questions/README.md)
 
-## Known Limitations và Roadmap
+<a id="limitations-roadmap"></a>
+
+## 🗺️ Known Limitations và Roadmap
 
 - **LIVE evidence:** hoàn thiện authenticated browser journey, external dependency gates, media evidence và cross-owner sign-off cho F014.
 - **Scale verification:** mở rộng từ controlled 1.000/10.000 candidate profile sang durable, full-pipeline benchmark có PostgreSQL, Binance/dataset I/O và candle-by-candle Backtest; chưa tuyên bố 100.000 production Backtests.
@@ -594,7 +622,9 @@ Xem danh sách đầy đủ và trạng thái từng quyết định tại [ADR 
 - **Trading:** không có order execution, wallet hoặc kết nối giao dịch tiền thật.
 - **Configuration parity:** biến internal News audit trong `.env.example` và API binding cần được thống nhất trước live use.
 
-## Quy ước phát triển
+<a id="development-guidelines"></a>
+
+## 🤝 Quy ước phát triển
 
 1. Tạo branch từ `main` theo dạng `feature/<ten-ngan-gon>`, `fix/<ten-ngan-gon>` hoặc convention của feature hiện tại.
 2. Không đưa business logic vào Controller, UI hoặc infrastructure adapter.
@@ -605,6 +635,11 @@ Xem danh sách đầy đủ và trạng thái từng quyết định tại [ADR 
 7. Chạy test phù hợp trước Pull Request và ghi rõ profile nào là LIVE hay CONTROLLED.
 8. Không commit `.env.local`, token, cookie, database URL có credential hoặc artifact chứa secret.
 
-## Giấy phép
+> [!WARNING]
+> Dự án phục vụ học tập và nghiên cứu. Kết quả backtest không bảo đảm hiệu quả giao dịch trong tương lai và không phải lời khuyên tài chính. Hệ thống không thực hiện giao dịch bằng tiền thật.
+
+<a id="license"></a>
+
+## ⚖️ Giấy phép
 
 Repository hiện chưa công bố giấy phép. Không mặc định sao chép, phân phối hoặc sử dụng ngoài phạm vi được chủ sở hữu cho phép.
