@@ -26,7 +26,9 @@ export function ExperimentConfigSection({
       tabIndex={-1}
     >
       <header className="experiment-config-section-header">
-        <span className="experiment-config-section-number" aria-hidden="true">{number}</span>
+        <span className="experiment-config-section-number" aria-hidden="true">
+          {number}
+        </span>
         <div>
           <div className="experiment-config-section-title-row">
             <h3 id={`${id}-title`}>{title}</h3>
@@ -121,12 +123,19 @@ export function SearchParameterEditor({
             onChange={(event) =>
               onChange({
                 kind: "OPTIONS",
-                options: event.target.value.split(",").map((value) => value.trim()).filter(Boolean)
+                options: event.target.value
+                  .split(",")
+                  .map((value) => value.trim())
+                  .filter(Boolean)
               })
             }
           />
         </label>
-        {error && <small className="experiment-field-error" role="alert">{error}</small>}
+        {error && (
+          <small className="experiment-field-error" role="alert">
+            {error}
+          </small>
+        )}
       </div>
     );
   }
@@ -141,7 +150,8 @@ export function SearchParameterEditor({
           {description && <small>{description}</small>}
           {recommendedRange && (
             <small className="experiment-recommended-range">
-              Recommended: {recommendedRange.minimum}–{recommendedRange.maximum}, step {recommendedRange.step}
+              Recommended: {recommendedRange.minimum}–{recommendedRange.maximum}, step{" "}
+              {recommendedRange.step}
             </small>
           )}
         </div>
@@ -186,7 +196,11 @@ export function SearchParameterEditor({
           />
         </label>
       </div>
-      {error && <small className="experiment-field-error" role="alert">{error}</small>}
+      {error && (
+        <small className="experiment-field-error" role="alert">
+          {error}
+        </small>
+      )}
     </div>
   );
 }
@@ -214,13 +228,34 @@ export function ExperimentConfigurationSummary({
     <aside className="experiment-config-summary" aria-labelledby={headingId}>
       <h3 id={headingId}>Experiment summary</h3>
       <dl>
-        <div><dt>Dataset</dt><dd>{dataset}</dd></div>
-        <div><dt>Strategies</dt><dd>{strategyCount || "None selected"}</dd></div>
-        <div><dt>Possible configurations</dt><dd>{cardinality}</dd></div>
-        <div><dt>Candidate limit</dt><dd>{candidateLimit || "Not set"}</dd></div>
-        <div><dt>Time limit</dt><dd>{timeLimit}</dd></div>
-        <div><dt>Parallel backtests</dt><dd>{concurrency}</dd></div>
-        <div><dt>Leaderboard size</dt><dd>{leaderboardSize}</dd></div>
+        <div>
+          <dt>Dataset</dt>
+          <dd>{dataset}</dd>
+        </div>
+        <div>
+          <dt>Strategies</dt>
+          <dd>{strategyCount || "None selected"}</dd>
+        </div>
+        <div>
+          <dt>Possible configurations</dt>
+          <dd>{cardinality}</dd>
+        </div>
+        <div>
+          <dt>Candidate limit</dt>
+          <dd>{candidateLimit || "Not set"}</dd>
+        </div>
+        <div>
+          <dt>Time limit</dt>
+          <dd>{timeLimit}</dd>
+        </div>
+        <div>
+          <dt>Parallel backtests</dt>
+          <dd>{concurrency}</dd>
+        </div>
+        <div>
+          <dt>Leaderboard size</dt>
+          <dd>{leaderboardSize}</dd>
+        </div>
       </dl>
     </aside>
   );

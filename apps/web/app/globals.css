@@ -1458,7 +1458,9 @@ input {
   animation: candidate-skeleton 1.4s ease-in-out infinite;
 }
 @keyframes candidate-skeleton {
-  to { background-position-x: -200%; }
+  to {
+    background-position-x: -200%;
+  }
 }
 .candidate-drawer {
   width: min(640px, 100vw);
@@ -2820,7 +2822,9 @@ select:focus-visible {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #0e1517;
-  transition: border-color 140ms ease, background 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease;
 }
 .experiment-strategy-card.is-selected {
   border-color: #3f966c;

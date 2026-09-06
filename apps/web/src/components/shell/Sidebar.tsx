@@ -7,8 +7,8 @@ export function Sidebar() {
   const path = usePathname();
   const lastExperiment = useRememberedResource("experiment");
   const lastBacktest = useRememberedResource("backtest");
-  const destination = (href: string) => href === "/search"
-    ? lastExperiment : href === "/backtests" ? lastBacktest : href;
+  const destination = (href: string) =>
+    href === "/search" ? lastExperiment : href === "/backtests" ? lastBacktest : href;
   return (
     <aside className="sidebar">
       <Link href="/market" className="brand">
@@ -19,7 +19,11 @@ export function Sidebar() {
       </Link>
       <nav className="nav" aria-label="Primary">
         {routes.map(({ href, label, icon: Icon }) => (
-          <Link key={href} href={destination(href)} className={path.startsWith(href) ? "active" : ""}>
+          <Link
+            key={href}
+            href={destination(href)}
+            className={path.startsWith(href) ? "active" : ""}
+          >
             <Icon size={17} />
             <span>{label}</span>
           </Link>

@@ -52,7 +52,12 @@ export function JobProgressList({
                 {j.failure.code}: {j.failure.message}
               </p>
             )}
-            <TechnicalDetails values={[["Search job ID", j.jobId]]} />
+            <TechnicalDetails
+              values={[
+                ["Search job ID", j.jobId],
+                ["Exact best score", j.bestScore]
+              ]}
+            />
           </article>
         );
       })}

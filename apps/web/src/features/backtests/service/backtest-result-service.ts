@@ -36,7 +36,11 @@ export const createBacktestResultService = (api: ApiClient) => ({
     } catch {
       return {
         ok: false as const,
-        error: { code: "INVALID_RESPONSE", message: "The service returned an invalid result history.", retryable: false }
+        error: {
+          code: "INVALID_RESPONSE",
+          message: "The service returned an invalid result history.",
+          retryable: false
+        }
       };
     }
   },

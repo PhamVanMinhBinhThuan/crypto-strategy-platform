@@ -44,8 +44,12 @@ export function TechnicalDetails({
           <section className="technical-json" key={label}>
             <div>
               <h4>{label}</h4>
-              <button type="button" className="copy-button"
-                onClick={() => copy(label, serialized)} aria-label={`Copy ${label}`}>
+              <button
+                type="button"
+                className="copy-button"
+                onClick={() => copy(label, serialized)}
+                aria-label={`Copy ${label}`}
+              >
                 {copied === label ? "Copied" : "Copy JSON"}
               </button>
             </div>

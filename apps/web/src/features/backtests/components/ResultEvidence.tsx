@@ -18,88 +18,97 @@ export function ResultEvidence({ result }: { result: BacktestResultViewModel }) 
   const componentCount = definition ? candidateComponents(definition).length : 0;
   const strategyTitle = definition ? strategyName(definition) : strategyFallback(result);
   const parameters = definition ? parameterSummary(definition) : "";
-  const combinationPolicy = definition && componentCount > 1
-    ? combinationPolicyLabel(definition, provenance.strategy?.compositePolicyId)
-    : null;
+  const combinationPolicy =
+    definition && componentCount > 1
+      ? combinationPolicyLabel(definition, provenance.strategy?.compositePolicyId)
+      : null;
   const dataset = provenance.dataset;
 
   return (
     <section className="backtest-setup" aria-labelledby="backtest-setup-heading">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Configuration</p>
-            <h2 id="backtest-setup-heading">Backtest setup</h2>
-          </div>
-          <span>Frozen inputs used to produce this result.</span>
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Configuration</p>
+          <h2 id="backtest-setup-heading">Backtest setup</h2>
         </div>
+        <span>Frozen inputs used to produce this result.</span>
+      </div>
 
-        <div className="backtest-setup-grid">
-          <article className="panel backtest-setup-card">
-            <h3>Strategy configuration</h3>
-            <p className="backtest-setup-primary">{strategyTitle}</p>
-            {parameters ? (
-              <p className="muted">{parameters}</p>
-            ) : (
-              <p className="muted">Detailed strategy parameters are unavailable.</p>
-            )}
-            {combinationPolicy && (
-              <dl className="backtest-fact-list">
-                <div>
-                  <dt>Combination policy</dt>
-                  <dd>{combinationPolicy}</dd>
-                </div>
-              </dl>
-            )}
-          </article>
-
-          <article className="panel backtest-setup-card">
-            <h3>Frozen dataset</h3>
-            {dataset ? (
-              <dl className="backtest-fact-list">
-                <div>
-                  <dt>Market</dt>
-                  <dd>{dataset.provider} · {dataset.tradingPair} · {dataset.timeframe}</dd>
-                </div>
-                <div>
-                  <dt>UTC range</dt>
-                  <dd>{formatUtcDateTime(dataset.rangeStart)} – {formatUtcDateTime(dataset.rangeEnd)}</dd>
-                </div>
-                <div>
-                  <dt>Candles</dt>
-                  <dd className="backtest-number">{formatCount(dataset.candleCount)}</dd>
-                </div>
-              </dl>
-            ) : (
-              <p className="muted">Detailed frozen dataset provenance is unavailable.</p>
-            )}
-          </article>
-
-          <article className="panel backtest-setup-card">
-            <h3>Execution assumptions</h3>
+      <div className="backtest-setup-grid">
+        <article className="panel backtest-setup-card">
+          <h3>Strategy configuration</h3>
+          <p className="backtest-setup-primary">{strategyTitle}</p>
+          {parameters ? (
+            <p className="muted">{parameters}</p>
+          ) : (
+            <p className="muted">Detailed strategy parameters are unavailable.</p>
+          )}
+          {combinationPolicy && (
             <dl className="backtest-fact-list">
               <div>
-                <dt>Transaction fee</dt>
-                <dd className="backtest-number">{formatBacktestPercent(result.assumptions.feeRate)}</dd>
-              </div>
-              <div>
-                <dt>Slippage</dt>
-                <dd className="backtest-number">{formatBacktestPercent(result.assumptions.slippageRate)}</dd>
-              </div>
-              <div>
-                <dt>Position mode</dt>
-                <dd>{humanizeBacktestValue(result.assumptions.positionMode)}</dd>
-              </div>
-              <div>
-                <dt>Orders execute at</dt>
-                <dd>{humanizeBacktestValue(result.assumptions.executionPriceRule)}</dd>
-              </div>
-              <div>
-                <dt>Close position at dataset end</dt>
-                <dd>{result.assumptions.forceCloseAtEnd ? "Yes" : "No"}</dd>
+                <dt>Combination policy</dt>
+                <dd>{combinationPolicy}</dd>
               </div>
             </dl>
-          </article>
-        </div>
+          )}
+        </article>
+
+        <article className="panel backtest-setup-card">
+          <h3>Frozen dataset</h3>
+          {dataset ? (
+            <dl className="backtest-fact-list">
+              <div>
+                <dt>Market</dt>
+                <dd>
+                  {dataset.provider} · {dataset.tradingPair} · {dataset.timeframe}
+                </dd>
+              </div>
+              <div>
+                <dt>UTC range</dt>
+                <dd>
+                  {formatUtcDateTime(dataset.rangeStart)} – {formatUtcDateTime(dataset.rangeEnd)}
+                </dd>
+              </div>
+              <div>
+                <dt>Candles</dt>
+                <dd className="backtest-number">{formatCount(dataset.candleCount)}</dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="muted">Detailed frozen dataset provenance is unavailable.</p>
+          )}
+        </article>
+
+        <article className="panel backtest-setup-card">
+          <h3>Execution assumptions</h3>
+          <dl className="backtest-fact-list">
+            <div>
+              <dt>Transaction fee</dt>
+              <dd className="backtest-number">
+                {formatBacktestPercent(result.assumptions.feeRate)}
+              </dd>
+            </div>
+            <div>
+              <dt>Slippage</dt>
+              <dd className="backtest-number">
+                {formatBacktestPercent(result.assumptions.slippageRate)}
+              </dd>
+            </div>
+            <div>
+              <dt>Position mode</dt>
+              <dd>{humanizeBacktestValue(result.assumptions.positionMode)}</dd>
+            </div>
+            <div>
+              <dt>Orders execute at</dt>
+              <dd>{humanizeBacktestValue(result.assumptions.executionPriceRule)}</dd>
+            </div>
+            <div>
+              <dt>Close position at dataset end</dt>
+              <dd>{result.assumptions.forceCloseAtEnd ? "Yes" : "No"}</dd>
+            </div>
+          </dl>
+        </article>
+      </div>
     </section>
   );
 }
@@ -146,16 +155,17 @@ export function ResultTechnicalDetails({ result }: { result: BacktestResultViewM
   ];
 
   return (
-    <section className="panel backtest-technical" aria-label="Technical details and reproducibility">
+    <section
+      className="panel backtest-technical"
+      aria-label="Technical details and reproducibility"
+    >
       <p className="muted backtest-technical-intro">
         Immutable identifiers and inputs can be used to audit or reproduce this result.
       </p>
       <TechnicalDetails
         summaryLabel="Technical details & reproducibility"
         values={technicalValues}
-        jsonValues={definition ? ([
-          ["Immutable candidate definition", definition]
-        ] as const) : []}
+        jsonValues={definition ? ([["Immutable candidate definition", definition]] as const) : []}
       />
     </section>
   );
@@ -165,7 +175,9 @@ function strategyFallback(result: BacktestResultViewModel) {
   const strategy = result.provenance.strategy;
   if (!strategy) return "Strategy details unavailable";
   if (strategy.singleStrategy) return humanizePluginId(strategy.singleStrategy.pluginId);
-  const names = strategy.components.map((component) => humanizePluginId(component.strategy.pluginId));
+  const names = strategy.components.map((component) =>
+    humanizePluginId(component.strategy.pluginId)
+  );
   return names.join(" + ") || "Strategy details unavailable";
 }
 
@@ -175,9 +187,11 @@ function strategyImplementations(result: BacktestResultViewModel) {
   const implementations = strategy.singleStrategy
     ? [strategy.singleStrategy]
     : strategy.components.map((component) => component.strategy);
-  return implementations
-    .map((item) => `${item.pluginId}@${item.implementationVersion} (${item.strategyVersionId})`)
-    .join(", ") || null;
+  return (
+    implementations
+      .map((item) => `${item.pluginId}@${item.implementationVersion} (${item.strategyVersionId})`)
+      .join(", ") || null
+  );
 }
 
 function combinationPolicyLabel(

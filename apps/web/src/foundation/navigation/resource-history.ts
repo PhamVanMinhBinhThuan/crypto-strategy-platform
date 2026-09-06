@@ -19,12 +19,18 @@ function validRememberedUrl(kind: ResourceKind, value: string | null): value is 
     if (parsed.origin !== "https://local.invalid") return false;
     if (kind === "experiment") {
       const match = parsed.pathname.match(/^\/search\/([^/]+)$/);
-      return Boolean(match && identifier.test(decodeURIComponent(match[1])) &&
+      return Boolean(
+        match &&
+        identifier.test(decodeURIComponent(match[1])) &&
         [null, "results", "failed", "all"].includes(parsed.searchParams.get("view")) &&
-        !parsed.searchParams.has("candidateId"));
+        !parsed.searchParams.has("candidateId")
+      );
     }
-    return parsed.pathname === "/backtests" && identifier.test(parsed.searchParams.get("resultId") ?? "") &&
-      !parsed.searchParams.has("backtestId");
+    return (
+      parsed.pathname === "/backtests" &&
+      identifier.test(parsed.searchParams.get("resultId") ?? "") &&
+      !parsed.searchParams.has("backtestId")
+    );
   } catch {
     return false;
   }
@@ -65,7 +71,11 @@ function write(kind: ResourceKind, value?: string) {
 }
 
 export function useRememberedResource(kind: ResourceKind) {
-  return useSyncExternalStore(subscribe, () => read(kind), () => fallbacks[kind]);
+  return useSyncExternalStore(
+    subscribe,
+    () => read(kind),
+    () => fallbacks[kind]
+  );
 }
 
 export function rememberExperiment(experimentId: string, view = "results") {
@@ -75,8 +85,11 @@ export function rememberExperiment(experimentId: string, view = "results") {
 }
 
 export function forgetExperiment(expectedExperimentId?: string) {
-  if (expectedExperimentId && !read("experiment").startsWith(
-    `/search/${encodeURIComponent(expectedExperimentId)}?`)) return false;
+  if (
+    expectedExperimentId &&
+    !read("experiment").startsWith(`/search/${encodeURIComponent(expectedExperimentId)}?`)
+  )
+    return false;
   write("experiment");
   return true;
 }
@@ -87,8 +100,11 @@ export function rememberBacktestResult(resultId: string) {
 }
 
 export function forgetBacktestResult(expectedResultId?: string) {
-  if (expectedResultId && read("backtest") !==
-    `/backtests?resultId=${encodeURIComponent(expectedResultId)}`) return false;
+  if (
+    expectedResultId &&
+    read("backtest") !== `/backtests?resultId=${encodeURIComponent(expectedResultId)}`
+  )
+    return false;
   write("backtest");
   return true;
 }
@@ -108,8 +124,11 @@ export function safeExperimentReturnUrl(
   if (!value) return fallback;
   try {
     const parsed = new URL(value, "https://local.invalid");
-    if (parsed.origin !== "https://local.invalid" ||
-      parsed.pathname !== `/search/${encodeURIComponent(experimentId)}`) return fallback;
+    if (
+      parsed.origin !== "https://local.invalid" ||
+      parsed.pathname !== `/search/${encodeURIComponent(experimentId)}`
+    )
+      return fallback;
     const returnCandidate = parsed.searchParams.get("candidateId");
     if (returnCandidate && returnCandidate !== candidateId) return fallback;
     return candidateReturnUrl(

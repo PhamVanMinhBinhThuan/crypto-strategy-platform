@@ -32,7 +32,7 @@ export function useCursorPagination<T>(
         setCursor(targetCursor);
         setHistory(targetHistory);
       } else {
-        setError(result.error.message);
+        setError("More results could not be loaded. Please retry.");
       }
       setLoading(false);
     },

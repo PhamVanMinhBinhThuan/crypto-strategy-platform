@@ -241,7 +241,7 @@ const datasetErrorMessage = (error: PublicError) => {
   if (error.code === "MARKET_DATA_GAP")
     return "No complete candles were returned for this range. Choose an older aligned range and retry.";
   if (error.code === "MARKET_PROVIDER_UNAVAILABLE")
-    return "Binance is unavailable. Check the API network connection and retry.";
+    return "The market data provider is unavailable. Check the API network connection and retry.";
   return error.message;
 };
 
@@ -701,7 +701,6 @@ export function ExperimentConfigurationForm({
           ...current.filter((item) => item.datasetId !== result.data.datasetId)
         ]);
         selectDataset(result.data);
-        void loadDatasets();
         return;
       }
       setDatasetState({
@@ -1635,7 +1634,7 @@ export function ExperimentConfigurationForm({
                       }
                       aria-invalid={!!fieldError("requestedConcurrency")}
                     />
-                    <small>Higher values use more worker and database capacity.</small>
+                    <small>Higher values use more execution and database capacity.</small>
                     {fieldError("requestedConcurrency") && (
                       <small role="alert">{fieldError("requestedConcurrency")}</small>
                     )}
@@ -1720,7 +1719,9 @@ export function ExperimentConfigurationForm({
         )}
         {(commands.start.status === "terminal-failure" ||
           commands.start.status === "retryable-failure") && (
-          <p role="alert">{commands.start.error.message} Your configuration has been preserved.</p>
+          <p role="alert">
+            The experiment could not be started. Your configuration has been preserved.
+          </p>
         )}
       </form>
     </section>

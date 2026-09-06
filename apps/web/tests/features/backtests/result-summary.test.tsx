@@ -1,7 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ResultSummary } from "@/src/features/backtests/components/ResultSummary";
-import { ResultEvidence } from "@/src/features/backtests/components/ResultEvidence";
+import {
+  ResultEvidence,
+  ResultTechnicalDetails
+} from "@/src/features/backtests/components/ResultEvidence";
 import { mapBacktestResult } from "@/src/features/backtests/mappers/backtest-result-mapper";
 import { normalBacktestResult } from "@/src/features/backtests/fixtures/backtest-result-fixtures";
 describe("result summary", () => {
@@ -11,6 +14,7 @@ describe("result summary", () => {
       <>
         <ResultSummary result={result} />
         <ResultEvidence result={result} />
+        <ResultTechnicalDetails result={result} />
       </>
     );
     expect(

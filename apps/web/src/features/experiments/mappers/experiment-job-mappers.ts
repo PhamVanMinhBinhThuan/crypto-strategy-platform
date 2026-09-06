@@ -75,9 +75,7 @@ export const experimentSchema = z
     createdAt: utc
   })
   .strict();
-export const jobSchema = z
-  .object(job.shape)
-  .strict();
+export const jobSchema = z.object(job.shape).strict();
 export const candidateSchema = z
   .object({
     candidateId: z.string(),
@@ -97,29 +95,47 @@ export const candidatePageSchema = z.object({
 export const mapExperiment = (v: unknown) => experimentSchema.parse(v);
 export const mapJob = (v: unknown) => jobSchema.parse(v);
 export const mapCandidatePage = (v: unknown) => candidatePageSchema.parse(v);
-export const experimentHistoryPageSchema = z.object({
-  items: z.array(z.object({
-    experimentId: z.string(),
-    name: z.string(),
-    status: experimentSchema.shape.status,
-    dataset: z.object({
-      provider: z.string(), pair: z.string(), timeframe: z.string(),
-      candleCount: z.number().int().nonnegative()
-    }).strict(),
-    progress: z.object({
-      processed: z.number().int().nonnegative(), total: z.number().int().nonnegative(),
-      succeeded: z.number().int().nonnegative(), failed: z.number().int().nonnegative()
-    }).strict(),
-    startedAt: nullableUtc,
-    completedAt: nullableUtc,
-    createdAt: utc
-  }).strict()),
-  nextCursor: z.string().nullable(),
-  hasMore: z.boolean(),
-  totalCount: z.number().int().nonnegative()
-}).strict();
-export const mapExperimentHistoryPage = (value: unknown) => experimentHistoryPageSchema.parse(value);
-const pipelineStageFailure = z.object({ code: z.string(), message: z.string() }).strict().nullable();
+export const experimentHistoryPageSchema = z
+  .object({
+    items: z.array(
+      z
+        .object({
+          experimentId: z.string(),
+          name: z.string(),
+          status: experimentSchema.shape.status,
+          dataset: z
+            .object({
+              provider: z.string(),
+              pair: z.string(),
+              timeframe: z.string(),
+              candleCount: z.number().int().nonnegative()
+            })
+            .strict(),
+          progress: z
+            .object({
+              processed: z.number().int().nonnegative(),
+              total: z.number().int().nonnegative(),
+              succeeded: z.number().int().nonnegative(),
+              failed: z.number().int().nonnegative()
+            })
+            .strict(),
+          startedAt: nullableUtc,
+          completedAt: nullableUtc,
+          createdAt: utc
+        })
+        .strict()
+    ),
+    nextCursor: z.string().nullable(),
+    hasMore: z.boolean(),
+    totalCount: z.number().int().nonnegative()
+  })
+  .strict();
+export const mapExperimentHistoryPage = (value: unknown) =>
+  experimentHistoryPageSchema.parse(value);
+const pipelineStageFailure = z
+  .object({ code: z.string(), message: z.string() })
+  .strict()
+  .nullable();
 const eligibilityReason = z
   .object({
     code: z.enum(["MINIMUM_TRADES_NOT_MET", "UNSPECIFIED"]),
@@ -188,7 +204,8 @@ export const candidatePipelinePageSchema = z
     totalCount: z.number().int().nonnegative()
   })
   .strict();
-export const mapCandidatePipelinePage = (value: unknown) => candidatePipelinePageSchema.parse(value);
+export const mapCandidatePipelinePage = (value: unknown) =>
+  candidatePipelinePageSchema.parse(value);
 
 export const candidateDetailSchema = z
   .object({

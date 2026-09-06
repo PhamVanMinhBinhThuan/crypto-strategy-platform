@@ -28,11 +28,22 @@ export function BacktestResultsView({
   if (lookup.kind === "none")
     return (
       <main className="feature-page">
-        <header className="feature-header"><div><p className="eyebrow">Backtest evidence</p><h1>Backtest Results</h1><p className="muted">Open a completed result and inspect its immutable evidence.</p></div></header>
+        <header className="feature-header">
+          <div>
+            <p className="eyebrow">Backtest evidence</p>
+            <h1>Backtest Results</h1>
+            <p className="muted">Open a completed result and inspect its immutable evidence.</p>
+          </div>
+        </header>
         <RecentBacktestResults api={api} />
       </main>
     );
-  if (state.status === "idle" || state.status === "loading" || state.status === "refreshing" || state.status === "empty-identifier")
+  if (
+    state.status === "idle" ||
+    state.status === "loading" ||
+    state.status === "refreshing" ||
+    state.status === "empty-identifier"
+  )
     return (
       <main className="feature-page" aria-busy="true">
         <p role="status">Loading backtest result…</p>
@@ -56,19 +67,30 @@ export function BacktestResultsView({
               Retry{state.error.retryAfterSeconds ? ` in ${state.error.retryAfterSeconds}s` : ""}
             </button>
           )}
-          <p><Link className="button secondary" href="/backtests">All backtest results</Link></p>
+          <p>
+            <Link className="button secondary" href="/backtests">
+              All backtest results
+            </Link>
+          </p>
         </section>
       </main>
     );
   return (
     <main className="feature-page backtest-result-page">
       <nav className="page-actions backtest-navigation" aria-label="Backtest result navigation">
-        <Link className="backtest-return-link" href={safeExperimentReturnUrl(
-          returnTo,
-          state.snapshot.provenance.experimentId,
-          state.snapshot.provenance.candidateId
-        )}>&larr; Back to experiment</Link>
-        <Link className="button secondary" href="/backtests">All backtest results</Link>
+        <Link
+          className="backtest-return-link"
+          href={safeExperimentReturnUrl(
+            returnTo,
+            state.snapshot.provenance.experimentId,
+            state.snapshot.provenance.candidateId
+          )}
+        >
+          &larr; Back to experiment
+        </Link>
+        <Link className="button secondary" href="/backtests">
+          All backtest results
+        </Link>
       </nav>
       <ResultSummary result={state.snapshot} />
       <ResultEvidence result={state.snapshot} />

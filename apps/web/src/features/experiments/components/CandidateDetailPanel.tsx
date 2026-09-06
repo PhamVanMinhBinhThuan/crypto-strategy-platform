@@ -136,7 +136,7 @@ export function CandidateDetailPanel({
           {!loading && error && (
             <section className="candidate-detail-error" role="alert">
               <h3>Unable to load candidate details</h3>
-              <p>{error.message}</p>
+              <p>Candidate details are unavailable. Please retry.</p>
               <div className="candidate-detail-actions">
                 {error.retryable && (
                   <button type="button" className="button" onClick={() => void load()}>
@@ -211,7 +211,7 @@ function CandidateDetailContent({
               {detail.backtest.attemptNo ? `Attempt ${detail.backtest.attemptNo}. ` : ""}
               {detail.backtest.nextRetryAt
                 ? `Next retry ${formatDateTime(detail.backtest.nextRetryAt)}.`
-                : "The worker will retry this candidate."}
+                : "The system will retry this candidate."}
             </p>
           )}
         </section>

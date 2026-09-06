@@ -5,5 +5,11 @@ export default async function Page({
   searchParams: Promise<{ resultId?: string; backtestId?: string; returnTo?: string }>;
 }) {
   const params = await searchParams;
-  return <BacktestResultsView resultId={params.resultId} backtestId={params.backtestId} returnTo={params.returnTo} />;
+  return (
+    <BacktestResultsView
+      resultId={params.resultId}
+      backtestId={params.backtestId}
+      returnTo={params.returnTo}
+    />
+  );
 }

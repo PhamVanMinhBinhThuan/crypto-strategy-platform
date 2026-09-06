@@ -14,8 +14,7 @@ export function useExperimentConfiguration() {
       setDraft((d) => ({ ...d, [key]: value }));
       setErrors((current) => {
         const related = new Set<string>([String(key)]);
-        if (key === "maximumCandidates" || key === "maximumDurationSeconds")
-          related.add("stop");
+        if (key === "maximumCandidates" || key === "maximumDurationSeconds") related.add("stop");
         if (
           key === "maximumCandidates" ||
           key === "minimumComponents" ||
@@ -88,7 +87,10 @@ export function useExperimentConfiguration() {
       setErrors((current) => {
         const errorKey = `parameter-${key}-${name}`;
         const related = Object.keys(current).filter(
-          (keyName) => keyName === "strategyPool" || keyName === "topK" || keyName.startsWith(`parameter-${key}-`)
+          (keyName) =>
+            keyName === "strategyPool" ||
+            keyName === "topK" ||
+            keyName.startsWith(`parameter-${key}-`)
         );
         if (!(errorKey in current) && related.length === 0) return current;
         const next = { ...current };

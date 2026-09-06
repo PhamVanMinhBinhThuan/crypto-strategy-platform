@@ -74,18 +74,20 @@ export const normalBacktestResult = {
   }
 } as const;
 export const backtestResultHistoryPage = {
-  items: [{
-    backtestResultId: normalBacktestResult.backtestResultId,
-    experimentId: normalBacktestResult.provenance.experimentId,
-    candidateId: normalBacktestResult.provenance.candidateId,
-    generationIndex: 42,
-    experimentName: "BTC trend search",
-    definition: { strategyId: "ma-crossover", parameters: { fastPeriod: 12, slowPeriod: 64 } },
-    strategySummary: "ma-crossover",
-    metrics: normalBacktestResult.metrics,
-    score: "0.8734",
-    completedAt: normalBacktestResult.completedAt
-  }],
+  items: [
+    {
+      backtestResultId: normalBacktestResult.backtestResultId,
+      experimentId: normalBacktestResult.provenance.experimentId,
+      candidateId: normalBacktestResult.provenance.candidateId,
+      generationIndex: 42,
+      experimentName: "BTC trend search",
+      definition: { strategyId: "ma-crossover", parameters: { fastPeriod: 12, slowPeriod: 64 } },
+      strategySummary: "ma-crossover",
+      metrics: normalBacktestResult.metrics,
+      score: "0.8734",
+      completedAt: normalBacktestResult.completedAt
+    }
+  ],
   nextCursor: null,
   hasMore: false,
   totalCount: 1
