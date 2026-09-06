@@ -24,6 +24,8 @@ export function NewsWorkspace() {
     () => ({
       items: [],
       cursor: null,
+      currentCursor: undefined,
+      cursorHistory: [],
       hasMore: false,
       queryGeneration: 0,
       loading: false,
@@ -44,13 +46,13 @@ export function NewsWorkspace() {
     if (current !== incoming) dispatch({ type: "SET_STATUS_FILTER", statuses: urlStatuses });
   }, [state.selectedStatuses, urlStatuses]);
   const fetchPage = useCallback(
-    async (cursor?: string) => {
+    async (cursor?: string, cursorHistory: Array<string | undefined> = []) => {
       const generation = state.queryGeneration;
       dispatch({ type: "FETCH_START", generation });
       const result = await listNewsItems(api, {
         statuses: state.selectedStatuses,
         cursor,
-        limit: 30
+        limit: 10
       });
       if (result.ok)
         dispatch({
@@ -58,15 +60,17 @@ export function NewsWorkspace() {
           generation,
           items: result.data.items,
           nextCursor: result.data.nextCursor,
-          hasMore: result.data.hasMore
+          hasMore: result.data.hasMore,
+          currentCursor: cursor,
+          cursorHistory
         });
       else
         dispatch({
           type: "FETCH_ERROR",
           generation,
           error: result.error.retryable
-            ? "News đang tạm gián đoạn. Vui lòng thử lại."
-            : "Không thể tải News với bộ lọc hiện tại."
+            ? "News is temporarily unavailable. Please try again."
+            : "Unable to load news with the current filters."
         });
     },
     [api, state.queryGeneration, state.selectedStatuses]
@@ -85,14 +89,14 @@ export function NewsWorkspace() {
   return (
     <main className="news-workspace">
       <AsyncStatus
-        message={state.loading ? "Đang tải News" : (state.error ?? "News đã sẵn sàng")}
+        message={state.loading ? "Loading news" : (state.error ?? "News is ready")}
         urgent={Boolean(state.error)}
       />
       <header>
         <div>
-          <p className="eyebrow">F-012 · News</p>
+          <p className="eyebrow">News</p>
           <h1>News Sentiment</h1>
-          <p>Tin tức và sentiment công khai; mỗi nguồn lỗi được cô lập.</p>
+          <p>Public news and sentiment, with failures isolated by source.</p>
         </div>
         <NewsFilters selected={state.selectedStatuses} onChange={changeFilters} />
       </header>
@@ -101,8 +105,18 @@ export function NewsWorkspace() {
         loading={state.loading}
         error={state.error}
         hasMore={state.hasMore}
-        onRetry={() => void fetchPage()}
-        onLoadMore={() => state.cursor && void fetchPage(state.cursor)}
+        pageNumber={state.cursorHistory.length + 1}
+        canPrevious={state.cursorHistory.length > 0}
+        onRetry={() => void fetchPage(state.currentCursor, state.cursorHistory)}
+        onPrevious={() => {
+          if (!state.cursorHistory.length) return;
+          const previousCursor = state.cursorHistory.at(-1);
+          void fetchPage(previousCursor, state.cursorHistory.slice(0, -1));
+        }}
+        onNext={() => {
+          if (!state.cursor) return;
+          void fetchPage(state.cursor, [...state.cursorHistory, state.currentCursor]);
+        }}
       />
     </main>
   );

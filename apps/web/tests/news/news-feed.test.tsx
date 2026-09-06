@@ -4,47 +4,61 @@ import { describe, expect, it, vi } from "vitest";
 import { NewsFeed } from "@/src/features/news/components/NewsFeed";
 import { newsPageFixture } from "../fixtures/f012/public-contract";
 import { newsItemSchema } from "@/src/features/news/api/schemas";
+
 const item = newsItemSchema.parse(newsPageFixture.items[0]);
+const pagination = {
+  pageNumber: 1,
+  canPrevious: false,
+  onPrevious: vi.fn(),
+  onNext: vi.fn()
+};
+
 describe("News feed states", () => {
   it("renders loading, empty and retryable error states", async () => {
-    const retry = vi.fn(),
-      view = render(
-        <NewsFeed items={[]} loading hasMore={false} onRetry={retry} onLoadMore={vi.fn()} />
-      );
-    expect(screen.getByRole("status")).toHaveTextContent("Đang tải");
-    view.rerender(
-      <NewsFeed items={[]} loading={false} hasMore={false} onRetry={retry} onLoadMore={vi.fn()} />
+    const retry = vi.fn();
+    const view = render(
+      <NewsFeed items={[]} loading hasMore={false} onRetry={retry} {...pagination} />
     );
-    expect(screen.getByText(/Không có News/)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Loading");
+    view.rerender(
+      <NewsFeed items={[]} loading={false} hasMore={false} onRetry={retry} {...pagination} />
+    );
+    expect(screen.getByText(/No news matches/)).toBeInTheDocument();
     view.rerender(
       <NewsFeed
         items={[]}
         loading={false}
-        error="Tạm gián đoạn"
+        error="Temporarily unavailable"
         hasMore={false}
         onRetry={retry}
-        onLoadMore={vi.fn()}
+        {...pagination}
       />
     );
-    await userEvent.click(screen.getByRole("button", { name: "Thử lại" }));
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(retry).toHaveBeenCalledOnce();
   });
-  it("keeps News readable when sentiment fails and bounds load-more to user action", async () => {
-    const load = vi.fn();
+
+  it("keeps News readable when sentiment fails and paginates on user action", async () => {
+    const next = vi.fn();
     render(
       <NewsFeed
         items={[{ ...item, analysisStatus: "FAILED", sentiment: null }]}
         loading={false}
         hasMore
+        pageNumber={1}
+        canPrevious={false}
         onRetry={vi.fn()}
-        onLoadMore={load}
+        onPrevious={vi.fn()}
+        onNext={next}
       />
     );
     expect(screen.getByRole("link")).toBeInTheDocument();
     expect(screen.getByText(/News content is available/)).toHaveTextContent(
       /Sentiment is pending or unavailable/
     );
-    await userEvent.click(screen.getByRole("button", { name: "Tải thêm" }));
-    expect(load).toHaveBeenCalledOnce();
+    expect(screen.getByText(/Showing 1–1 · Page 1/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(next).toHaveBeenCalledOnce();
   });
 });

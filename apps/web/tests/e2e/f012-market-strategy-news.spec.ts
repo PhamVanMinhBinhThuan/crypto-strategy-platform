@@ -22,9 +22,9 @@ test("Strategy tải hai catalog độc lập và mở form từ descriptor", as
   await page.goto("/strategies");
   await expect(page.getByRole("heading", { name: "Strategy Composer" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Momentum cơ bản/ })).toBeVisible();
-  await expect(page.getByText("Chưa có Strategy riêng.")).toBeVisible();
+  await expect(page.getByText("No personal strategies yet.")).toBeVisible();
   await page.getByRole("button", { name: /Momentum cơ bản/ }).click();
-  await expect(page.getByRole("heading", { name: "Tạo Strategy riêng" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Create a personal strategy" })).toBeVisible();
 });
 
 test("News hiển thị nội dung, sentiment và safe external link", async ({ page }) => {

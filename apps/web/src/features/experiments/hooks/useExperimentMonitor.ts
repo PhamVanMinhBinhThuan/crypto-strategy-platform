@@ -28,8 +28,8 @@ export function useExperimentMonitor(api: ApiClient, id?: string) {
       }
       setError(
         exp.error.retryable
-          ? "Experiment đang tạm thời không khả dụng. Vui lòng thử lại."
-          : "Không thể tải Experiment."
+          ? "The experiment is temporarily unavailable. Please try again."
+          : "Unable to load the experiment."
       );
       setStatus("error");
       return;

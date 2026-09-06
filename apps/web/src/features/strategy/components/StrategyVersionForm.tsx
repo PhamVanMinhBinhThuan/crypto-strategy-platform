@@ -166,10 +166,10 @@ export function StrategyVersionForm({
   if (!nextSource)
     return (
       <section className="strategy-form">
-        <h2>Không thể tạo version mới</h2>
-        <p>Strategy hệ thống gốc không còn khả dụng trong catalog.</p>
+        <h2>Unable to create a new version</h2>
+        <p>The original system strategy is no longer available in the catalog.</p>
         <button type="button" onClick={onCancel}>
-          Đóng
+          Close
         </button>
       </section>
     );
@@ -182,8 +182,8 @@ export function StrategyVersionForm({
         if (!invalid) void onSubmit(nextSource);
       }}
     >
-      <h2>Tạo version {owned.latestVersion.versionNo + 1}</h2>
-      <p>Thay đổi cấu hình bên dưới. Version hiện tại vẫn được giữ nguyên.</p>
+      <h2>Create version {owned.latestVersion.versionNo + 1}</h2>
+      <p>Change the configuration below. The current version will remain unchanged.</p>
       {descriptor &&
         descriptor.parameters.map((field) => (
           <label key={field.name}>
@@ -227,9 +227,9 @@ export function StrategyVersionForm({
         ))}
       {current.type === "COMPOSITE" && (
         <fieldset>
-          <legend>Thành phần (ít nhất 2)</legend>
+          <legend>Components (at least 2)</legend>
           <label className="combination-policy-select">
-            Quy tắc kết hợp
+            Combination policy
             <select
               value={policyId}
               onChange={(event) =>
@@ -271,9 +271,9 @@ export function StrategyVersionForm({
                   <>
                     {policyId === "weighted-vote" && (
                       <label className="component-weight">
-                        Trọng số biểu quyết
+                        Voting weight
                         <input
-                          aria-label={`${item.displayName} · trọng số biểu quyết`}
+                          aria-label={`${item.displayName} · voting weight`}
                           type="number"
                           min="0.01"
                           step="0.01"
@@ -333,7 +333,7 @@ export function StrategyVersionForm({
                           );
                         })
                       ) : (
-                        <small>Strategy này không có tham số cần cấu hình.</small>
+                        <small>This strategy has no configurable parameters.</small>
                       )}
                     </div>
                   </>
@@ -341,16 +341,16 @@ export function StrategyVersionForm({
               </div>
             );
           })}
-          {!weightsValid && <small role="alert">Mọi trọng số phải là số lớn hơn 0.</small>}
+          {!weightsValid && <small role="alert">All weights must be greater than zero.</small>}
         </fieldset>
       )}
-      {!changed && <small role="note">Hãy thay đổi ít nhất một tham số hoặc thành phần.</small>}
+      {!changed && <small role="note">Change at least one parameter or component.</small>}
       <div className="strategy-actions">
         <button type="button" disabled={pending} onClick={onCancel}>
-          Hủy
+          Cancel
         </button>
         <button className="button" disabled={pending || invalid}>
-          {pending ? "Đang lưu…" : "Lưu version mới"}
+          {pending ? "Saving…" : "Save new version"}
         </button>
       </div>
     </form>

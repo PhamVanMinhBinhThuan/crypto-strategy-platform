@@ -29,12 +29,16 @@ export function CandidatePipelineTabs({
   api,
   experimentId,
   view,
-  refreshVersion
+  refreshVersion,
+  selectedCandidateId,
+  onSelectedCandidateAvailable
 }: {
   api: ApiClient;
   experimentId: string;
   view: CandidatePipelineView;
   refreshVersion: number;
+  selectedCandidateId?: string;
+  onSelectedCandidateAvailable?: (candidate: CandidatePipelineItem | undefined) => void;
 }) {
   const state = useCandidatePipeline(api, experimentId, view);
   const initialRefresh = useRef(refreshVersion);
@@ -59,6 +63,13 @@ export function CandidatePipelineTabs({
       positions[view] = globalThis.scrollY;
     };
   }, [view]);
+
+  useEffect(() => {
+    if (!selectedCandidateId || !onSelectedCandidateAvailable) return;
+    onSelectedCandidateAvailable(
+      state.page?.items.find((candidate) => candidate.candidateId === selectedCandidateId)
+    );
+  }, [onSelectedCandidateAvailable, selectedCandidateId, state.page]);
 
   const counts = state.counts;
   const total =
@@ -192,6 +203,8 @@ function ResultsTable({
                 <ViewDetailsAction
                   experimentId={experimentId}
                   candidateId={item.candidateId}
+                  backtestResultId={item.backtest.backtestResultId}
+                  failed={item.failureStage !== null}
                   candidateNumber={item.generationIndex + 1}
                   view={view}
                 />
@@ -276,6 +289,8 @@ function FailuresTable({
                 <ViewDetailsAction
                   experimentId={experimentId}
                   candidateId={item.candidateId}
+                  backtestResultId={item.backtest.backtestResultId}
+                  failed={item.failureStage !== null}
                   candidateNumber={item.generationIndex + 1}
                   view={view}
                 />
@@ -343,6 +358,8 @@ function PipelineTable({
               <ViewDetailsAction
                 experimentId={experimentId}
                 candidateId={item.candidateId}
+                backtestResultId={item.backtest.backtestResultId}
+                failed={item.failureStage !== null}
                 candidateNumber={item.generationIndex + 1}
                 view={view}
               />

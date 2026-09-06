@@ -3,6 +3,8 @@ import type { NewsItem, NewsAnalysisStatus } from "../model/news";
 export type NewsState = {
   items: NewsItem[];
   cursor: string | null;
+  currentCursor?: string;
+  cursorHistory: Array<string | undefined>;
   hasMore: boolean;
   queryGeneration: number;
   loading: boolean;
@@ -19,6 +21,8 @@ export type NewsAction =
       items: NewsItem[];
       nextCursor: string | null;
       hasMore: boolean;
+      currentCursor?: string;
+      cursorHistory: Array<string | undefined>;
     }
   | { type: "FETCH_ERROR"; generation: number; error: string };
 
@@ -31,6 +35,8 @@ export function newsReducer(state: NewsState, action: NewsAction): NewsState {
         queryGeneration: state.queryGeneration + 1,
         items: [],
         cursor: null,
+        currentCursor: undefined,
+        cursorHistory: [],
         hasMore: false,
         error: null
       };
@@ -42,7 +48,7 @@ export function newsReducer(state: NewsState, action: NewsAction): NewsState {
     case "FETCH_SUCCESS": {
       if (action.generation !== state.queryGeneration) return state;
 
-      const newItems = [...state.items];
+      const newItems: NewsItem[] = [];
       const existingIds = new Set(newItems.map((item) => item.newsId));
 
       for (const item of action.items) {
@@ -65,7 +71,9 @@ export function newsReducer(state: NewsState, action: NewsAction): NewsState {
         loading: false,
         items: newItems,
         cursor: action.nextCursor,
-        hasMore: action.hasMore
+        hasMore: action.hasMore,
+        currentCursor: action.currentCursor,
+        cursorHistory: action.cursorHistory
       };
     }
 

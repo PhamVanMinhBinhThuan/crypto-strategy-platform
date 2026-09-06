@@ -139,8 +139,8 @@ export function StrategyForm({
   if (!descriptor)
     return (
       <section className="strategy-form">
-        <h2>Tạo Strategy</h2>
-        <p>Chọn Strategy hệ thống để bắt đầu.</p>
+        <h2>Create a strategy</h2>
+        <p>Select a system strategy to get started.</p>
       </section>
     );
   const submit = async (event: React.FormEvent) => {
@@ -151,11 +151,11 @@ export function StrategyForm({
   };
   return (
     <form className="strategy-form" onSubmit={submit}>
-      <h2>Tạo Strategy riêng</h2>
+      <h2>Create a personal strategy</h2>
       <div className="strategy-form-body">
         <section className="strategy-form-fields">
           <fieldset>
-            <legend>Loại Strategy</legend>
+            <legend>Strategy type</legend>
             <label>
               <input type="radio" checked={kind === "SINGLE"} onChange={() => setKind("SINGLE")} />{" "}
               Single
@@ -170,9 +170,9 @@ export function StrategyForm({
             </label>
           </fieldset>
           <label>
-            Tên
+            Name
             <input
-              aria-label="Tên Strategy"
+              aria-label="Strategy name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -180,7 +180,7 @@ export function StrategyForm({
             />
           </label>
           <label>
-            Mô tả
+            Description
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -224,8 +224,8 @@ export function StrategyForm({
             })}
           {kind === "COMPOSITE" && (
             <fieldset>
-              <legend>Thành phần (ít nhất 2)</legend>
-              <section className="combination-policy-card" aria-label="Quy tắc kết hợp">
+              <legend>Components (at least 2)</legend>
+              <section className="combination-policy-card" aria-label="Combination policy">
                 <header>
                   <div>
                     <span className="strategy-section-kicker">Combination policy</span>
@@ -235,12 +235,12 @@ export function StrategyForm({
                   </div>
                   <span className="policy-badge">
                     {policyId === "majority-vote"
-                      ? "Mỗi Strategy = 1 phiếu"
-                      : "Mỗi Strategy có trọng số riêng"}
+                      ? "Each strategy = 1 vote"
+                      : "Each strategy has its own weight"}
                   </span>
                 </header>
                 <label className="combination-policy-select">
-                  Quy tắc kết hợp
+                  Combination policy
                   <select
                     value={policyId}
                     onChange={(event) =>
@@ -253,15 +253,15 @@ export function StrategyForm({
                 </label>
                 {policyId === "majority-vote" ? (
                   <ol>
-                    <li>Mỗi Strategy thành phần tạo một tín hiệu BUY, SELL hoặc HOLD.</li>
-                    <li>Tín hiệu có nhiều phiếu nhất trở thành kết quả của Composite.</li>
-                    <li>Nếu các tín hiệu cao nhất bằng phiếu nhau, hệ thống trả về HOLD.</li>
+                    <li>Each component strategy produces a BUY, SELL, or HOLD signal.</li>
+                    <li>The signal with the most votes becomes the composite result.</li>
+                    <li>If the leading signals are tied, the system returns HOLD.</li>
                   </ol>
                 ) : (
                   <ol>
-                    <li>Mỗi tín hiệu được nhân với trọng số của Strategy tạo ra nó.</li>
-                    <li>Tín hiệu có tổng trọng số cao nhất trở thành kết quả của Composite.</li>
-                    <li>Nếu các tổng cao nhất bằng nhau, hệ thống trả về HOLD.</li>
+                    <li>Each signal is multiplied by the weight of its strategy.</li>
+                    <li>The signal with the highest total weight becomes the composite result.</li>
+                    <li>If the highest totals are tied, the system returns HOLD.</li>
                   </ol>
                 )}
                 <div className="policy-examples">
@@ -318,9 +318,9 @@ export function StrategyForm({
                       <>
                         {policyId === "weighted-vote" && (
                           <label className="component-weight">
-                            Trọng số biểu quyết
+                            Voting weight
                             <input
-                              aria-label={`${item.displayName} · trọng số biểu quyết`}
+                              aria-label={`${item.displayName} · voting weight`}
                               type="number"
                               min="0.01"
                               step="0.01"
@@ -337,7 +337,7 @@ export function StrategyForm({
                                 ) || Number(componentWeights[item.strategyVersionId] ?? "1") <= 0
                               }
                             />
-                            <small>Mức ảnh hưởng của Strategy này phải lớn hơn 0.</small>
+                            <small>The weight for this strategy must be greater than zero.</small>
                           </label>
                         )}
                         <div className="composite-parameter-grid">
@@ -386,7 +386,7 @@ export function StrategyForm({
                               );
                             })
                           ) : (
-                            <small>Strategy này không có tham số cần cấu hình.</small>
+                            <small>This strategy has no configurable parameters.</small>
                           )}
                         </div>
                       </>
@@ -398,25 +398,25 @@ export function StrategyForm({
           )}
         </section>
         <aside className="strategy-form-inspector">
-          <section className="strategy-validation" aria-label="Kiểm tra Strategy">
+          <section className="strategy-validation" aria-label="Strategy validation">
             <header>
               <div>
                 <span className="strategy-section-kicker">Validation</span>
-                <h3>Kiểm tra trước khi lưu</h3>
+                <h3>Pre-save validation</h3>
               </div>
               <span
                 className={
                   name.trim() && parametersValid && sourceValid ? "is-valid" : "is-pending"
                 }
               >
-                {name.trim() && parametersValid && sourceValid ? "Sẵn sàng" : "Cần bổ sung"}
+                {name.trim() && parametersValid && sourceValid ? "Ready" : "Needs attention"}
               </span>
             </header>
             <div className={name.trim() ? "validation-row is-valid" : "validation-row is-pending"}>
               <span>{name.trim() ? "✓" : "!"}</span>
               <p>
-                <strong>Tên Strategy</strong>
-                <small>{name.trim() ? "Đã có tên hợp lệ" : "Vui lòng nhập tên"}</small>
+                <strong>Strategy name</strong>
+                <small>{name.trim() ? "The name is valid" : "Enter a name"}</small>
               </p>
             </div>
             <div
@@ -424,20 +424,20 @@ export function StrategyForm({
             >
               <span>{parametersValid ? "✓" : "!"}</span>
               <p>
-                <strong>Tham số</strong>
+                <strong>Parameters</strong>
                 <small>
-                  {parametersValid ? "Tất cả tham số hợp lệ" : "Có tham số cần kiểm tra"}
+                  {parametersValid ? "All parameters are valid" : "Some parameters need attention"}
                 </small>
               </p>
             </div>
             <div className={sourceValid ? "validation-row is-valid" : "validation-row is-pending"}>
               <span>{sourceValid ? "✓" : "!"}</span>
               <p>
-                <strong>Cấu trúc Strategy</strong>
+                <strong>Strategy structure</strong>
                 <small>
                   {sourceValid
-                    ? "Cấu trúc có thể lưu"
-                    : "Composite cần ít nhất hai thành phần hợp lệ"}
+                    ? "The structure can be saved"
+                    : "A composite requires at least two valid components"}
                 </small>
               </p>
             </div>
@@ -447,11 +447,11 @@ export function StrategyForm({
               >
                 <span>{weightsValid ? "✓" : "!"}</span>
                 <p>
-                  <strong>Trọng số biểu quyết</strong>
+                  <strong>Voting weights</strong>
                   <small>
                     {weightsValid
-                      ? "Mỗi Strategy đã có trọng số hợp lệ"
-                      : "Mọi trọng số phải là số lớn hơn 0"}
+                      ? "Every strategy has a valid weight"
+                      : "All weights must be greater than zero"}
                   </small>
                 </p>
               </div>
@@ -461,7 +461,7 @@ export function StrategyForm({
             <header>
               <div>
                 <span className="strategy-section-kicker">Payload</span>
-                <h3>Định nghĩa Strategy (JSON)</h3>
+                <h3>Strategy definition (JSON)</h3>
               </div>
               <button
                 type="button"
@@ -472,7 +472,7 @@ export function StrategyForm({
                     .then(() => setCopied(true));
                 }}
               >
-                {copied ? "Đã sao chép ✓" : "Sao chép"}
+                {copied ? "Copied ✓" : "Copy"}
               </button>
             </header>
             <pre>{JSON.stringify(preview, null, 2)}</pre>
@@ -488,7 +488,7 @@ export function StrategyForm({
           (kind === "COMPOSITE" && !sourceValid)
         }
       >
-        {pending ? "Đang lưu…" : "Lưu Strategy"}
+        {pending ? "Saving…" : "Save strategy"}
       </button>
     </form>
   );

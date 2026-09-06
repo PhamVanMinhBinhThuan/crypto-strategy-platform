@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { ApiClient, PublicError } from "@/src/foundation/http/contracts";
-import type { CandidateDetail } from "../types/experiment";
+import type { CandidateDetail, CandidatePipelineItem } from "../types/experiment";
 import { createExperimentService } from "../service/experiment-service";
 import {
   failurePresentation,
@@ -17,17 +17,19 @@ import {
 } from "./candidate-presentation";
 import { StatusBadge } from "./CandidateTableParts";
 import { TechnicalDetails } from "./TechnicalDetails";
-import { candidateReturnUrl } from "@/src/foundation/navigation/resource-history";
+import { experimentReturnUrl } from "@/src/foundation/navigation/resource-history";
 
 export function CandidateDetailPanel({
   api,
   experimentId,
   candidateId,
+  fallbackCandidate,
   returnView = "results"
 }: {
   api: ApiClient;
   experimentId: string;
   candidateId: string;
+  fallbackCandidate?: CandidatePipelineItem;
   returnView?: string;
 }) {
   const router = useRouter();
@@ -38,6 +40,7 @@ export function CandidateDetailPanel({
   const [detail, setDetail] = useState<CandidateDetail>();
   const [error, setError] = useState<PublicError>();
   const [loading, setLoading] = useState(true);
+  const displayedCandidate = detail ?? fallbackCandidate;
 
   const load = useCallback(async () => {
     const request = ++requestVersion.current;
@@ -109,14 +112,18 @@ export function CandidateDetailPanel({
       <div className="candidate-drawer-surface">
         <header className="candidate-drawer-header">
           <div>
-            <p className="eyebrow">Candidate #{detail ? detail.generationIndex + 1 : "…"}</p>
+            <p className="eyebrow">
+              Candidate #{displayedCandidate ? displayedCandidate.generationIndex + 1 : "…"}
+            </p>
             <h2 id="candidate-detail-heading">
-              {detail ? strategyName(detail.definition) : "Candidate details"}
+              {displayedCandidate
+                ? strategyName(displayedCandidate.definition)
+                : "Candidate details"}
             </h2>
-            {detail && (
+            {displayedCandidate && (
               <div className="candidate-drawer-statuses">
-                <StatusBadge value={detail.backtest.status} />
-                <StatusBadge value={detail.ranking.status} />
+                <StatusBadge value={displayedCandidate.backtest.status} />
+                <StatusBadge value={displayedCandidate.ranking.status} />
               </div>
             )}
           </div>
@@ -133,7 +140,7 @@ export function CandidateDetailPanel({
 
         <div className="candidate-drawer-content">
           {loading && <DrawerSkeleton />}
-          {!loading && error && (
+          {!loading && error && !fallbackCandidate && (
             <section className="candidate-detail-error" role="alert">
               <h3>Unable to load candidate details</h3>
               <p>Candidate details are unavailable. Please retry.</p>
@@ -152,8 +159,11 @@ export function CandidateDetailPanel({
           {!loading && detail && (
             <CandidateDetailContent
               detail={detail}
-              returnUrl={candidateReturnUrl(experimentId, candidateId, returnView)}
+              returnUrl={experimentReturnUrl(experimentId, returnView)}
             />
+          )}
+          {!loading && !detail && fallbackCandidate && (
+            <CandidatePipelineFallbackContent detail={fallbackCandidate} />
           )}
         </div>
       </div>
@@ -190,6 +200,7 @@ function CandidateDetailContent({
           <Link
             className="button candidate-primary-action"
             href={`/backtests?resultId=${encodeURIComponent(detail.backtestResultId)}&returnTo=${encodeURIComponent(returnUrl)}`}
+            replace
           >
             View full backtest result
           </Link>
@@ -279,6 +290,52 @@ function CandidateDetailContent({
             ["Immutable strategy definition", detail.definition],
             ["Generator state", detail.generatorState]
           ]}
+        />
+      </section>
+    </>
+  );
+}
+
+function CandidatePipelineFallbackContent({ detail }: { detail: CandidatePipelineItem }) {
+  const failure = failurePresentation(detail);
+  return (
+    <>
+      <section className="candidate-detail-section candidate-failure-card" role="status">
+        <p className="eyebrow">
+          {detail.failureStage ? `${statusLabel(detail.failureStage)} failure` : "Pipeline failure"}
+        </p>
+        <h3>{failure.title}</h3>
+        {detail.backtest.retryable && (
+          <p>
+            {detail.backtest.attemptNo ? `Attempt ${detail.backtest.attemptNo}. ` : ""}
+            {detail.backtest.nextRetryAt
+              ? `Next retry ${formatDateTime(detail.backtest.nextRetryAt)}.`
+              : "The system will retry this candidate."}
+          </p>
+        )}
+      </section>
+      <section className="candidate-detail-section">
+        <h3>Strategy configuration</h3>
+        <p>
+          <strong>{strategyName(detail.definition)}</strong>
+        </p>
+        <p className="muted">
+          {parameterSummary(detail.definition) || "Default strategy parameters"}
+        </p>
+      </section>
+      <section className="candidate-detail-section">
+        <TechnicalDetails
+          values={[
+            ["Candidate ID", detail.candidateId],
+            ["Candidate fingerprint", detail.candidateFingerprint],
+            ["Job ID", detail.backtest.jobId],
+            ["Raw backtest status", detail.backtest.status],
+            ["Raw evaluation status", detail.evaluation.status],
+            ["Raw ranking status", detail.ranking.status],
+            ["Failure code", detail.backtest.failure?.code],
+            ["Raw failure message", detail.backtest.failure?.message]
+          ]}
+          jsonValues={[["Immutable strategy definition", detail.definition]]}
         />
       </section>
     </>

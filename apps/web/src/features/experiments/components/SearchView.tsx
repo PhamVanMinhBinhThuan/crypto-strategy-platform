@@ -11,7 +11,7 @@ import { ExperimentConfigurationForm } from "./ExperimentConfigurationForm";
 import { RealtimeStatus } from "./RealtimeStatus";
 import { CandidateDetailPanel } from "./CandidateDetailPanel";
 import { CandidatePipelineTabs } from "./CandidatePipelineTabs";
-import type { CandidatePipelineView } from "../types/experiment";
+import type { CandidatePipelineItem, CandidatePipelineView } from "../types/experiment";
 import { rememberExperiment } from "@/src/foundation/navigation/resource-history";
 import Link from "next/link";
 import { RecentExperiments } from "./RecentExperiments";
@@ -33,6 +33,7 @@ export function SearchView({
   const activeView: CandidatePipelineView =
     view?.toUpperCase() === "FAILED" ? "FAILED" : view?.toUpperCase() === "ALL" ? "ALL" : "RESULTS";
   const [pipelineSignal, setPipelineSignal] = useState(0);
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidatePipelineItem>();
   useEffect(() => {
     if (monitor.status === "success" && monitor.experiment) {
       rememberExperiment(monitor.experiment.experimentId, activeView.toLowerCase());
@@ -55,7 +56,7 @@ export function SearchView({
       <main className="feature-page">
         <header className="feature-header">
           <div>
-            <p className="eyebrow">F-013 · contract-driven search</p>
+            <p className="eyebrow">Contract-driven search</p>
             <h1>Search &amp; Leaderboard</h1>
             <p className="muted">
               Review previous searches or configure a reproducible experiment.
@@ -122,6 +123,8 @@ export function SearchView({
             experimentId={monitor.experiment.experimentId}
             view={activeView}
             refreshVersion={pipelineSignal}
+            selectedCandidateId={candidateId}
+            onSelectedCandidateAvailable={setSelectedCandidate}
           />
         </>
       )}
@@ -130,6 +133,9 @@ export function SearchView({
           api={api}
           experimentId={id}
           candidateId={candidateId}
+          fallbackCandidate={
+            selectedCandidate?.candidateId === candidateId ? selectedCandidate : undefined
+          }
           returnView={activeView.toLowerCase()}
         />
       )}

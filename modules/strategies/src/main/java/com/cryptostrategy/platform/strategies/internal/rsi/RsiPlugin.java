@@ -43,7 +43,7 @@ public final class RsiPlugin implements StrategyPlugin {
                             decimal("sellThreshold", "70", "0", "100", "60", "80", "5",
                                     "RSI at or above this value emits SELL.")),
                     List.of(new CrossParameterConstraint("buyThreshold", "sellThreshold"))),
-            "strategy-descriptor-v2:rsi-threshold:1.0.0");
+            "strategy-descriptor-v1:rsi-threshold:1.0.0");
 
     @Override
     public StrategyDescriptor descriptor() {

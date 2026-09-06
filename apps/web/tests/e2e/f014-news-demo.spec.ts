@@ -47,7 +47,7 @@ test("News vẫn hiển thị khi một sentiment lỗi và filter đi qua publi
   await expect(page.getByText(analyzed.title)).toBeVisible();
   await expect(page.getByText("POSITIVE", { exact: true })).toBeVisible();
   await expect(page.getByText(sentimentUnavailable.title)).toBeVisible();
-  await expect(page.getByText(/Sentiment tạm gián đoạn/)).toBeVisible();
+  await expect(page.getByText(/Sentiment analysis is temporarily unavailable/)).toBeVisible();
 
   await page.getByLabel("ANALYZED", { exact: true }).check();
   await expect(page).toHaveURL(/analysisStatus=ANALYZED/);
@@ -84,8 +84,8 @@ test("News provider lỗi có retry rõ ràng và phục hồi về dữ liệu 
   });
 
   await page.goto("/news");
-  await expect(page.getByText(/News đang tạm gián đoạn/).first()).toBeVisible();
-  await page.getByRole("button", { name: "Thử lại" }).click();
+  await expect(page.getByText(/News is temporarily unavailable/).first()).toBeVisible();
+  await page.getByRole("button", { name: "Retry" }).click();
   await expect(page.getByText(analyzed.title)).toBeVisible();
   expect(attempts).toBe(2);
 });

@@ -115,8 +115,60 @@ describe("F-015 composite leaderboard", () => {
     expect(screen.getByText(`sha256:${"d".repeat(64)}`)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View full backtest result" })).toHaveAttribute(
       "href",
-      "/backtests?resultId=result-013&returnTo=%2Fsearch%2Fexperiment-013%3Fview%3Dresults%26candidateId%3Dcandidate-013"
+      "/backtests?resultId=result-013&returnTo=%2Fsearch%2Fexperiment-013%3Fview%3Dresults"
     );
     expect(screen.queryByText(/Sharpe/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the pipeline failure snapshot when the candidate detail request is unavailable", async () => {
+    const api = new MockApiClient();
+    const failedCandidate = {
+      candidateId: "candidate-failed",
+      generationIndex: 8,
+      definition: { strategyId: "rsi", parameters: { period: 14 } },
+      candidateSummary: "rsi",
+      candidateFingerprint: "sha256:failed",
+      createdAt: "2026-07-01T00:00:00Z",
+      backtest: {
+        jobId: "job-failed",
+        status: "FAILED",
+        backtestResultId: null,
+        startedAt: "2026-07-01T00:00:00Z",
+        finishedAt: "2026-07-01T00:01:00Z",
+        attemptNo: 3,
+        nextRetryAt: null,
+        retryable: false,
+        failure: { code: "BACKTEST_FAILED", message: "Backtest execution failed." }
+      },
+      evaluation: {
+        status: "NOT_STARTED",
+        evaluationResultId: null,
+        score: null,
+        totalReturn: null,
+        winRate: null,
+        maximumDrawdown: null,
+        numberOfTrades: null,
+        metricVersion: null,
+        eligible: null,
+        eligibilityReason: null,
+        evaluatedAt: null
+      },
+      ranking: { status: "NOT_STARTED", rank: null, rankingVersion: null },
+      failureStage: "BACKTEST"
+    } as const;
+
+    render(
+      <CandidateDetailPanel
+        api={api}
+        experimentId="experiment-013"
+        candidateId="candidate-failed"
+        fallbackCandidate={failedCandidate}
+        returnView="failed"
+      />
+    );
+
+    expect(await screen.findByText("Backtest execution failed.")).toBeInTheDocument();
+    expect(screen.queryByText("Unable to load candidate details")).not.toBeInTheDocument();
+    expect(screen.getByText("candidate-failed")).toBeInTheDocument();
   });
 });

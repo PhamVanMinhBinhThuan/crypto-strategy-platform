@@ -42,8 +42,8 @@ describe("Strategy form", () => {
         onSubmit={submit}
       />
     );
-    await userEvent.type(screen.getByLabelText("Tên Strategy"), "Private MA");
-    await userEvent.click(screen.getByRole("button", { name: "Lưu Strategy" }));
+    await userEvent.type(screen.getByLabelText("Strategy name"), "Private MA");
+    await userEvent.click(screen.getByRole("button", { name: "Save strategy" }));
     expect(submit.mock.calls[0][0]).toMatchObject({
       kind: "SINGLE",
       source: { strategy: { parameters: { period: 5 } } }
@@ -61,13 +61,13 @@ describe("Strategy form", () => {
         onSubmit={submit}
       />
     );
-    await userEvent.type(screen.getByLabelText("Tên Strategy"), "Composite");
+    await userEvent.type(screen.getByLabelText("Strategy name"), "Composite");
     await userEvent.click(screen.getByText("Composite"));
-    expect(screen.getByRole("button", { name: "Lưu Strategy" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save strategy" })).toBeDisabled();
     await userEvent.click(screen.getByRole("checkbox", { name: /MA.*v1/i }));
     await userEvent.click(screen.getByRole("checkbox", { name: /RSI.*v1/i }));
-    expect(screen.getByRole("button", { name: "Lưu Strategy" })).toBeEnabled();
-    await userEvent.click(screen.getByRole("button", { name: "Lưu Strategy" }));
+    expect(screen.getByRole("button", { name: "Save strategy" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Save strategy" }));
     expect(submit.mock.calls[0][0]).toMatchObject({
       kind: "COMPOSITE",
       source: {

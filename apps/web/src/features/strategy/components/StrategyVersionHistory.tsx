@@ -9,16 +9,16 @@ export function StrategyVersionHistory({
   loading: boolean;
 }) {
   return (
-    <section className="strategy-version-history" aria-label="Lịch sử version">
+    <section className="strategy-version-history" aria-label="Version history">
       <header>
         <div>
           <p className="eyebrow">Version history</p>
-          <h2>Lịch sử phiên bản</h2>
+          <h2>Version history</h2>
         </div>
         <span>{versions.length} version</span>
       </header>
-      {loading ? <p role="status">Đang tải lịch sử…</p> : null}
-      {!loading && !versions.length ? <p>Chưa có dữ liệu version.</p> : null}
+      {loading ? <p role="status">Loading history…</p> : null}
+      {!loading && !versions.length ? <p>No version history yet.</p> : null}
       <ol>
         {versions.map((version, index) => (
           <li key={version.userStrategyVersionId}>
@@ -27,19 +27,19 @@ export function StrategyVersionHistory({
               <header>
                 <strong>Version {version.versionNo}</strong>
                 <span className={`version-status is-${version.status.toLowerCase()}`}>
-                  {version.status === "PUBLISHED" ? "Đã publish" : "Bản nháp"}
+                  {version.status === "PUBLISHED" ? "Published" : "Draft"}
                 </span>
-                {index === 0 ? <span className="version-latest">Mới nhất</span> : null}
+                {index === 0 ? <span className="version-latest">Latest</span> : null}
               </header>
               <p>
                 {version.source.type === "COMPOSITE"
-                  ? `${version.source.components.length} thành phần · ${version.source.policyId}`
+                  ? `${version.source.components.length} components · ${version.source.policyId}`
                   : `${version.source.strategy.strategyId} · v${version.source.strategy.version}`}
               </p>
               <small>
-                Tạo lúc {new Date(version.createdAt).toLocaleString("vi-VN")}
+                Created {new Date(version.createdAt).toLocaleString("en-US")}
                 {version.publishedAt
-                  ? ` · Publish lúc ${new Date(version.publishedAt).toLocaleString("vi-VN")}`
+                  ? ` · Published ${new Date(version.publishedAt).toLocaleString("en-US")}`
                   : ""}
               </small>
               <code title={version.fingerprint}>{version.fingerprint}</code>
@@ -48,7 +48,7 @@ export function StrategyVersionHistory({
                   className="version-backtest-link"
                   href={`/search?userStrategyVersionId=${encodeURIComponent(version.userStrategyVersionId)}`}
                 >
-                  Backtest version này →
+                  Backtest this version →
                 </Link>
               ) : null}
             </div>

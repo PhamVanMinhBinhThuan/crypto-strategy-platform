@@ -21,8 +21,8 @@ export function useLeaderboard(api: ApiClient, id?: string) {
     } else {
       setError(
         r.error.retryable
-          ? "Leaderboard đang tạm thời không khả dụng. Vui lòng thử lại."
-          : "Không thể tải Leaderboard."
+          ? "The leaderboard is temporarily unavailable. Please try again."
+          : "Unable to load the leaderboard."
       );
     }
   }, [api, id, limit, snapshot?.topK]);

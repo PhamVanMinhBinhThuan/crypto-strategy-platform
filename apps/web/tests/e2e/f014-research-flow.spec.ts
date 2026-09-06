@@ -233,16 +233,16 @@ test("tạo Strategy cá nhân, publish composite rồi dùng trong Search và m
   await page.goto("/strategies");
 
   await page.getByRole("button", { name: /Moving Average Crossover/ }).click();
-  await page.getByLabel("Tên Strategy").fill("MA cá nhân");
-  await page.getByRole("button", { name: "Lưu Strategy" }).click();
+  await page.getByLabel("Strategy name").fill("MA cá nhân");
+  await page.getByRole("button", { name: "Save strategy" }).click();
   await expect(page.getByRole("heading", { name: "MA cá nhân" })).toBeVisible();
 
   await page.getByRole("button", { name: /Moving Average Crossover/ }).click();
-  await page.getByLabel("Tên Strategy").fill("Composite demo");
+  await page.getByLabel("Strategy name").fill("Composite demo");
   await page.getByLabel("Composite").check();
   await page.getByLabel(/Moving Average Crossover · v1.0.0/).check();
   await page.getByLabel(/RSI Threshold · v1.0.0/).check();
-  await page.getByRole("button", { name: "Lưu Strategy" }).click();
+  await page.getByRole("button", { name: "Save strategy" }).click();
   await page.getByRole("button", { name: /Composite demo/ }).click();
   await expect(page.getByRole("heading", { name: "Composite demo" })).toBeVisible();
   await expect(page.getByText(/Quy tắc xung đột: majority-vote/)).toBeVisible();

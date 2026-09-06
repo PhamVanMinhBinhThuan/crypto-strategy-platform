@@ -9,7 +9,7 @@ export function CandleChart({ candles, label }: { candles: readonly Candle[]; la
   if (!candles.length)
     return (
       <div className="market-empty" role="status">
-        Chưa có dữ liệu Candle.
+        No candle data available.
       </div>
     );
   const visible = candles.slice(-60),
@@ -30,8 +30,8 @@ export function CandleChart({ candles, label }: { candles: readonly Candle[]; la
         <div className="candle-tooltip-slot" aria-live="polite">
           <div className="candle-tooltip">
             <strong>
-              {new Date(selected.openTime).toLocaleString("vi-VN", { timeZone: "UTC" })} UTC
-              {!hovered ? " · Nến mới nhất" : ""}
+              {new Date(selected.openTime).toLocaleString("en-US", { timeZone: "UTC" })} UTC
+              {!hovered ? " · Latest candle" : ""}
             </strong>
             <span>O {selected.open}</span>
             <span>H {selected.high}</span>
@@ -40,7 +40,7 @@ export function CandleChart({ candles, label }: { candles: readonly Candle[]; la
             <span>V {selected.volume}</span>
           </div>
         </div>
-        <svg viewBox="0 0 600 160" role="img" aria-label={`Biểu đồ Candle ${label}`}>
+        <svg viewBox="0 0 600 160" role="img" aria-label={`${label} candle chart`}>
           {hoveredIndex >= 0 ? (
             <line
               className="candle-crosshair"

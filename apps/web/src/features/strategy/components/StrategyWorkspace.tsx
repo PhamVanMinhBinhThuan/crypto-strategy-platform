@@ -50,8 +50,8 @@ export function StrategyWorkspace() {
     else
       setSystemError(
         result.error.retryable
-          ? "Danh mục Strategy hệ thống đang tạm gián đoạn. Vui lòng thử lại."
-          : "Không thể tải danh mục Strategy hệ thống."
+          ? "The system strategy catalog is temporarily unavailable. Please try again."
+          : "Unable to load the system strategy catalog."
       );
     setSystemLoading(false);
   }, [api]);
@@ -61,8 +61,8 @@ export function StrategyWorkspace() {
     else
       setOwnedError(
         result.error.retryable
-          ? "Strategy cá nhân đang tạm gián đoạn. Vui lòng thử lại."
-          : "Không thể tải Strategy cá nhân."
+          ? "Your strategies are temporarily unavailable. Please try again."
+          : "Unable to load your strategies."
       );
     setOwnedLoading(false);
   }, [api]);
@@ -79,7 +79,7 @@ export function StrategyWorkspace() {
     try {
       const result = await getUserStrategy(api, id);
       if (!result.ok) {
-        setFeedback("Không thể truy cập Strategy này. Vui lòng thử lại.");
+        setFeedback("Unable to access this strategy. Please try again.");
         return;
       }
       setSelectedOwned(result.data);
@@ -89,11 +89,11 @@ export function StrategyWorkspace() {
       if (history.ok) setVersions(history.data.items);
       else {
         setVersions([]);
-        setFeedback("Đã mở Strategy nhưng chưa thể tải lịch sử version.");
+        setFeedback("The strategy opened, but its version history could not be loaded.");
       }
     } catch {
       setVersions([]);
-      setFeedback("Không thể kết nối backend. Vui lòng thử lại.");
+      setFeedback("Unable to connect to the backend. Please try again.");
     } finally {
       setVersionsLoading(false);
     }
@@ -107,10 +107,10 @@ export function StrategyWorkspace() {
         if (selectedOwned) await selectOwned(selectedOwned.userStrategyId);
       });
       if (result && !result.ok) throw new Error(result.error?.code ?? "MUTATION_FAILED");
-      setFeedback("Đã đồng bộ trạng thái mới nhất.");
+      setFeedback("The latest state has been synchronized.");
       return Boolean(result);
     } catch {
-      setFeedback("Chưa xác định kết quả. Đã tải lại trạng thái authoritative.");
+      setFeedback("The outcome is unknown. The authoritative state has been reloaded.");
       return false;
     } finally {
       setPending(false);
@@ -128,11 +128,11 @@ export function StrategyWorkspace() {
   };
   return (
     <main className="strategy-workspace">
-      <AsyncStatus message={pending ? "Đang cập nhật Strategy" : feedback} />
+      <AsyncStatus message={pending ? "Updating strategy" : feedback} />
       <header>
-        <p className="eyebrow">F-012 · Strategy</p>
+        <p className="eyebrow">Strategy</p>
         <h1>Strategy Composer</h1>
-        <p>Khám phá catalog và quản lý các version Strategy riêng.</p>
+        <p>Explore the catalog and manage your strategy versions.</p>
       </header>
       {feedback && (
         <p className="strategy-feedback" role="status">

@@ -5,7 +5,7 @@ export default function Page() {
     <Suspense
       fallback={
         <div className="news-state" role="status">
-          Đang tải News…
+          Loading news…
         </div>
       }
     >

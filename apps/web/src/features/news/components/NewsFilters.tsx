@@ -15,7 +15,7 @@ export function NewsFilters({
 }) {
   return (
     <fieldset className="news-filters">
-      <legend>Lọc trạng thái phân tích</legend>
+      <legend>Filter by analysis status</legend>
       {NEWS_STATUSES.map((status) => (
         <label key={status}>
           <input

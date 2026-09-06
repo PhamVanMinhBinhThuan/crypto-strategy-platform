@@ -115,7 +115,7 @@ describe("Strategy version form", () => {
         onCancel={vi.fn()}
       />
     );
-    const button = screen.getByRole("button", { name: "Lưu version mới" });
+    const button = screen.getByRole("button", { name: "Save new version" });
     expect(button).toBeDisabled();
     await userEvent.clear(screen.getByLabelText("period"));
     await userEvent.type(screen.getByLabelText("period"), "22");
@@ -148,7 +148,7 @@ describe("Strategy version form", () => {
 
     await userEvent.clear(screen.getByLabelText("Bollinger Bands · period"));
     await userEvent.type(screen.getByLabelText("Bollinger Bands · period"), "30");
-    await userEvent.click(screen.getByRole("button", { name: "Lưu version mới" }));
+    await userEvent.click(screen.getByRole("button", { name: "Save new version" }));
 
     expect(submit).toHaveBeenCalledWith({
       type: "COMPOSITE",

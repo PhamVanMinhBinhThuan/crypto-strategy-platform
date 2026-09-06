@@ -6,7 +6,7 @@ describe("Market dashboard states", () => {
     const { rerender } = render(
       <MarketConnectionStatus transport="reconnecting" provider="CONNECTED" />
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Dữ liệu lưu gần nhất");
+    expect(screen.getByRole("status")).toHaveTextContent("Last saved data");
     rerender(<MarketConnectionStatus transport="connected" provider="CONNECTED" />);
     expect(screen.getByRole("status")).toHaveTextContent("Live");
   });
@@ -20,7 +20,7 @@ describe("Market dashboard states", () => {
       />
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent("Dữ liệu lưu gần nhất");
+    expect(screen.getByRole("status")).toHaveTextContent("Last saved data");
     expect(screen.getByRole("time")).toHaveAttribute("dateTime", "2026-09-04T02:00:00Z");
   });
 });

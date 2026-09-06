@@ -115,12 +115,17 @@ export function candidateReturnUrl(experimentId: string, candidateId: string, vi
   return `/search/${encodeURIComponent(experimentId)}?${params.toString()}`;
 }
 
+export function experimentReturnUrl(experimentId: string, view: string) {
+  const normalizedView = ["results", "failed", "all"].includes(view) ? view : "results";
+  return `/search/${encodeURIComponent(experimentId)}?view=${normalizedView}`;
+}
+
 export function safeExperimentReturnUrl(
   value: string | undefined,
   experimentId: string,
   candidateId: string
 ) {
-  const fallback = candidateReturnUrl(experimentId, candidateId, "results");
+  const fallback = experimentReturnUrl(experimentId, "results");
   if (!value) return fallback;
   try {
     const parsed = new URL(value, "https://local.invalid");
@@ -131,11 +136,7 @@ export function safeExperimentReturnUrl(
       return fallback;
     const returnCandidate = parsed.searchParams.get("candidateId");
     if (returnCandidate && returnCandidate !== candidateId) return fallback;
-    return candidateReturnUrl(
-      experimentId,
-      candidateId,
-      parsed.searchParams.get("view") ?? "results"
-    );
+    return experimentReturnUrl(experimentId, parsed.searchParams.get("view") ?? "results");
   } catch {
     return fallback;
   }

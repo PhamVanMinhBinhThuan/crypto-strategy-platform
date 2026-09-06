@@ -592,6 +592,9 @@ export function ExperimentConfigurationForm({
       ? searchSpaceCardinality
       : BigInt(maximumCandidates)
     : 0n;
+  const maximumLeaderboardSize = Number(
+    effectiveCandidateCount > 100n ? 100n : effectiveCandidateCount
+  );
   const leaderboardSizeValid =
     Number.isInteger(draft.topK) && draft.topK > 0 && effectiveCandidateCount >= BigInt(draft.topK);
 
@@ -654,6 +657,11 @@ export function ExperimentConfigurationForm({
       if (draft.maximumComponents !== 1) update("maximumComponents", 1);
     }
   }, [draft.maximumComponents, draft.minimumComponents, draft.strategyPool.length, update]);
+
+  useEffect(() => {
+    if (maximumLeaderboardSize > 0 && draft.topK > maximumLeaderboardSize)
+      update("topK", maximumLeaderboardSize);
+  }, [draft.topK, maximumLeaderboardSize, update]);
 
   useEffect(() => {
     if (
@@ -1473,7 +1481,7 @@ export function ExperimentConfigurationForm({
               number={4}
               title="Search limits"
               description="Set how much of the search space is evaluated and retained."
-              status={"Up to " + (draft.maximumCandidates || "0") + " candidates"}
+              status={`Up to ${formatNumber(effectiveCandidateCount)} ${effectiveCandidateCount === 1n ? "candidate" : "candidates"}`}
             >
               <div className="experiment-search-method">
                 <span>Search method</span>
@@ -1547,22 +1555,31 @@ export function ExperimentConfigurationForm({
                     aria-label="Leaderboard size"
                     type="number"
                     min="1"
-                    max="100"
+                    max={maximumLeaderboardSize || 100}
                     step="1"
                     value={draft.topK}
+                    readOnly={maximumLeaderboardSize === 1}
                     onBlur={() => touch("topK")}
                     onChange={(event) => update("topK", Number(event.target.value))}
                     aria-invalid={!!fieldError("topK")}
                   />
                   {fieldError("topK") && <small role="alert">{fieldError("topK")}</small>}
+                  {!fieldError("topK") && maximumLeaderboardSize > 0 && (
+                    <small>
+                      {maximumLeaderboardSize === 1
+                        ? "The selected search space has one fixed configuration, so the leaderboard size is 1."
+                        : `Choose from 1 to ${maximumLeaderboardSize}, based on the configurations that can be evaluated.`}
+                    </small>
+                  )}
                 </label>
               </div>
 
               <section className="experiment-cardinality-insight" aria-live="polite">
                 <strong>{formatNumber(searchSpaceCardinality)} possible configurations</strong>
                 <span>
-                  Up to {candidateLimitValid ? formatNumber(maximumCandidates) : "—"} configurations
-                  will be evaluated.
+                  Up to {candidateLimitValid ? formatNumber(effectiveCandidateCount) : "—"}{" "}
+                  {effectiveCandidateCount === 1n ? "configuration" : "configurations"} will be
+                  evaluated.
                 </span>
               </section>
 

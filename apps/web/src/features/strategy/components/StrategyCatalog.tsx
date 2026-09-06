@@ -23,12 +23,12 @@ export function StrategyCatalog({
   onSelectOwned: (id: string) => void;
 }) {
   return (
-    <aside className="strategy-library" aria-label="Thư viện Strategy">
+    <aside className="strategy-library" aria-label="Strategy library">
       <section>
-        <h2>Strategy hệ thống</h2>
-        {loadingSystem && <p role="status">Đang tải catalog…</p>}
+        <h2>System strategies</h2>
+        {loadingSystem && <p role="status">Loading catalog…</p>}
         {systemError && <p role="alert">{systemError}</p>}
-        {!loadingSystem && !systemError && !system.length && <p>Chưa có Strategy hệ thống.</p>}
+        {!loadingSystem && !systemError && !system.length && <p>No system strategies available.</p>}
         {system.map((item) => (
           <button
             className={selectedSystemId === item.strategyVersionId ? "is-selected" : undefined}
@@ -44,10 +44,10 @@ export function StrategyCatalog({
         ))}
       </section>
       <section>
-        <h2>Thư viện của tôi</h2>
-        {loadingOwned && <p role="status">Đang tải thư viện…</p>}
+        <h2>My library</h2>
+        {loadingOwned && <p role="status">Loading library…</p>}
         {ownedError && <p role="alert">{ownedError}</p>}
-        {!loadingOwned && !ownedError && !owned.length && <p>Chưa có Strategy riêng.</p>}
+        {!loadingOwned && !ownedError && !owned.length && <p>No personal strategies yet.</p>}
         {owned.map((item) => (
           <button
             className={selectedOwnedId === item.userStrategyId ? "is-selected" : undefined}

@@ -7,15 +7,15 @@ export function SentimentStatus({ item }: { item: NewsItem }) {
         <span>
           Confidence {item.sentiment.confidence} · Polarity {item.sentiment.polarityScore}
         </span>
-        <small>Dữ liệu tham khảo, không phải lời khuyên tài chính.</small>
+        <small>For informational purposes only; not financial advice.</small>
       </div>
     );
   const copy: Record<NewsItem["analysisStatus"], string> = {
-    PENDING: "Đang chờ phân tích sentiment.",
-    ANALYZING: "Đang phân tích sentiment.",
-    ANALYZED: "Kết quả sentiment không khả dụng.",
-    FAILED_RETRYABLE: "Sentiment tạm gián đoạn; bạn có thể tải lại News.",
-    FAILED: "Sentiment không khả dụng cho tin này."
+    PENDING: "Sentiment analysis is pending.",
+    ANALYZING: "Sentiment analysis is in progress.",
+    ANALYZED: "Sentiment results are unavailable.",
+    FAILED_RETRYABLE: "Sentiment analysis is temporarily unavailable; you can reload the news.",
+    FAILED: "Sentiment is unavailable for this article."
   };
   return (
     <div className="sentiment sentiment-degraded" role="status">

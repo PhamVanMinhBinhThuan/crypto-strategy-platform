@@ -34,7 +34,7 @@ public final class MovingAverageCrossoverPlugin implements StrategyPlugin {
                     integer("slowPeriod", 25, 3, 500, 20, 100, 10,
                             "Number of candles in the slower trend moving average.")),
                     List.of(new CrossParameterConstraint("fastPeriod", "slowPeriod"))),
-            "strategy-descriptor-v2:ma-crossover:1.0.0");
+            "strategy-descriptor-v1:ma-crossover:1.0.0");
     private static ParameterDefinition integer(String name, long defaultValue, long minimum,
             long maximum, long searchMinimum, long searchMaximum, long searchStep,
             String description) {

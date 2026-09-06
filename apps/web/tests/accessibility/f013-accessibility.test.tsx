@@ -8,6 +8,11 @@ import type { ApiClient } from "@/src/foundation/http/contracts";
 import { runningExperiment } from "@/src/features/experiments/fixtures/experiment-job-fixtures";
 
 describe("F-013 accessibility", () => {
+  it("presents the connected realtime state with a capitalized label", () => {
+    render(<RealtimeStatus value={{ status: "connected", attempt: 0 }} onReconnect={vi.fn()} />);
+    expect(screen.getByText("Connected", { exact: true })).toBeVisible();
+  });
+
   it("announces realtime degradation with text and an accessible retry", () => {
     render(
       <RealtimeStatus

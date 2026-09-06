@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ExperimentConfigurationForm } from "@/src/features/experiments/components/ExperimentConfigurationForm";
@@ -23,6 +23,56 @@ const frozenDataset = {
   status: "READY",
   createdAt: "2026-09-04T00:00:01Z"
 };
+
+const publishedUserStrategyVersion = {
+  userStrategyVersionId: "user-strategy-version-1",
+  userStrategyId: "user-strategy-1",
+  versionNo: 1,
+  kind: "SINGLE" as const,
+  source: {
+    type: "SINGLE" as const,
+    strategy: {
+      strategyId: "ma-crossover",
+      strategyVersionId: "strategy-version-013",
+      version: "1.0.0",
+      parameters: { fastPeriod: "12", slowPeriod: "64", priceSource: "CLOSE" }
+    }
+  },
+  status: "PUBLISHED" as const,
+  fingerprint: "strategy-v1:published-user-strategy",
+  publishedAt: "2026-09-04T01:01:00Z",
+  createdAt: "2026-09-04T01:00:00Z"
+};
+
+const withPublishedUserStrategy = () =>
+  withCatalog()
+    .respond("GET /api/v1/user-strategies", {
+      items: [
+        {
+          userStrategyId: "user-strategy-1",
+          kind: "SINGLE",
+          name: "My published strategy",
+          description: "Fixed configuration",
+          createdAt: "2026-09-04T01:00:00Z"
+        }
+      ],
+      nextCursor: null,
+      hasMore: false
+    })
+    .respond("GET /api/v1/user-strategies/user-strategy-1", {
+      userStrategyId: "user-strategy-1",
+      kind: "SINGLE",
+      name: "My published strategy",
+      description: "Fixed configuration",
+      status: "ACTIVE",
+      archivedAt: null,
+      createdAt: "2026-09-04T01:00:00Z",
+      updatedAt: "2026-09-04T01:01:00Z",
+      latestVersion: publishedUserStrategyVersion
+    })
+    .respond("GET /api/v1/user-strategies/user-strategy-1/versions", {
+      items: [publishedUserStrategyVersion]
+    });
 
 const withCatalog = (api = new MockApiClient()) =>
   api
@@ -69,6 +119,29 @@ describe("Experiment configuration form", () => {
     expect(screen.getByText("FIXTURE DATA")).toBeInTheDocument();
     expect(screen.getByText("Deterministic fixture mode")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start experiment" })).toBeEnabled();
+  });
+
+  it("automatically uses a leaderboard size of one for a fixed published strategy", async () => {
+    render(
+      <ExperimentConfigurationForm
+        api={withPublishedUserStrategy()}
+        fixture
+        initialUserStrategyVersionId="user-strategy-version-1"
+      />
+    );
+
+    const input = screen.getByLabelText("Leaderboard size");
+    await waitFor(() => expect(input).toHaveValue(1));
+    expect(input).toHaveAttribute("max", "1");
+    expect(input).toHaveAttribute("readonly");
+    expect(
+      screen.getByText(
+        "The selected search space has one fixed configuration, so the leaderboard size is 1."
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Leaderboard size cannot exceed the candidates that can be evaluated.")
+    ).not.toBeInTheDocument();
   });
   it("announces real acceptance and preserves the submitted draft", async () => {
     const api = withCatalog()

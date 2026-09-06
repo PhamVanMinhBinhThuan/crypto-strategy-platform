@@ -63,8 +63,8 @@ export function MarketDashboard() {
       if (result.ok) next[panel.id] = mergeCandles(emptyCandleState, result.data.items);
       else
         firstError ??= result.error.retryable
-          ? "Market đang tạm gián đoạn. Vui lòng thử lại."
-          : "Không thể tải dữ liệu Market cho lựa chọn hiện tại.";
+          ? "Market data is temporarily unavailable. Please try again."
+          : "Unable to load market data for the current selection.";
     });
     setPanels((current) => {
       for (const panel of selection.panels) {
@@ -111,18 +111,18 @@ export function MarketDashboard() {
       <AsyncStatus
         message={
           loading
-            ? "Đang tải dữ liệu Market"
+            ? "Loading market data"
             : error
-              ? "Market đang gián đoạn"
-              : "Market đã sẵn sàng"
+              ? "Market data is unavailable"
+              : "Market data is ready"
         }
         urgent={Boolean(error)}
       />
       <header className="market-heading">
         <div>
-          <p className="eyebrow">F-012 · Market</p>
+          <p className="eyebrow">Market</p>
           <h1>Market Dashboard</h1>
-          <p>{selection.pair} · bốn góc nhìn thời gian, một nguồn dữ liệu authoritative.</p>
+          <p>{selection.pair} · four timeframes, one authoritative data source.</p>
         </div>
         <MarketConnectionStatus transport={transport} provider={provider} lastDataAt={lastDataAt} />
       </header>
@@ -140,7 +140,7 @@ export function MarketDashboard() {
       {error && (
         <div className="market-error" role="alert">
           {error}
-          <button onClick={() => void load()}>Thử lại</button>
+          <button onClick={() => void load()}>Retry</button>
         </div>
       )}
       <section className="market-grid" aria-busy={loading}>
@@ -152,7 +152,7 @@ export function MarketDashboard() {
             </header>
             {loading && !panels[panel.id] ? (
               <div className="market-empty" role="status">
-                Đang tải…
+                Loading…
               </div>
             ) : (
               <CandleChart

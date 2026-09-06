@@ -48,6 +48,18 @@ class StrategyPluginsTest {
     }
 
     @Test
+    void metadataEnhancementsKeepThePublishedDescriptorIdentitiesStable() {
+        for (StrategyPlugin plugin : StrategyPlugins.trusted()) {
+            StrategyDescriptor descriptor = plugin.descriptor();
+            String pluginId = descriptor.reference().pluginId().value();
+
+            assertEquals(
+                    "strategy-descriptor-v1:" + pluginId + ":1.0.0",
+                    descriptor.descriptorFingerprint());
+        }
+    }
+
+    @Test
     void everyTrustedPluginResolvesDefaultsAndCreatesThroughTheSharedContract() {
         StrategyParameterValidator validator = new StrategyParameterValidator();
 

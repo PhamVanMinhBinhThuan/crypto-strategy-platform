@@ -8,7 +8,7 @@ describe("Sentiment presentation", () => {
   it("shows public analyzed fields and disclaimer", () => {
     render(<SentimentStatus item={item} />);
     expect(screen.getByText(/Confidence 0.80/)).toBeInTheDocument();
-    expect(screen.getByText(/không phải lời khuyên/)).toBeInTheDocument();
+    expect(screen.getByText(/not financial advice/)).toBeInTheDocument();
   });
   for (const status of ["PENDING", "ANALYZING", "FAILED_RETRYABLE", "FAILED"] as const)
     it(`keeps ${status} honest`, () => {

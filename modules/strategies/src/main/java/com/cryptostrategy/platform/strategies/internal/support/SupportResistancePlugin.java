@@ -42,7 +42,7 @@ public final class SupportResistancePlugin implements StrategyPlugin {
                                     "Maximum percentage distance treated as near a price level."),
                             enumeration("ruleMode", BOUNCE, Set.of(BOUNCE))),
                     List.of()),
-            "strategy-descriptor-v2:support-resistance:1.0.0");
+            "strategy-descriptor-v1:support-resistance:1.0.0");
 
     @Override
     public StrategyDescriptor descriptor() {

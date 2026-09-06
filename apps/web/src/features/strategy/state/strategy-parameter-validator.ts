@@ -22,22 +22,22 @@ export function validateStrategyParameters(
   for (const field of descriptor.parameters) {
     const value = values[field.name] ?? "";
     if (field.required && !value) {
-      issues[field.name] = "Bắt buộc.";
+      issues[field.name] = "Required.";
       continue;
     }
     if (!value) continue;
     if (["INTEGER", "DECIMAL"].includes(field.type) && !decimal.test(value))
-      issues[field.name] = "Giá trị số không hợp lệ.";
+      issues[field.name] = "Enter a valid number.";
     else if (field.type === "INTEGER" && !/^-?(0|[1-9][0-9]*)$/.test(value))
-      issues[field.name] = "Phải là số nguyên.";
+      issues[field.name] = "Must be a whole number.";
     else if (field.type === "BOOLEAN" && !["true", "false"].includes(value))
-      issues[field.name] = "Phải là true hoặc false.";
+      issues[field.name] = "Must be true or false.";
     else if (field.type === "ENUM" && !field.allowedValues.includes(value))
-      issues[field.name] = "Giá trị không được hỗ trợ.";
+      issues[field.name] = "Unsupported value.";
     else if (field.minimum && compareDecimal(value, field.minimum) < 0)
-      issues[field.name] = `Tối thiểu ${field.minimum}.`;
+      issues[field.name] = `Minimum value: ${field.minimum}.`;
     else if (field.maximum && compareDecimal(value, field.maximum) > 0)
-      issues[field.name] = `Tối đa ${field.maximum}.`;
+      issues[field.name] = `Maximum value: ${field.maximum}.`;
   }
   for (const rule of descriptor.constraints) {
     const lower = values[rule.lowerParameter],
@@ -49,7 +49,7 @@ export function validateStrategyParameters(
       decimal.test(upper) &&
       compareDecimal(lower, upper) >= 0
     )
-      issues[rule.upperParameter] = `Phải lớn hơn ${rule.lowerParameter}.`;
+      issues[rule.upperParameter] = `Must be greater than ${rule.lowerParameter}.`;
   }
   return issues;
 }

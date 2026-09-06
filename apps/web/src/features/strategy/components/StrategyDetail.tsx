@@ -11,17 +11,17 @@ export function StrategyDetail({
   if (!descriptor && !owned)
     return (
       <section className="strategy-detail">
-        <p>Chọn một Strategy để xem chi tiết.</p>
+        <p>Select a strategy to view its details.</p>
       </section>
     );
   if (owned)
     return (
       <section className="strategy-detail">
-        <p className="eyebrow">Strategy riêng</p>
+        <p className="eyebrow">Personal strategy</p>
         <h2>{owned.name}</h2>
         <p>{owned.description}</p>
         <dl>
-          <dt>Trạng thái</dt>
+          <dt>Status</dt>
           <dd>{owned.status}</dd>
           <dt>Version</dt>
           <dd>
@@ -35,7 +35,7 @@ export function StrategyDetail({
             const source = owned.latestVersion.source;
             const weighted = source.policyId === "weighted-vote";
             return (
-              <section className="composite-policy-summary" aria-label="Quy tắc Composite">
+              <section className="composite-policy-summary" aria-label="Composite policy">
                 <header>
                   <div>
                     <span className="strategy-section-kicker">Combination policy</span>
@@ -45,8 +45,8 @@ export function StrategyDetail({
                 </header>
                 <p>
                   {weighted
-                    ? "Mỗi tín hiệu được nhân với trọng số. Tín hiệu có tổng trọng số cao nhất thắng; nếu bằng nhau thì trả HOLD."
-                    : "Mỗi Strategy có một phiếu. Tín hiệu có nhiều phiếu nhất thắng; nếu bằng phiếu nhau thì trả HOLD."}
+                    ? "Each signal is multiplied by its weight. The signal with the highest total wins; ties return HOLD."
+                    : "Each strategy gets one vote. The signal with the most votes wins; ties return HOLD."}
                 </p>
                 <ul className="composite-component-summary">
                   {source.components.map((component) => {
@@ -59,13 +59,13 @@ export function StrategyDetail({
                         <span>{system?.displayName ?? component.strategyId}</span>
                         <small>
                           v{component.version}
-                          {weighted ? ` · trọng số ${weight ?? "?"}` : " · 1 phiếu"}
+                          {weighted ? ` · weight ${weight ?? "?"}` : " · 1 vote"}
                         </small>
                       </li>
                     );
                   })}
                 </ul>
-                <div className="policy-examples" aria-label="Ví dụ kết hợp tín hiệu">
+                <div className="policy-examples" aria-label="Signal combination examples">
                   <span>
                     <code>{weighted ? "BUY 0.7 · SELL 0.3" : "BUY 2 · SELL 1"}</code>
                     <strong>→ BUY</strong>
@@ -76,19 +76,19 @@ export function StrategyDetail({
                   </span>
                 </div>
                 <small className="illustration-note">
-                  Ví dụ minh họa quy tắc, không phải tín hiệu thị trường hiện tại.
+                  Illustrative policy examples, not current market signals.
                 </small>
               </section>
             );
           })()}
         {owned.latestVersion.status === "PUBLISHED" && (
-          <p role="note">Version đã publish là bất biến. Hãy tạo version mới để thay đổi.</p>
+          <p role="note">Published versions are immutable. Create a new version to make changes.</p>
         )}
       </section>
     );
   return (
     <section className="strategy-detail">
-      <p className="eyebrow">Strategy hệ thống</p>
+      <p className="eyebrow">System strategy</p>
       <h2>{descriptor!.displayName}</h2>
       <p>{descriptor!.description}</p>
       <dl>
@@ -99,8 +99,8 @@ export function StrategyDetail({
         <dt>Fingerprint</dt>
         <dd>{descriptor!.descriptorFingerprint}</dd>
       </dl>
-      <section className="supported-signals" aria-label="Tín hiệu hỗ trợ">
-        <span>Tín hiệu hỗ trợ</span>
+      <section className="supported-signals" aria-label="Supported signals">
+        <span>Supported signals</span>
         <div>
           {descriptor!.supportedSignals.map((signal) => (
             <strong className={`signal-badge signal-${signal.toLowerCase()}`} key={signal}>

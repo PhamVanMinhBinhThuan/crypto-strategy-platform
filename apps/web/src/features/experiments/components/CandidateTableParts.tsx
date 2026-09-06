@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { CandidatePipelineItem, CandidatePipelineView } from "../types/experiment";
 import { parameterSummary, statusLabel, strategyName } from "./candidate-presentation";
+import { experimentReturnUrl } from "@/src/foundation/navigation/resource-history";
 
 export function CandidateCell({ item }: { item: CandidatePipelineItem }) {
   const summary = parameterSummary(item.definition);
@@ -27,19 +28,29 @@ export function StatusBadge({ value }: { value: string }) {
 export function ViewDetailsAction({
   experimentId,
   candidateId,
+  backtestResultId,
+  failed = false,
   candidateNumber,
   view
 }: {
   experimentId: string;
   candidateId: string;
+  backtestResultId: string | null;
+  failed?: boolean;
   candidateNumber: number;
   view: CandidatePipelineView;
 }) {
+  const returnUrl = experimentReturnUrl(experimentId, view.toLowerCase());
+  const href =
+    backtestResultId && !failed && view !== "FAILED"
+      ? `/backtests?resultId=${encodeURIComponent(backtestResultId)}&returnTo=${encodeURIComponent(returnUrl)}`
+      : `/search/${encodeURIComponent(experimentId)}?view=${view.toLowerCase()}&candidateId=${encodeURIComponent(candidateId)}`;
+
   return (
     <Link
       className="button secondary candidate-action"
       data-candidate-detail-trigger={candidateId}
-      href={`/search/${encodeURIComponent(experimentId)}?view=${view.toLowerCase()}&candidateId=${encodeURIComponent(candidateId)}`}
+      href={href}
       scroll={false}
       aria-label={`View details for Candidate #${candidateNumber}`}
     >

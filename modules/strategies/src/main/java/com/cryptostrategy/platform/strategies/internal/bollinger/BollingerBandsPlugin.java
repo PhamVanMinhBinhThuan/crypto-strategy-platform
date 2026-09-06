@@ -42,7 +42,7 @@ public final class BollingerBandsPlugin implements StrategyPlugin {
                                     "Multiplier controlling band width; larger values produce fewer signals."),
                             enumeration("ruleMode", MEAN_REVERSION, Set.of(MEAN_REVERSION))),
                     List.of()),
-            "strategy-descriptor-v2:bollinger-bands:1.0.0");
+            "strategy-descriptor-v1:bollinger-bands:1.0.0");
 
     @Override
     public StrategyDescriptor descriptor() {

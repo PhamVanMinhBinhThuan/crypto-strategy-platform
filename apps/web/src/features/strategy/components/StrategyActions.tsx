@@ -24,19 +24,19 @@ export function StrategyActions({
           className="strategy-backtest-link"
           href={`/search?userStrategyVersionId=${encodeURIComponent(backtestVersionId)}`}
         >
-          Backtest Strategy này
+          Backtest this strategy
         </Link>
       ) : null}
       {!archived && (
         <button disabled={pending} onClick={onNewVersion}>
-          Tạo version mới
+          Create new version
         </button>
       )}
       {canPublish && (
         <button
           disabled={pending}
           onClick={() =>
-            window.confirm("Publish version này? Version sẽ trở thành bất biến.") && onPublish()
+            window.confirm("Publish this version? It will become immutable.") && onPublish()
           }
         >
           Publish version
@@ -45,7 +45,7 @@ export function StrategyActions({
       {!archived && (
         <button
           disabled={pending}
-          onClick={() => window.confirm("Archive Strategy này?") && onArchive()}
+          onClick={() => window.confirm("Archive this strategy?") && onArchive()}
         >
           Archive
         </button>
