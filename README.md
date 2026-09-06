@@ -638,8 +638,3 @@ Xem danh sách đầy đủ và trạng thái từng quyết định tại [ADR 
 > [!WARNING]
 > Dự án phục vụ học tập và nghiên cứu. Kết quả backtest không bảo đảm hiệu quả giao dịch trong tương lai và không phải lời khuyên tài chính. Hệ thống không thực hiện giao dịch bằng tiền thật.
 
-<a id="license"></a>
-
-## ⚖️ Giấy phép
-
-Repository hiện chưa công bố giấy phép. Không mặc định sao chép, phân phối hoặc sử dụng ngoài phạm vi được chủ sở hữu cho phép.
