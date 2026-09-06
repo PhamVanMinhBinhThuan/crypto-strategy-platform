@@ -2,6 +2,8 @@ package com.cryptostrategy.platform.leaderboard.api.model;
 
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.job.JobId;
+import com.cryptostrategy.platform.evaluation.api.model.EvaluationResultId;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
@@ -25,10 +27,10 @@ public record CandidatePipelineEntry(
     }
 
     public record Failure(String code, String message) {}
-    public record BacktestStage(String jobId, String status, String backtestResultId,
+    public record BacktestStage(JobId jobId, String status, LeaderboardBacktestResultId backtestResultId,
             Instant startedAt, Instant finishedAt, Integer attemptNo, Instant nextRetryAt,
             boolean retryable, Failure failure) {}
-    public record EvaluationStage(String status, String evaluationResultId, BigDecimal score,
+    public record EvaluationStage(String status, EvaluationResultId evaluationResultId, BigDecimal score,
             BigDecimal totalReturn, BigDecimal winRate, BigDecimal maximumDrawdown,
             Integer numberOfTrades, String metricVersion, Boolean eligible,
             EligibilityReason eligibilityReason, Instant evaluatedAt) {}

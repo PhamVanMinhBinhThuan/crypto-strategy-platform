@@ -29,6 +29,10 @@ public class HealthConfiguration {
     private static Health connectionHealth(DataSource dataSource) {
         try (Connection connection = dataSource.getConnection()) {
             if (!connection.isValid(2)) return Health.down().build();
+            if (!"PostgreSQL".equalsIgnoreCase(
+                    connection.getMetaData().getDatabaseProductName())) {
+                return Health.up().build();
+            }
             try (var statement = connection.prepareStatement(
                     "select to_regclass('market.dataset_access') is not null");
                     var result = statement.executeQuery()) {

@@ -12,6 +12,7 @@ import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
 import com.cryptostrategy.platform.experiment.api.ExperimentStatus;
 import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
+import com.cryptostrategy.platform.experiment.api.job.JobStatus;
 import com.cryptostrategy.platform.experiment.api.job.JobType;
 import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenanceSnapshot;
 import java.math.BigDecimal;
@@ -62,6 +63,7 @@ class SearchProgressApiTest {
         when(job.jobId()).thenReturn(new JobId(id));
         when(job.experimentId()).thenReturn(experimentId);
         when(job.jobType()).thenReturn(type);
+        when(job.status()).thenReturn(JobStatus.SUCCEEDED);
         return job;
     }
 }

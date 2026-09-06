@@ -18,6 +18,8 @@ import java.util.Map;
 import com.cryptostrategy.platform.execution.api.port.in.GetSearchProgressUseCase.SearchProgressSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenanceSnapshot;
 import com.cryptostrategy.platform.leaderboard.api.model.CandidatePipelineEntry;
+import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardBacktestResultId;
+import com.cryptostrategy.platform.evaluation.api.model.EvaluationResultId;
 
 public final class ReadDtos {
     private ReadDtos() {}
@@ -211,7 +213,10 @@ public final class ReadDtos {
         }
     }
 
-    public record PipelineBacktestResponse(String jobId, String status, String backtestResultId,
+    public record PipelineBacktestResponse(
+            @JsonSerialize(using = TypedUlidSerializer.class) JobId jobId,
+            String status,
+            @JsonSerialize(using = TypedUlidSerializer.class) LeaderboardBacktestResultId backtestResultId,
             Instant startedAt, Instant finishedAt, Integer attemptNo, Instant nextRetryAt,
             boolean retryable, FailureResponse failure) {
         public static PipelineBacktestResponse from(CandidatePipelineEntry.BacktestStage value) {
@@ -223,7 +228,10 @@ public final class ReadDtos {
         }
     }
 
-    public record PipelineEvaluationResponse(String status, String evaluationResultId, String score,
+    public record PipelineEvaluationResponse(
+            String status,
+            @JsonSerialize(using = TypedUlidSerializer.class) EvaluationResultId evaluationResultId,
+            String score,
             String totalReturn, String winRate, String maximumDrawdown, Integer numberOfTrades,
             String metricVersion, Boolean eligible, EligibilityReasonResponse eligibilityReason,
             Instant evaluatedAt) {

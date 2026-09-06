@@ -34,7 +34,7 @@ public class ApiExceptionHandler {
         PublicErrorMapper.MappedError error = errorMapper.map(exception);
         if (error.status().is5xxServerError()) {
             LOGGER.error("request_failed code={} status={} exceptionType={}",
-                    error.code(), error.status().value(), exception.getClass().getSimpleName(), exception);
+                    error.code(), error.status().value(), exception.getClass().getSimpleName());
         }
         return response(error, request);
     }
