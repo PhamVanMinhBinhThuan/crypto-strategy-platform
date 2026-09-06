@@ -1,6 +1,9 @@
 import { MockApiClient } from "../testing/mock-api-client";
 import { MockRealtimeClient } from "../testing/mock-realtime-client";
-import { backtestResultHistoryPage, normalBacktestResult } from "../../features/backtests/fixtures/backtest-result-fixtures";
+import {
+  backtestResultHistoryPage,
+  normalBacktestResult
+} from "../../features/backtests/fixtures/backtest-result-fixtures";
 import {
   runningExperiment,
   runningJob,
@@ -36,9 +39,18 @@ export function createFixtureClients() {
     .respond("/api/v1/experiments/experiment-013", runningExperiment)
     .respond("/api/v1/jobs/job-search-013", runningJob)
     .respond("/api/v1/experiments/experiment-013/candidates?limit=50", candidatePage)
-    .respond("/api/v1/experiments/experiment-013/candidate-pipeline?view=RESULTS&limit=10", candidatePipelinePage)
-    .respond("/api/v1/experiments/experiment-013/candidate-pipeline?view=FAILED&limit=10", { ...candidatePipelinePage, items: [] })
-    .respond("/api/v1/experiments/experiment-013/candidate-pipeline?view=ALL&limit=10", candidatePipelinePage)
+    .respond(
+      "/api/v1/experiments/experiment-013/candidate-pipeline?view=RESULTS&limit=10",
+      candidatePipelinePage
+    )
+    .respond("/api/v1/experiments/experiment-013/candidate-pipeline?view=FAILED&limit=10", {
+      ...candidatePipelinePage,
+      items: []
+    })
+    .respond(
+      "/api/v1/experiments/experiment-013/candidate-pipeline?view=ALL&limit=10",
+      candidatePipelinePage
+    )
     .respond("/api/v1/experiments/experiment-013/leaderboard?limit=10", leaderboardPage)
     .respond("/api/v1/strategies", strategyDescriptorPage)
     .respond("/api/v1/user-strategies", emptyUserStrategyPage)

@@ -106,11 +106,7 @@ describe("F-015 composite leaderboard", () => {
     });
 
     render(
-      <CandidateDetailPanel
-        api={api}
-        experimentId="experiment-013"
-        candidateId="candidate-013"
-      />
+      <CandidateDetailPanel api={api} experimentId="experiment-013" candidateId="candidate-013" />
     );
 
     expect(await screen.findByText("Candidate #8")).toBeInTheDocument();
@@ -119,7 +115,7 @@ describe("F-015 composite leaderboard", () => {
     expect(screen.getByText(`sha256:${"d".repeat(64)}`)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View full backtest result" })).toHaveAttribute(
       "href",
-      "/backtests?resultId=result-013"
+      "/backtests?resultId=result-013&returnTo=%2Fsearch%2Fexperiment-013%3Fview%3Dresults%26candidateId%3Dcandidate-013"
     );
     expect(screen.queryByText(/Sharpe/i)).not.toBeInTheDocument();
   });

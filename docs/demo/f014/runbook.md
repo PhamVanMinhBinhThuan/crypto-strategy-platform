@@ -82,6 +82,9 @@ export PLATFORM_FEATURE_SEARCH_REPRODUCE_ENABLED=true
 export PLATFORM_SECURITY_ALLOWED_ORIGINS=http://localhost:3000
 export NEWS_ENABLED=true
 export SENTIMENT_SERVICE_URL=http://127.0.0.1:8000
+export SENTIMENT_MODEL_NAME=multichannel-english
+export SENTIMENT_MODEL_VERSION=multichannel-english-1.0.0
+export SENTIMENT_PREPROCESSING_VERSION=multichannel-whitespace-en-1
 ```
 
 Nếu Redis không chạy local, inject `WORKER_REDIS_HOST`, `WORKER_REDIS_PORT`, optional username/password/SSL cho Worker và cấu hình Spring Data Redis tương ứng cho API. Mỗi Worker song song phải có `WORKER_CONSUMER_CONSUMER_NAME` khác nhau.
@@ -202,6 +205,9 @@ source .env.local
 set +a
 export NEWS_ENABLED=true
 export SENTIMENT_SERVICE_URL=http://127.0.0.1:8000
+export SENTIMENT_MODEL_NAME=multichannel-english
+export SENTIMENT_MODEL_VERSION=multichannel-english-1.0.0
+export SENTIMENT_PREPROCESSING_VERSION=multichannel-whitespace-en-1
 export WORKER_CONSUMER_CONSUMER_NAME=worker-demo-1
 ./gradlew :apps:worker:bootRun --no-daemon
 ```

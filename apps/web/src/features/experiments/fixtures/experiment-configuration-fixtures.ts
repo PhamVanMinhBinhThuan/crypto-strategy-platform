@@ -5,10 +5,10 @@ export const knownDataset = {
 export const frozenDatasetFixture = {
   datasetId: "dataset-btc-1h",
   version: "candle-v1",
-  provider: "BINANCE",
+  provider: "FIXTURE_EXCHANGE",
   pair: "BTC/USDT",
   timeframe: "1h",
-  normalizationVersion: "binance-v1",
+  normalizationVersion: "fixture-normalization-v1",
   startTime: "2026-08-01T00:00:00Z",
   endTime: "2026-09-01T00:00:00Z",
   membershipCount: 744,

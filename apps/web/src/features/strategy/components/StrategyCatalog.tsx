@@ -6,6 +6,8 @@ export function StrategyCatalog({
   loadingOwned,
   systemError,
   ownedError,
+  selectedSystemId,
+  selectedOwnedId,
   onSelectSystem,
   onSelectOwned
 }: {
@@ -15,6 +17,8 @@ export function StrategyCatalog({
   loadingOwned: boolean;
   systemError?: string;
   ownedError?: string;
+  selectedSystemId?: string;
+  selectedOwnedId?: string;
   onSelectSystem: (v: StrategyDescriptor) => void;
   onSelectOwned: (id: string) => void;
 }) {
@@ -26,7 +30,12 @@ export function StrategyCatalog({
         {systemError && <p role="alert">{systemError}</p>}
         {!loadingSystem && !systemError && !system.length && <p>Chưa có Strategy hệ thống.</p>}
         {system.map((item) => (
-          <button key={item.strategyVersionId} onClick={() => onSelectSystem(item)}>
+          <button
+            className={selectedSystemId === item.strategyVersionId ? "is-selected" : undefined}
+            aria-pressed={selectedSystemId === item.strategyVersionId}
+            key={item.strategyVersionId}
+            onClick={() => onSelectSystem(item)}
+          >
             <strong>{item.displayName}</strong>
             <span>
               {item.category} · v{item.version}
@@ -40,7 +49,12 @@ export function StrategyCatalog({
         {ownedError && <p role="alert">{ownedError}</p>}
         {!loadingOwned && !ownedError && !owned.length && <p>Chưa có Strategy riêng.</p>}
         {owned.map((item) => (
-          <button key={item.userStrategyId} onClick={() => onSelectOwned(item.userStrategyId)}>
+          <button
+            className={selectedOwnedId === item.userStrategyId ? "is-selected" : undefined}
+            aria-pressed={selectedOwnedId === item.userStrategyId}
+            key={item.userStrategyId}
+            onClick={() => onSelectOwned(item.userStrategyId)}
+          >
             <strong>{item.name}</strong>
             <span>{item.kind}</span>
           </button>

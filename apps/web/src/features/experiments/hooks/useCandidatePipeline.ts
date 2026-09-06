@@ -90,7 +90,6 @@ export function useCandidatePipeline(
     if (previousExperiment.current === experimentId) return;
     previousExperiment.current = experimentId;
     for (const item of views) requestVersions.current[item]++;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- route identity resets cached API snapshots
     setStates(emptyViews());
     setCounts({ resultCount: 0, failedCount: 0, totalCount: 0 });
     setCountsLoaded(false);
@@ -99,6 +98,7 @@ export function useCandidatePipeline(
   const active = states[view];
   useEffect(() => {
     if (!experimentId || active.page || active.loading) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- an empty view starts its external API synchronization
     void load(view);
   }, [active.loading, active.page, experimentId, load, view]);
 
@@ -114,12 +114,8 @@ export function useCandidatePipeline(
   const notifyUpdate = useCallback(() => {
     setStates((current) => ({
       ...current,
-      RESULTS: current.RESULTS.page
-        ? { ...current.RESULTS, stale: true }
-        : current.RESULTS,
-      FAILED: current.FAILED.page
-        ? { ...current.FAILED, stale: true }
-        : current.FAILED
+      RESULTS: current.RESULTS.page ? { ...current.RESULTS, stale: true } : current.RESULTS,
+      FAILED: current.FAILED.page ? { ...current.FAILED, stale: true } : current.FAILED
     }));
     const pipeline = states.ALL;
     void load("ALL", pipeline.cursor, pipeline.history);

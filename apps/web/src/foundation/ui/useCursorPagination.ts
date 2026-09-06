@@ -20,29 +20,32 @@ export function useCursorPagination<T>(
   const [error, setError] = useState<string>();
   const requestVersion = useRef(0);
 
-  const load = useCallback(async (
-    targetCursor?: string,
-    targetHistory: Array<string | undefined> = history
-  ) => {
-    const request = ++requestVersion.current;
-    setLoading(true);
-    setError(undefined);
-    const result = await loadPage(targetCursor);
-    if (request !== requestVersion.current) return;
-    if (result.ok) {
-      setPage(result.data);
-      setCursor(targetCursor);
-      setHistory(targetHistory);
-    } else {
-      setError(result.error.message);
-    }
-    setLoading(false);
-  }, [history, loadPage]);
+  const load = useCallback(
+    async (targetCursor?: string, targetHistory: Array<string | undefined> = history) => {
+      const request = ++requestVersion.current;
+      setLoading(true);
+      setError(undefined);
+      const result = await loadPage(targetCursor);
+      if (request !== requestVersion.current) return;
+      if (result.ok) {
+        setPage(result.data);
+        setCursor(targetCursor);
+        setHistory(targetHistory);
+      } else {
+        setError("More results could not be loaded. Please retry.");
+      }
+      setLoading(false);
+    },
+    [history, loadPage]
+  );
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- route entry starts an external API synchronization
     void load(undefined, []);
-    return () => { requestVersion.current++; };
+    const requests = requestVersion;
+    return () => {
+      requests.current++;
+    };
     // load intentionally changes after page navigation because it closes over history.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadPage]);

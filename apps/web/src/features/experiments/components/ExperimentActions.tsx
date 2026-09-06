@@ -28,8 +28,12 @@ export function ExperimentActions({
   return (
     <section className="actions" aria-live="polite">
       {stoppable && (
-        <button ref={trigger} className="button danger"
-          disabled={state.status === "submitting"} onClick={() => setConfirm(true)}>
+        <button
+          ref={trigger}
+          className="button danger"
+          disabled={state.status === "submitting"}
+          onClick={() => setConfirm(true)}
+        >
           Stop Experiment
         </button>
       )}
@@ -74,8 +78,11 @@ export function ExperimentActions({
         <p role="alert">State changed; refreshing the authoritative experiment.</p>
       )}
       {reproducible && (
-        <button className="button secondary" disabled={commands.reproduce.status === "submitting"}
-          onClick={() => void commands.reproduceExperiment(experiment.experimentId)}>
+        <button
+          className="button secondary"
+          disabled={commands.reproduce.status === "submitting"}
+          onClick={() => void commands.reproduceExperiment(experiment.experimentId)}
+        >
           Reproduce Experiment
         </button>
       )}

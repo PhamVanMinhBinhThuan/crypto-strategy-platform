@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.cryptostrategy.platform.combination.internal.DefaultCompositeStrategyMaterializer;
 import com.cryptostrategy.platform.strategy.api.Strategy;
 import com.cryptostrategy.platform.strategy.api.model.*;
+import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 
@@ -12,13 +13,13 @@ class CompositeStrategyMaterializerTest {
         var policyRef = new CombinationPolicyReference(new CombinationPolicyId("majority"), new SemanticVersion(1,0,0));
         CombinationPolicy policy = new CombinationPolicy() {
             public CombinationPolicyReference reference() { return policyRef; }
-            public StrategySignal combine(List<StrategyDecision> decisions) { return StrategySignal.HOLD; }
+            public StrategySignal combine(List<StrategyDecision> decisions, StrategyParameterSet parameters) { return StrategySignal.HOLD; }
         };
         Strategy component = context -> null;
         var materializer = new DefaultCompositeStrategyMaterializer(List.of(policy));
         var reference = new StrategyReference(new StrategyVersionId("01J00000000000000000000000"),
                 new StrategyPluginId("composite"), new SemanticVersion(1,0,0));
         assertThrows(IllegalArgumentException.class,
-                () -> materializer.materialize(reference, policyRef, List.of(component)));
+                () -> materializer.materialize(reference, policyRef, StrategyParameterSet.empty(), List.of(component)));
     }
 }

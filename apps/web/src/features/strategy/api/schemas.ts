@@ -76,6 +76,9 @@ export const userStrategyVersionSchema = z
     createdAt: z.iso.datetime({ offset: true })
   })
   .strict();
+export const userStrategyVersionListSchema = z
+  .object({ items: z.array(userStrategyVersionSchema) })
+  .strict();
 export const userStrategySchema = z
   .object({
     userStrategyId: z.string().min(1),

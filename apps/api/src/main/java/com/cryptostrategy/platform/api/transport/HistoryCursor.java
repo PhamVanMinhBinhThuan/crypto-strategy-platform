@@ -6,12 +6,12 @@ import java.util.Base64;
 import java.util.regex.Pattern;
 
 /** Versioned cursor shared by recent-resource endpoints. */
-public record HistoryCursor(String kind, Instant timestamp, String id) {
+public record HistoryCursor(String kind, Instant timestamp, String resourceKey) {
     private static final String VERSION = "history-v1";
     private static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z0-9_-]{6,128}");
 
     public String encode() {
-        String raw = String.join("\n", VERSION, kind, timestamp.toString(), id);
+        String raw = String.join("\n", VERSION, kind, timestamp.toString(), resourceKey);
         return Base64.getUrlEncoder().withoutPadding()
                 .encodeToString(raw.getBytes(StandardCharsets.UTF_8));
     }

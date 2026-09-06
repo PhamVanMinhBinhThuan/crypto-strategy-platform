@@ -10,9 +10,10 @@ import {
 import {
   getUserStrategy,
   listSystemStrategies,
+  listUserStrategyVersions,
   listUserStrategies
 } from "../../strategy/api/strategy-api";
-import type { StrategyDescriptor, UserStrategy } from "../../strategy/model/strategy";
+import type { StrategyDescriptor, UserStrategyVersion } from "../../strategy/model/strategy";
 import { useExperimentConfiguration } from "../hooks/useExperimentConfiguration";
 import { useExperimentCommands } from "../hooks/useExperimentCommands";
 import {
@@ -45,16 +46,25 @@ const searchDomains = (strategy: StrategyDescriptor): Record<string, SearchParam
         ? {
             kind: "RANGE" as const,
             valueType: parameter.type,
-            minimum: parameter.searchRangeHint?.minimum ?? parameter.minimum ?? parameter.defaultValue ?? "0",
-            maximum: parameter.searchRangeHint?.maximum ?? parameter.maximum ?? parameter.defaultValue ?? "0",
+            minimum:
+              parameter.searchRangeHint?.minimum ??
+              parameter.minimum ??
+              parameter.defaultValue ??
+              "0",
+            maximum:
+              parameter.searchRangeHint?.maximum ??
+              parameter.maximum ??
+              parameter.defaultValue ??
+              "0",
             step: parameter.searchRangeHint?.step ?? (parameter.type === "DECIMAL" ? "0.1" : "1")
           }
         : { kind: "OPTIONS" as const, options: parameter.allowedValues }
     ])
   );
-const parameterInfo = (strategy: StrategyDescriptor) => Object.fromEntries(
-  strategy.parameters.map((parameter) => [parameter.name, { description: parameter.description }])
-);
+const parameterInfo = (strategy: StrategyDescriptor) =>
+  Object.fromEntries(
+    strategy.parameters.map((parameter) => [parameter.name, { description: parameter.description }])
+  );
 const parameterLabels: Readonly<Record<string, string>> = {
   standardDeviation: "Standard deviation multiplier",
   fastPeriod: "Fast period",
@@ -66,9 +76,9 @@ const parameterLabels: Readonly<Record<string, string>> = {
   tolerance: "Price tolerance",
   tolerancePercent: "Price tolerance (%)"
 };
-const humanize = (value: string) => parameterLabels[value] ?? value
-  .replace(/([a-z])([A-Z])/g, "$1 $2")
-  .replace(/^./, (letter) => letter.toUpperCase());
+const humanize = (value: string) =>
+  parameterLabels[value] ??
+  value.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (letter) => letter.toUpperCase());
 const formatNumber = (value: number | bigint) =>
   new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(value);
 const secondsToMinutes = (value: string) => {
@@ -89,9 +99,12 @@ const timeframeMilliseconds: Readonly<Record<string, number>> = {
   "4h": 4 * 60 * 60_000,
   "1d": 24 * 60 * 60_000
 };
-const formatUtc = (value: string) => new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium", timeStyle: "short", timeZone: "UTC"
-}).format(new Date(value));
+const formatUtc = (value: string) =>
+  new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC"
+  }).format(new Date(value));
 const datasetOptionLabel = (dataset: DatasetResponse) =>
   `${dataset.pair} · ${dataset.timeframe} · ${formatUtc(dataset.startTime)} → ${formatUtc(dataset.endTime)} UTC · ${dataset.membershipCount} candles · created ${formatUtc(dataset.createdAt)}`;
 
@@ -120,6 +133,11 @@ type GeneratorResponse = Readonly<{
   displayName: string;
 }>;
 type GeneratorListResponse = Readonly<{ items: GeneratorResponse[] }>;
+type PublishedStrategyOption = Readonly<{
+  name: string;
+  description: string;
+  version: UserStrategyVersion;
+}>;
 
 const cardinality = (
   pool: ReadonlyArray<{
@@ -223,16 +241,18 @@ const datasetErrorMessage = (error: PublicError) => {
   if (error.code === "MARKET_DATA_GAP")
     return "No complete candles were returned for this range. Choose an older aligned range and retry.";
   if (error.code === "MARKET_PROVIDER_UNAVAILABLE")
-    return "Binance is unavailable. Check the API network connection and retry.";
+    return "The market data provider is unavailable. Check the API network connection and retry.";
   return error.message;
 };
 
 export function ExperimentConfigurationForm({
   api,
-  fixture
+  fixture,
+  initialUserStrategyVersionId
 }: {
   api: ApiClient;
   fixture: boolean;
+  initialUserStrategyVersionId?: string;
 }) {
   const router = useRouter();
   const {
@@ -246,16 +266,16 @@ export function ExperimentConfigurationForm({
   } = useExperimentConfiguration();
   const commands = useExperimentCommands(api);
   const [systemStrategies, setSystemStrategies] = useState<StrategyDescriptor[]>([]);
-  const [publishedStrategies, setPublishedStrategies] = useState<UserStrategy[]>([]);
+  const [publishedStrategies, setPublishedStrategies] = useState<PublishedStrategyOption[]>([]);
   const [catalogState, setCatalogState] = useState<"loading" | "ready" | "error">("loading");
   const [datasetState, setDatasetState] = useState<
     | { status: "idle" | "creating" }
     | { status: "ready"; membershipCount: number }
     | { status: "error"; message: string; correlationId?: string }
   >({ status: "idle" });
-  const [datasetCatalogState, setDatasetCatalogState] = useState<
-    "loading" | "ready" | "error"
-  >("loading");
+  const [datasetCatalogState, setDatasetCatalogState] = useState<"loading" | "ready" | "error">(
+    "loading"
+  );
   const [datasets, setDatasets] = useState<DatasetResponse[]>([]);
   const [datasetNextCursor, setDatasetNextCursor] = useState<string | null>(null);
   const [datasetHasMore, setDatasetHasMore] = useState(false);
@@ -330,8 +350,10 @@ export function ExperimentConfigurationForm({
       );
       setDatasetNextCursor(result.data.nextCursor ?? null);
       setDatasetHasMore(Boolean(result.data.hasMore && result.data.nextCursor));
-      setDatasetTotalCount((current) =>
-        result.data.totalCount ?? (cursor ? current + result.data.items.length : result.data.items.length)
+      setDatasetTotalCount(
+        (current) =>
+          result.data.totalCount ??
+          (cursor ? current + result.data.items.length : result.data.items.length)
       );
       setDatasetCatalogState("ready");
       setDatasetPageLoading(false);
@@ -399,20 +421,39 @@ export function ExperimentConfigurationForm({
         setCatalogState("error");
         return;
       }
-      const details = await Promise.all(
-        ownedResult.data.items.map((item) => getUserStrategy(api, item.userStrategyId))
+      const strategies = await Promise.all(
+        ownedResult.data.items.map(async (item) => ({
+          details: await getUserStrategy(api, item.userStrategyId),
+          history: await listUserStrategyVersions(api, item.userStrategyId)
+        }))
       );
       if (!active) return;
-      const published = details.flatMap((result) =>
-        result.ok &&
-        result.data.status === "ACTIVE" &&
-        result.data.latestVersion.status === "PUBLISHED"
-          ? [result.data]
-          : []
-      );
+      const published = strategies.flatMap(({ details, history }) => {
+        if (!details.ok || !history.ok || details.data.status !== "ACTIVE") return [];
+        return history.data.items
+          .filter((version) => version.status === "PUBLISHED")
+          .map((version) => ({
+            name: details.data.name,
+            description: details.data.description,
+            version
+          }));
+      });
       setSystemStrategies(systemResult.data.items);
       setPublishedStrategies(published);
       setCatalogState("ready");
+      const requested = published.find(
+        (item) => item.version.userStrategyVersionId === initialUserStrategyVersionId
+      );
+      if (requested) {
+        selectStrategy({
+          strategyId: "",
+          strategyVersion: "",
+          displayName: `${requested.name} · version ${requested.version.versionNo}`,
+          userStrategyVersionId: requested.version.userStrategyVersionId,
+          parameters: {}
+        });
+        return;
+      }
       const first = systemResult.data.items.find(supportedForSearch);
       if (first)
         selectStrategy({
@@ -429,9 +470,10 @@ export function ExperimentConfigurationForm({
     return () => {
       active = false;
     };
-  }, [api, selectStrategy]);
+  }, [api, initialUserStrategyVersionId, selectStrategy]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- route entry loads the external dataset catalog
     void loadDatasets();
   }, [loadDatasets]);
 
@@ -485,8 +527,8 @@ export function ExperimentConfigurationForm({
     );
   };
 
-  const toggleUserStrategy = (strategy: UserStrategy) => {
-    const versionId = strategy.latestVersion.userStrategyVersionId;
+  const toggleUserStrategy = (strategy: PublishedStrategyOption) => {
+    const versionId = strategy.version.userStrategyVersionId;
     const key = `user:${versionId}`;
     const selected = draft.strategyPool.some((entry) => entry.key === key);
     const strategyPool = selected
@@ -495,7 +537,7 @@ export function ExperimentConfigurationForm({
           ...draft.strategyPool,
           {
             key,
-            displayName: strategy.name,
+            displayName: `${strategy.name} · version ${strategy.version.versionNo}`,
             userStrategyVersionId: versionId,
             parameters: {}
           }
@@ -518,13 +560,7 @@ export function ExperimentConfigurationForm({
   const compatibleDatasets = useMemo(
     () =>
       datasets.filter((dataset) =>
-        datasetMatchesDraft(
-          dataset,
-          draft.pair,
-          draft.timeframe,
-          draft.startUtc,
-          draft.endUtc
-        )
+        datasetMatchesDraft(dataset, draft.pair, draft.timeframe, draft.startUtc, draft.endUtc)
       ),
     [datasets, draft.pair, draft.timeframe, draft.startUtc, draft.endUtc]
   );
@@ -546,8 +582,7 @@ export function ExperimentConfigurationForm({
   }, [draft.endUtc, draft.startUtc, draft.timeframe]);
   const draftValidationErrors = useMemo(() => validateExperimentDraft(draft), [draft]);
   const maximumCandidates = Number(draft.maximumCandidates);
-  const candidateLimitValid =
-    Number.isInteger(maximumCandidates) && maximumCandidates > 0;
+  const candidateLimitValid = Number.isInteger(maximumCandidates) && maximumCandidates > 0;
   const timeLimitValid =
     !!timeLimitMinutes.trim() &&
     Number.isFinite(Number(timeLimitMinutes)) &&
@@ -558,9 +593,7 @@ export function ExperimentConfigurationForm({
       : BigInt(maximumCandidates)
     : 0n;
   const leaderboardSizeValid =
-    Number.isInteger(draft.topK) &&
-    draft.topK > 0 &&
-    effectiveCandidateCount >= BigInt(draft.topK);
+    Number.isInteger(draft.topK) && draft.topK > 0 && effectiveCandidateCount >= BigInt(draft.topK);
 
   const fieldError = (key: string) => {
     if (!submitted && !touched.has(key)) return undefined;
@@ -589,6 +622,7 @@ export function ExperimentConfigurationForm({
       )
     ) {
       update("datasetId", "");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- invalidate a selected snapshot that no longer matches the form
       setDatasetState({ status: "idle" });
       forgetDataset();
     }
@@ -604,8 +638,15 @@ export function ExperimentConfigurationForm({
       return;
     compatibleAutoSelectionAttempted.current = true;
     const compatible = compatibleDatasets[0];
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- restored catalog state selects one compatible external snapshot
     if (compatible) selectDataset(compatible);
-  }, [compatibleDatasets, datasetCatalogState, datasetRestorePending, draft.datasetId, selectDataset]);
+  }, [
+    compatibleDatasets,
+    datasetCatalogState,
+    datasetRestorePending,
+    draft.datasetId,
+    selectDataset
+  ]);
 
   useEffect(() => {
     if (draft.strategyPool.length <= 1) {
@@ -660,7 +701,6 @@ export function ExperimentConfigurationForm({
           ...current.filter((item) => item.datasetId !== result.data.datasetId)
         ]);
         selectDataset(result.data);
-        void loadDatasets();
         return;
       }
       setDatasetState({
@@ -671,7 +711,8 @@ export function ExperimentConfigurationForm({
     } catch {
       setDatasetState({
         status: "error",
-        message: "The API connection failed before a response was received. Check the API and retry."
+        message:
+          "The API connection failed before a response was received. Check the API and retry."
       });
     }
   };
@@ -701,9 +742,10 @@ export function ExperimentConfigurationForm({
     const constraintErrors: Record<string, string> = {};
     const extrema = (domain: SearchParameterDomain | undefined) => {
       if (!domain) return null;
-      const values = domain.kind === "RANGE"
-        ? [Number(domain.minimum), Number(domain.maximum)]
-        : domain.options.map(Number).filter(Number.isFinite);
+      const values =
+        domain.kind === "RANGE"
+          ? [Number(domain.minimum), Number(domain.maximum)]
+          : domain.options.map(Number).filter(Number.isFinite);
       if (!values.length || values.some((value) => !Number.isFinite(value))) return null;
       return { minimum: Math.min(...values), maximum: Math.max(...values) };
     };
@@ -725,10 +767,13 @@ export function ExperimentConfigurationForm({
     e.preventDefault();
     setSubmitted(true);
     const localErrors: Record<string, string> = {};
-    if (!candidateLimitValid) localErrors.maximumCandidates = "Candidate limit must be a positive whole number.";
-    if (!timeLimitValid) localErrors.maximumDurationSeconds = "Time limit must be a positive number of minutes.";
+    if (!candidateLimitValid)
+      localErrors.maximumCandidates = "Candidate limit must be a positive whole number.";
+    if (!timeLimitValid)
+      localErrors.maximumDurationSeconds = "Time limit must be a positive number of minutes.";
     if (searchSpaceCardinality === 0n)
-      localErrors.strategyPool = "The selected search space does not contain a valid configuration.";
+      localErrors.strategyPool =
+        "The selected search space does not contain a valid configuration.";
     if (!leaderboardSizeValid)
       localErrors.topK = "Leaderboard size cannot exceed the candidates that can be evaluated.";
     if (Object.keys(localErrors).length) applyServerErrors(localErrors);
@@ -756,7 +801,8 @@ export function ExperimentConfigurationForm({
   if (!timeLimitValid)
     combinedErrors.maximumDurationSeconds = "Time limit must be a positive number of minutes.";
   if (searchSpaceCardinality === 0n && draft.strategyPool.length > 0)
-    combinedErrors.strategyPool = "The selected search space does not contain a valid configuration.";
+    combinedErrors.strategyPool =
+      "The selected search space does not contain a valid configuration.";
   if (!leaderboardSizeValid)
     combinedErrors.topK = "Leaderboard size cannot exceed the candidates that can be evaluated.";
 
@@ -784,14 +830,16 @@ export function ExperimentConfigurationForm({
   const errorSections = Object.entries(combinedErrors).reduce<
     Array<{ key: string; section: string; label: string; message: string }>
   >((items, [key, message]) => {
-    const section =
-      ["name", "datasetId", "pair", "timeframe", "startUtc", "endUtc"].includes(key)
-        ? "experiment-data"
-        : key === "initialCapital" || key === "feePercent" || key === "slippagePercent" || key === "componentBounds"
-          ? "experiment-assumptions"
-          : key.startsWith("parameter-") || key === "strategyPool"
-            ? "experiment-strategies"
-            : "experiment-search-limits";
+    const section = ["name", "datasetId", "pair", "timeframe", "startUtc", "endUtc"].includes(key)
+      ? "experiment-data"
+      : key === "initialCapital" ||
+          key === "feePercent" ||
+          key === "slippagePercent" ||
+          key === "componentBounds"
+        ? "experiment-assumptions"
+        : key.startsWith("parameter-") || key === "strategyPool"
+          ? "experiment-strategies"
+          : "experiment-search-limits";
     if (items.some((item) => item.section === section && item.message === message)) return items;
     items.push({ key, section, label: humanize(key), message });
     return items;
@@ -810,7 +858,8 @@ export function ExperimentConfigurationForm({
           <p className="eyebrow">Search configuration</p>
           <h2>Configure experiment</h2>
           <p className="experiment-config-intro">
-            Choose frozen market data, define the strategy search space, and set the evaluation limits.
+            Choose frozen market data, define the strategy search space, and set the evaluation
+            limits.
           </p>
         </div>
         {fixture && <span className="fixture-badge">FIXTURE DATA</span>}
@@ -819,7 +868,11 @@ export function ExperimentConfigurationForm({
 
       <form className="experiment-config-form" onSubmit={submit} noValidate>
         {submitted && errorSections.length > 0 && (
-          <section className="experiment-config-error-summary" role="alert" aria-labelledby="configuration-errors-title">
+          <section
+            className="experiment-config-error-summary"
+            role="alert"
+            aria-labelledby="configuration-errors-title"
+          >
             <h3 id="configuration-errors-title">Review before starting</h3>
             <p>{errorSections.length} configuration section(s) need attention.</p>
             <ul>
@@ -874,7 +927,9 @@ export function ExperimentConfigurationForm({
                     value={draft.datasetId}
                     onBlur={() => touch("datasetId")}
                     onChange={(event) => {
-                      const dataset = datasets.find((item) => item.datasetId === event.target.value);
+                      const dataset = datasets.find(
+                        (item) => item.datasetId === event.target.value
+                      );
                       if (dataset) selectDataset(dataset);
                       else {
                         update("datasetId", "");
@@ -914,7 +969,8 @@ export function ExperimentConfigurationForm({
                   {datasetCatalogState === "loading" && <small>Loading frozen datasets…</small>}
                   {datasetCatalogState === "ready" && (
                     <small>
-                      {formatNumber(datasets.length)} of {formatNumber(datasetTotalCount)} ready snapshots loaded.
+                      {formatNumber(datasets.length)} of {formatNumber(datasetTotalCount)} ready
+                      snapshots loaded.
                       {compatibleDatasets.length > 0
                         ? " A compatible snapshot is available for reuse."
                         : " No loaded snapshot exactly matches the current market range."}
@@ -946,7 +1002,10 @@ export function ExperimentConfigurationForm({
               )}
 
               {selectedDataset && (
-                <section className="experiment-selected-dataset" aria-label="Selected frozen dataset">
+                <section
+                  className="experiment-selected-dataset"
+                  aria-label="Selected frozen dataset"
+                >
                   <div className="experiment-selected-dataset-heading">
                     <div>
                       <span className="experiment-config-badge">Ready to reuse</span>
@@ -955,14 +1014,16 @@ export function ExperimentConfigurationForm({
                       )}
                     </div>
                     <strong>
-                      {selectedDataset.provider} · {selectedDataset.pair} · {selectedDataset.timeframe}
+                      {selectedDataset.provider} · {selectedDataset.pair} ·{" "}
+                      {selectedDataset.timeframe}
                     </strong>
                   </div>
                   <dl className="experiment-dataset-summary">
                     <div>
                       <dt>UTC range</dt>
                       <dd>
-                        {formatUtc(selectedDataset.startTime)} → {formatUtc(selectedDataset.endTime)} UTC
+                        {formatUtc(selectedDataset.startTime)} →{" "}
+                        {formatUtc(selectedDataset.endTime)} UTC
                       </dd>
                     </div>
                     <div>
@@ -1008,7 +1069,9 @@ export function ExperimentConfigurationForm({
                   <div className="experiment-subsection-heading">
                     <div>
                       <h4 id="market-config-title">New dataset market range</h4>
-                      <p>Use a UTC range aligned to the selected timeframe. End time is exclusive.</p>
+                      <p>
+                        Use a UTC range aligned to the selected timeframe. End time is exclusive.
+                      </p>
                     </div>
                     {estimatedCandles !== null && (
                       <span className="experiment-estimate">
@@ -1037,12 +1100,16 @@ export function ExperimentConfigurationForm({
                         onChange={(event) => update("timeframe", event.target.value)}
                       >
                         {["1m", "5m", "15m", "1h", "4h", "1d"].map((value) => (
-                          <option key={value} value={value}>{value}</option>
+                          <option key={value} value={value}>
+                            {value}
+                          </option>
                         ))}
                       </select>
                     </label>
                     <label className="experiment-config-field">
-                      <span>Start time <small>UTC</small></span>
+                      <span>
+                        Start time <small>UTC</small>
+                      </span>
                       <input
                         aria-label="Start UTC"
                         type="datetime-local"
@@ -1051,10 +1118,14 @@ export function ExperimentConfigurationForm({
                         onChange={(event) => update("startUtc", event.target.value)}
                         aria-invalid={!!fieldError("startUtc")}
                       />
-                      {fieldError("startUtc") && <small role="alert">{fieldError("startUtc")}</small>}
+                      {fieldError("startUtc") && (
+                        <small role="alert">{fieldError("startUtc")}</small>
+                      )}
                     </label>
                     <label className="experiment-config-field">
-                      <span>End time <small>UTC · exclusive</small></span>
+                      <span>
+                        End time <small>UTC · exclusive</small>
+                      </span>
                       <input
                         aria-label="End UTC"
                         type="datetime-local"
@@ -1081,13 +1152,16 @@ export function ExperimentConfigurationForm({
                     </button>
                     {datasetState.status === "ready" && (
                       <small role="status">
-                        Frozen dataset ready with {formatNumber(datasetState.membershipCount)} candles.
+                        Frozen dataset ready with {formatNumber(datasetState.membershipCount)}{" "}
+                        candles.
                       </small>
                     )}
                     {datasetState.status === "error" && (
                       <small role="alert">
                         {datasetState.message}
-                        {datasetState.correlationId ? " Reference: " + datasetState.correlationId : ""}
+                        {datasetState.correlationId
+                          ? " Reference: " + datasetState.correlationId
+                          : ""}
                       </small>
                     )}
                   </div>
@@ -1100,7 +1174,11 @@ export function ExperimentConfigurationForm({
               number={2}
               title="Strategy search space"
               description="Select strategies and define the parameter values Random Search may explore."
-              status={draft.strategyPool.length === 0 ? "None selected" : draft.strategyPool.length + " selected"}
+              status={
+                draft.strategyPool.length === 0
+                  ? "None selected"
+                  : draft.strategyPool.length + " selected"
+              }
             >
               <div
                 className="experiment-strategy-grid"
@@ -1130,12 +1208,12 @@ export function ExperimentConfigurationForm({
                   );
                 })}
                 {publishedStrategies.map((strategy) => {
-                  const key = "user:" + strategy.latestVersion.userStrategyVersionId;
+                  const key = "user:" + strategy.version.userStrategyVersionId;
                   const selected = draft.strategyPool.some((entry) => entry.key === key);
                   return (
                     <StrategySelectionCard
-                      key={strategy.latestVersion.userStrategyVersionId}
-                      name={strategy.name}
+                      key={strategy.version.userStrategyVersionId}
+                      name={`${strategy.name} · version ${strategy.version.versionNo}`}
                       description={strategy.description}
                       selected={selected}
                       badge="Published"
@@ -1144,9 +1222,9 @@ export function ExperimentConfigurationForm({
                       <TechnicalDetails
                         summaryLabel="Version details"
                         values={[
-                          ["Version", String(strategy.latestVersion.versionNo)],
-                          ["Version ID", strategy.latestVersion.userStrategyVersionId],
-                          ["Fingerprint", strategy.latestVersion.fingerprint]
+                          ["Version", String(strategy.version.versionNo)],
+                          ["Version ID", strategy.version.userStrategyVersionId],
+                          ["Fingerprint", strategy.version.fingerprint]
                         ]}
                       />
                     </StrategySelectionCard>
@@ -1175,7 +1253,9 @@ export function ExperimentConfigurationForm({
                     Boolean(errors["parameter-" + entry.key + "-" + name])
                   );
                   const open =
-                    draft.strategyPool.length === 1 || hasError || expandedStrategies.has(entry.key);
+                    draft.strategyPool.length === 1 ||
+                    hasError ||
+                    expandedStrategies.has(entry.key);
                   const descriptor = systemStrategies.find(
                     (strategy) =>
                       strategy.strategyId === entry.strategyId &&
@@ -1203,7 +1283,9 @@ export function ExperimentConfigurationForm({
                           <strong>{entry.displayName}</strong>
                           <small>{visibleParameters.length} configurable parameter(s)</small>
                         </span>
-                        {hasError && <span className="experiment-config-badge error">Needs attention</span>}
+                        {hasError && (
+                          <span className="experiment-config-badge error">Needs attention</span>
+                        )}
                       </summary>
                       <div className="experiment-parameter-list">
                         {visibleParameters.map(([name, domain]) => {
@@ -1232,10 +1314,17 @@ export function ExperimentConfigurationForm({
                         {(entry.constraints ?? []).map((constraint) => (
                           <p
                             className="experiment-constraint"
-                            key={entry.key + ":" + constraint.lowerParameter + ":" + constraint.upperParameter}
+                            key={
+                              entry.key +
+                              ":" +
+                              constraint.lowerParameter +
+                              ":" +
+                              constraint.upperParameter
+                            }
                           >
-                            <strong>Constraint:</strong> {humanize(constraint.lowerParameter)} must include
-                            at least one value lower than {humanize(constraint.upperParameter)}.
+                            <strong>Constraint:</strong> {humanize(constraint.lowerParameter)} must
+                            include at least one value lower than{" "}
+                            {humanize(constraint.upperParameter)}.
                           </p>
                         ))}
                       </div>
@@ -1257,11 +1346,16 @@ export function ExperimentConfigurationForm({
               }
             >
               {draft.strategyPool.length > 1 && (
-                <section className="experiment-config-subsection" aria-labelledby="combination-title">
+                <section
+                  className="experiment-config-subsection"
+                  aria-labelledby="combination-title"
+                >
                   <div className="experiment-subsection-heading">
                     <div>
                       <h4 id="combination-title">Strategy combination</h4>
-                      <p>Choose how many selected strategies each generated candidate may contain.</p>
+                      <p>
+                        Choose how many selected strategies each generated candidate may contain.
+                      </p>
                     </div>
                     <span className="experiment-readonly-value">Majority Vote · v1.0.0</span>
                   </div>
@@ -1275,7 +1369,9 @@ export function ExperimentConfigurationForm({
                         max={draft.strategyPool.length}
                         value={draft.minimumComponents}
                         onBlur={() => touch("componentBounds")}
-                        onChange={(event) => update("minimumComponents", Number(event.target.value))}
+                        onChange={(event) =>
+                          update("minimumComponents", Number(event.target.value))
+                        }
                         aria-invalid={!!fieldError("componentBounds")}
                       />
                     </label>
@@ -1288,7 +1384,9 @@ export function ExperimentConfigurationForm({
                         max={draft.strategyPool.length}
                         value={draft.maximumComponents}
                         onBlur={() => touch("componentBounds")}
-                        onChange={(event) => update("maximumComponents", Number(event.target.value))}
+                        onChange={(event) =>
+                          update("maximumComponents", Number(event.target.value))
+                        }
                         aria-invalid={!!fieldError("componentBounds")}
                       />
                     </label>
@@ -1305,10 +1403,13 @@ export function ExperimentConfigurationForm({
                 <div className="experiment-subsection-heading">
                   <div>
                     <h4 id="assumptions-title">Backtest assumptions</h4>
-                    <p>Simulated values shared by every candidate, not an exchange wallet balance.</p>
+                    <p>
+                      Simulated values shared by every candidate, not an exchange wallet balance.
+                    </p>
                   </div>
                   <span className="experiment-readonly-value">
-                    {formatNumber(Number(draft.initialCapital) || 0)} {quoteAsset} · {draft.feePercent || "0"}% fee · {draft.slippagePercent || "0"}% slippage
+                    {formatNumber(Number(draft.initialCapital) || 0)} {quoteAsset} ·{" "}
+                    {draft.feePercent || "0"}% fee · {draft.slippagePercent || "0"}% slippage
                   </span>
                 </div>
                 <div className="experiment-assumption-grid">
@@ -1325,7 +1426,9 @@ export function ExperimentConfigurationForm({
                       />
                       <span>{quoteAsset}</span>
                     </span>
-                    {fieldError("initialCapital") && <small role="alert">{fieldError("initialCapital")}</small>}
+                    {fieldError("initialCapital") && (
+                      <small role="alert">{fieldError("initialCapital")}</small>
+                    )}
                   </label>
                   <label className="experiment-config-field">
                     <span>Transaction fee</span>
@@ -1340,7 +1443,9 @@ export function ExperimentConfigurationForm({
                       />
                       <span>%</span>
                     </span>
-                    {fieldError("feePercent") && <small role="alert">{fieldError("feePercent")}</small>}
+                    {fieldError("feePercent") && (
+                      <small role="alert">{fieldError("feePercent")}</small>
+                    )}
                   </label>
                   <label className="experiment-config-field">
                     <span>Slippage</span>
@@ -1355,7 +1460,9 @@ export function ExperimentConfigurationForm({
                       />
                       <span>%</span>
                     </span>
-                    {fieldError("slippagePercent") && <small role="alert">{fieldError("slippagePercent")}</small>}
+                    {fieldError("slippagePercent") && (
+                      <small role="alert">{fieldError("slippagePercent")}</small>
+                    )}
                   </label>
                 </div>
               </section>
@@ -1414,7 +1521,9 @@ export function ExperimentConfigurationForm({
                   )}
                 </label>
                 <label className="experiment-config-field">
-                  <span>Time limit <small>minutes</small></span>
+                  <span>
+                    Time limit <small>minutes</small>
+                  </span>
                   <input
                     aria-label="Time limit (minutes)"
                     type="number"
@@ -1452,7 +1561,8 @@ export function ExperimentConfigurationForm({
               <section className="experiment-cardinality-insight" aria-live="polite">
                 <strong>{formatNumber(searchSpaceCardinality)} possible configurations</strong>
                 <span>
-                  Up to {candidateLimitValid ? formatNumber(maximumCandidates) : "—"} configurations will be evaluated.
+                  Up to {candidateLimitValid ? formatNumber(maximumCandidates) : "—"} configurations
+                  will be evaluated.
                 </span>
               </section>
 
@@ -1470,7 +1580,9 @@ export function ExperimentConfigurationForm({
                 />
                 <span>
                   <strong>Stop when results stop improving</strong>
-                  <small>End the search after a chosen number of candidates without a better score.</small>
+                  <small>
+                    End the search after a chosen number of candidates without a better score.
+                  </small>
                 </span>
               </label>
               {stopWithoutImprovementEnabled && (
@@ -1517,17 +1629,23 @@ export function ExperimentConfigurationForm({
                       max="64"
                       value={draft.requestedConcurrency}
                       onBlur={() => touch("requestedConcurrency")}
-                      onChange={(event) => update("requestedConcurrency", Number(event.target.value))}
+                      onChange={(event) =>
+                        update("requestedConcurrency", Number(event.target.value))
+                      }
                       aria-invalid={!!fieldError("requestedConcurrency")}
                     />
-                    <small>Higher values use more worker and database capacity.</small>
+                    <small>Higher values use more execution and database capacity.</small>
                     {fieldError("requestedConcurrency") && (
                       <small role="alert">{fieldError("requestedConcurrency")}</small>
                     )}
                   </label>
                 </div>
               </details>
-              {errors.stop && <p className="experiment-field-error" role="alert">{errors.stop}</p>}
+              {errors.stop && (
+                <p className="experiment-field-error" role="alert">
+                  {errors.stop}
+                </p>
+              )}
             </ExperimentConfigSection>
           </main>
 
@@ -1559,7 +1677,11 @@ export function ExperimentConfigurationForm({
         </details>
 
         <div className="experiment-config-action-bar">
-          <div className={formInvalid ? "experiment-readiness is-blocked" : "experiment-readiness is-ready"}>
+          <div
+            className={
+              formInvalid ? "experiment-readiness is-blocked" : "experiment-readiness is-ready"
+            }
+          >
             <span aria-hidden="true">{formInvalid || operationallyBusy ? "●" : "✓"}</span>
             <div>
               <strong>{readinessMessage}</strong>
@@ -1597,7 +1719,9 @@ export function ExperimentConfigurationForm({
         )}
         {(commands.start.status === "terminal-failure" ||
           commands.start.status === "retryable-failure") && (
-          <p role="alert">{commands.start.error.message} Your configuration has been preserved.</p>
+          <p role="alert">
+            The experiment could not be started. Your configuration has been preserved.
+          </p>
         )}
       </form>
     </section>

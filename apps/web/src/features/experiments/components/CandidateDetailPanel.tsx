@@ -51,9 +51,11 @@ export function CandidateDetailPanel({
   }, [api, candidateId, experimentId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- route entry starts an external API synchronization
     void load();
+    const requests = requestVersion;
     return () => {
-      requestVersion.current++;
+      requests.current++;
     };
   }, [load]);
 
@@ -118,8 +120,13 @@ export function CandidateDetailPanel({
               </div>
             )}
           </div>
-          <button type="button" className="candidate-drawer-close" onClick={close}
-            aria-label="Close candidate details" autoFocus>
+          <button
+            type="button"
+            className="candidate-drawer-close"
+            onClick={close}
+            aria-label="Close candidate details"
+            autoFocus
+          >
             <span aria-hidden="true">×</span>
           </button>
         </header>
@@ -129,14 +136,16 @@ export function CandidateDetailPanel({
           {!loading && error && (
             <section className="candidate-detail-error" role="alert">
               <h3>Unable to load candidate details</h3>
-              <p>{error.message}</p>
+              <p>Candidate details are unavailable. Please retry.</p>
               <div className="candidate-detail-actions">
                 {error.retryable && (
                   <button type="button" className="button" onClick={() => void load()}>
                     Retry
                   </button>
                 )}
-                <button type="button" className="button secondary" onClick={close}>Close</button>
+                <button type="button" className="button secondary" onClick={close}>
+                  Close
+                </button>
               </div>
             </section>
           )}
@@ -152,7 +161,13 @@ export function CandidateDetailPanel({
   );
 }
 
-function CandidateDetailContent({ detail, returnUrl }: { detail: CandidateDetail; returnUrl: string }) {
+function CandidateDetailContent({
+  detail,
+  returnUrl
+}: {
+  detail: CandidateDetail;
+  returnUrl: string;
+}) {
   const failure = failurePresentation(detail);
   const failed = detail.failureStage !== null;
   const retrying = detail.backtest.retryable && detail.backtestResultId === null;
@@ -163,15 +178,19 @@ function CandidateDetailContent({ detail, returnUrl }: { detail: CandidateDetail
         <h3>Overview</h3>
         <p className="candidate-dataset-summary">
           <strong>{detail.dataset.pair}</strong>
-          <span>·</span><span>{detail.dataset.timeframe}</span><span>·</span>
+          <span>·</span>
+          <span>{detail.dataset.timeframe}</span>
+          <span>·</span>
           <span>{new Intl.NumberFormat("en-US").format(detail.dataset.candleCount)} candles</span>
         </p>
         <p className="muted">
           {formatDateTime(detail.dataset.startTime)} – {formatDateTime(detail.dataset.endTime)}
         </p>
         {detail.backtestResultId && (
-          <Link className="button candidate-primary-action"
-            href={`/backtests?resultId=${encodeURIComponent(detail.backtestResultId)}&returnTo=${encodeURIComponent(returnUrl)}`}>
+          <Link
+            className="button candidate-primary-action"
+            href={`/backtests?resultId=${encodeURIComponent(detail.backtestResultId)}&returnTo=${encodeURIComponent(returnUrl)}`}
+          >
             View full backtest result
           </Link>
         )}
@@ -192,7 +211,7 @@ function CandidateDetailContent({ detail, returnUrl }: { detail: CandidateDetail
               {detail.backtest.attemptNo ? `Attempt ${detail.backtest.attemptNo}. ` : ""}
               {detail.backtest.nextRetryAt
                 ? `Next retry ${formatDateTime(detail.backtest.nextRetryAt)}.`
-                : "The worker will retry this candidate."}
+                : "The system will retry this candidate."}
             </p>
           )}
         </section>
@@ -202,11 +221,17 @@ function CandidateDetailContent({ detail, returnUrl }: { detail: CandidateDetail
           <div className="candidate-performance-grid">
             <Metric label="Total return" value={formatPercent(detail.metrics.totalReturn, true)} />
             <Metric label="Win rate" value={formatPercent(detail.metrics.winRate)} />
-            <Metric label="Maximum drawdown" value={formatPercent(detail.metrics.maximumDrawdown)} />
+            <Metric
+              label="Maximum drawdown"
+              value={formatPercent(detail.metrics.maximumDrawdown)}
+            />
             <Metric label="Trades" value={String(detail.metrics.numberOfTrades)} />
           </div>
           {detail.evaluation.score !== null && (
-            <p className="candidate-score">Evaluation score <strong className="numeric">{formatScore(detail.evaluation.score)}</strong></p>
+            <p className="candidate-score">
+              Evaluation score{" "}
+              <strong className="numeric">{formatScore(detail.evaluation.score)}</strong>
+            </p>
           )}
           {detail.evaluation.eligibilityReason?.code === "MINIMUM_TRADES_NOT_MET" && (
             <p className="muted">
@@ -224,7 +249,9 @@ function CandidateDetailContent({ detail, returnUrl }: { detail: CandidateDetail
 
       <section className="candidate-detail-section">
         <h3>Strategy configuration</h3>
-        <p><strong>{strategyName(detail.definition)}</strong></p>
+        <p>
+          <strong>{strategyName(detail.definition)}</strong>
+        </p>
         <p className="muted">{summary || "Default strategy parameters"}</p>
       </section>
 
@@ -259,13 +286,21 @@ function CandidateDetailContent({ detail, returnUrl }: { detail: CandidateDetail
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
-  return <div className="candidate-performance-card"><span>{label}</span><strong className="numeric">{value}</strong></div>;
+  return (
+    <div className="candidate-performance-card">
+      <span>{label}</span>
+      <strong className="numeric">{value}</strong>
+    </div>
+  );
 }
 
 function DrawerSkeleton() {
   return (
     <div className="candidate-drawer-skeleton" role="status" aria-label="Loading candidate details">
-      <span /><span /><span /><span />
+      <span />
+      <span />
+      <span />
+      <span />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.cryptostrategy.platform.execution.api.port.in.SearchStartCommandFactory;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUseCase;
+import com.cryptostrategy.platform.api.error.RequestFieldValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -95,7 +96,10 @@ class CompositeSearchRequestMapperTest {
 
         assertThatThrownBy(() -> new ExperimentRequestMapper(factory)
                 .map(owner, "key", "hash", "correlation", request))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("schemaVersion 2");
+                .isInstanceOfSatisfying(RequestFieldValidationException.class, failure ->
+                        assertThat(failure.fieldErrors()).containsExactly(
+                                java.util.Map.of(
+                                        "field", "searchSpace.schemaVersion",
+                                        "reason", "Composite Search requires schema version 2.")));
     }
 }

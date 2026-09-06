@@ -1,9 +1,13 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ExperimentConfigurationForm } from "@/src/features/experiments/components/ExperimentConfigurationForm";
 import { strategyDescriptorPage } from "@/src/features/experiments/fixtures/experiment-configuration-fixtures";
 import { MockApiClient } from "@/src/foundation/testing/mock-api-client";
+
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: pushMock }) }));
 
 const frozenDataset = {
   datasetId: "01M1M383AJRDGS3BVC4KCE84Q2",
@@ -14,7 +18,7 @@ const frozenDataset = {
   normalizationVersion: "binance-v1",
   startTime: "2026-09-03T00:00:00Z",
   endTime: "2026-09-04T00:00:00Z",
-  membershipCount: 24,
+  membershipCount: 120,
   checksum: `sha256:${"a".repeat(64)}`,
   status: "READY",
   createdAt: "2026-09-04T00:00:01Z"
@@ -34,9 +38,14 @@ const withCatalog = (api = new MockApiClient()) =>
     });
 
 describe("Experiment configuration form", () => {
+  beforeEach(() => {
+    pushMock.mockReset();
+    window.localStorage.clear();
+  });
+
   it("has semantic labels, fixture source indicators, parameter ranges and keyboard-reachable actions", async () => {
     render(<ExperimentConfigurationForm api={withCatalog()} fixture />);
-    await screen.findByLabelText("Include Moving Average Crossover", { exact: true });
+    await screen.findByLabelText("Remove Moving Average Crossover", { exact: true });
     for (const name of [
       "Name",
       "Pair",
@@ -47,25 +56,19 @@ describe("Experiment configuration form", () => {
       "Initial simulated capital",
       "Transaction fee (%)",
       "Slippage (%)",
-      "Generator",
-      "Generator version",
       "Seed",
-      "Include Moving Average Crossover",
-      "ma-crossover fastPeriod minimum",
-      "ma-crossover fastPeriod maximum",
-      "Minimum components",
-      "Maximum components",
-      "Combination policy",
-      "Worker concurrency",
-      "Maximum candidates",
-      "Maximum duration (seconds)",
-      "Candidates without improvement",
-      "Top-K"
+      "Remove Moving Average Crossover",
+      "Moving Average Crossover fastPeriod minimum",
+      "Moving Average Crossover fastPeriod maximum",
+      "Parallel backtests",
+      "Candidate limit",
+      "Time limit (minutes)",
+      "Leaderboard size"
     ])
       expect(screen.getByLabelText(name, { exact: true })).toBeInTheDocument();
     expect(screen.getByText("FIXTURE DATA")).toBeInTheDocument();
-    expect(screen.getByText(/Fixture profile/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Start Experiment" })).toBeEnabled();
+    expect(screen.getByText("Deterministic fixture mode")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start experiment" })).toBeEnabled();
   });
   it("announces real acceptance and preserves the submitted draft", async () => {
     const api = withCatalog()
@@ -77,7 +80,7 @@ describe("Experiment configuration form", () => {
       });
     render(<ExperimentConfigurationForm api={api} fixture={false} />);
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: "Start Experiment" }));
+    await user.click(await screen.findByRole("button", { name: "Start experiment" }));
     expect(screen.getAllByRole("alert").length).toBeGreaterThan(0);
     await user.type(screen.getByLabelText("Name"), "My experiment");
     await user.clear(screen.getByLabelText("Initial simulated capital"));
@@ -89,13 +92,16 @@ describe("Experiment configuration form", () => {
     const select = screen.getByLabelText("Frozen Dataset", { exact: true });
     expect(select).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Create new frozen dataset" }));
-    expect(await screen.findByText(/Frozen dataset ready with 24 candles/)).toBeInTheDocument();
-    await screen.findByLabelText("Include Moving Average Crossover");
-    await user.click(screen.getByRole("button", { name: "Start Experiment" }));
+    const selectedDataset = await screen.findByRole("region", {
+      name: "Selected frozen dataset"
+    });
+    expect(within(selectedDataset).getByText("120")).toBeInTheDocument();
+    await screen.findByLabelText("Remove Moving Average Crossover");
+    await user.click(screen.getByRole("button", { name: "Start experiment" }));
     expect(
       await screen.findByText("Experiment accepted. Opening its authoritative monitor…")
     ).toBeInTheDocument();
-    expect(window.location.pathname).toBe("/search/experiment-new");
+    expect(pushMock).toHaveBeenCalledWith("/search/experiment-new");
     expect(screen.getByLabelText("Name")).toHaveValue("My experiment");
     const request = api.requests.find((item) => item.path === "/api/v1/experiments");
     expect(JSON.parse(String(request?.init.body))).toMatchObject({
@@ -114,8 +120,8 @@ describe("Experiment configuration form", () => {
             strategyId: "ma-crossover",
             version: "1.0.0",
             parameterDomains: {
-              fastPeriod: { kind: "INTEGER_RANGE", min: 2, max: 50, step: 1 },
-              slowPeriod: { kind: "INTEGER_RANGE", min: 10, max: 200, step: 1 },
+              fastPeriod: { kind: "INTEGER_RANGE", min: 5, max: 20, step: 5 },
+              slowPeriod: { kind: "INTEGER_RANGE", min: 20, max: 100, step: 10 },
               priceSource: { kind: "CHOICES", values: ["OPEN", "CLOSE"] }
             }
           }
@@ -155,10 +161,10 @@ describe("Experiment configuration form", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Create new frozen dataset" }));
 
-    expect(await screen.findByText(/Frozen dataset ready with 288 candles/)).toBeInTheDocument();
-    expect(screen.getByLabelText("Frozen Dataset", { exact: true })).toHaveValue(
-      "01M1M383AJRDGS3BVC4KCE84Q2"
-    );
+    const selectedDataset = await screen.findByRole("region", {
+      name: "Selected frozen dataset"
+    });
+    expect(within(selectedDataset).getByText("288")).toBeInTheDocument();
     const request = api.requests.find((item) => item.path === "/api/v1/datasets");
     expect(JSON.parse(String(request?.init.body))).toMatchObject({
       pair: "BTC/USDT",

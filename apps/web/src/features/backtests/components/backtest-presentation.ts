@@ -3,11 +3,7 @@ const finiteNumber = (value: string) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const formatDecimal = (
-  value: string,
-  options: Intl.NumberFormatOptions,
-  positiveSign = false
-) => {
+const formatDecimal = (value: string, options: Intl.NumberFormatOptions, positiveSign = false) => {
   const parsed = finiteNumber(value);
   if (parsed === null) return value;
   const formatted = new Intl.NumberFormat("en-US", options).format(parsed);
@@ -25,11 +21,7 @@ export const formatBacktestPercent = (value: string, positiveSign = false) => {
   return `${positiveSign && percentage > 0 ? "+" : ""}${formatted}%`;
 };
 
-export const formatMoney = (
-  value: string,
-  currency?: string,
-  positiveSign = false
-) => {
+export const formatMoney = (value: string, currency?: string, positiveSign = false) => {
   const formatted = formatDecimal(
     value,
     { minimumFractionDigits: 2, maximumFractionDigits: 2 },
@@ -63,8 +55,7 @@ export const formatUtcDateTime = (value: string) => {
   }).format(date)} UTC`;
 };
 
-export const formatCount = (value: number) =>
-  new Intl.NumberFormat("en-US").format(value);
+export const formatCount = (value: number) => new Intl.NumberFormat("en-US").format(value);
 
 export const quoteCurrency = (tradingPair?: string | null) => {
   if (!tradingPair) return undefined;
@@ -88,8 +79,13 @@ export const humanizeBacktestValue = (value: string) => {
     STRATEGY_SELL: "Strategy sell signal",
     FORCED_FINAL_CLOSE: "Closed at dataset end"
   };
-  return labels[value]
-    ?? value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return (
+    labels[value] ??
+    value
+      .toLowerCase()
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
 };
 
 export const subtractDecimals = (left: string, right: string) => {

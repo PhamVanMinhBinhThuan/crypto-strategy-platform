@@ -79,7 +79,11 @@ export function TradeHistory({
                     <Fragment key={trade.tradeId}>
                       <tr>
                         <td className="backtest-number">{trade.sequence + 1}</td>
-                        <td><span className="backtest-side-badge">{humanizeBacktestValue(trade.side)}</span></td>
+                        <td>
+                          <span className="backtest-side-badge">
+                            {humanizeBacktestValue(trade.side)}
+                          </span>
+                        </td>
                         <td>
                           <TradeEvent
                             time={trade.entryTime}
@@ -141,22 +145,17 @@ export function TradeHistory({
             </table>
           </div>
 
-          <footer className="pagination backtest-trade-pagination" aria-label="Trade history pagination">
-            <button
-              type="button"
-              disabled={!hasPrevious}
-              onClick={() => changePage(page - 1)}
-            >
+          <footer
+            className="pagination backtest-trade-pagination"
+            aria-label="Trade history pagination"
+          >
+            <button type="button" disabled={!hasPrevious} onClick={() => changePage(page - 1)}>
               Previous
             </button>
             <span aria-live="polite">
               Showing {start + 1}–{end} of {trades.length}
             </span>
-            <button
-              type="button"
-              disabled={!hasNext}
-              onClick={() => changePage(page + 1)}
-            >
+            <button type="button" disabled={!hasNext} onClick={() => changePage(page + 1)}>
               Next
             </button>
           </footer>
@@ -178,7 +177,9 @@ function TradeEvent({
   return (
     <div className="backtest-trade-event">
       <time dateTime={time}>{formatUtcDateTime(time)}</time>
-      <span className="backtest-number" title={price}>{formatPrice(price, quoteCurrency)}</span>
+      <span className="backtest-number" title={price}>
+        {formatPrice(price, quoteCurrency)}
+      </span>
     </div>
   );
 }
@@ -207,7 +208,11 @@ function TradeDetails({
     ["Raw exit reason", trade.exitReason]
   ] as const;
   return (
-    <section id={id} className="backtest-trade-details" aria-label={`Trade ${trade.sequence + 1} details`}>
+    <section
+      id={id}
+      className="backtest-trade-details"
+      aria-label={`Trade ${trade.sequence + 1} details`}
+    >
       <h3>Exact execution details</h3>
       <dl className="backtest-trade-detail-grid">
         {values.map(([label, value]) => (

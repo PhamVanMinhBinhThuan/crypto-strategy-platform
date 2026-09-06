@@ -83,14 +83,21 @@ export function ResultSummary({ result }: { result: BacktestResultViewModel }) {
 
       <dl className="backtest-capital-grid" aria-label="Capital summary">
         {[
-          ["Initial capital", formatMoney(result.initialCapital, currency), result.initialCapital, ""],
+          [
+            "Initial capital",
+            formatMoney(result.initialCapital, currency),
+            result.initialCapital,
+            ""
+          ],
           ["Final capital", formatMoney(result.finalCapital, currency), result.finalCapital, ""],
           ["Net profit", formatMoney(netProfit, currency, true), netProfit, valueTone(netProfit)],
           ["Total fees", formatMoney(result.totalFees, currency), result.totalFees, ""]
         ].map(([label, display, raw, tone]) => (
           <div key={label}>
             <dt>{label}</dt>
-            <dd className={`backtest-number ${tone}`} title={raw}>{display}</dd>
+            <dd className={`backtest-number ${tone}`} title={raw}>
+              {display}
+            </dd>
           </div>
         ))}
       </dl>
@@ -106,9 +113,11 @@ function resultStrategyName(result: BacktestResultViewModel) {
   const pluginIds = evidence.singleStrategy
     ? [evidence.singleStrategy.pluginId]
     : evidence.components.map((component) => component.strategy.pluginId);
-  const names = pluginIds.map((pluginId) => pluginId
-    .replaceAll("-", " ")
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase()));
+  const names = pluginIds.map((pluginId) =>
+    pluginId
+      .replaceAll("-", " ")
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
   return names.join(" + ") || "Backtest";
 }

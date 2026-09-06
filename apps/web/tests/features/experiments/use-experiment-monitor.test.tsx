@@ -22,7 +22,9 @@ describe("Experiment monitor ownership", () => {
   it("preserves snapshots while refresh errors are represented separately", () => {
     const source = readFileSync("src/features/experiments/hooks/useExperimentMonitor.ts", "utf8");
     expect(source).toContain("setExperiment(exp.data)");
-    expect(source).not.toMatch(/setExperiment\(undefined\)|setJobs\(\[\]\).*error/);
+    expect(source).toContain("if (loadedExperimentId.current !== id) setExperiment(undefined)");
+    expect(source).toContain('if (exp.error.code === "RESOURCE_NOT_FOUND")');
+    expect(source).not.toMatch(/setJobs\(\[\]\).*error/);
   });
   it("uses realtime payloads only as refresh hints", () => {
     const source = readFileSync("src/features/experiments/hooks/useExperimentRealtime.ts", "utf8");

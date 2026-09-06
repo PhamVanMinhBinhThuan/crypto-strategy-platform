@@ -15,11 +15,23 @@ import type { CandidatePipelineView } from "../types/experiment";
 import { rememberExperiment } from "@/src/foundation/navigation/resource-history";
 import Link from "next/link";
 import { RecentExperiments } from "./RecentExperiments";
-export function SearchView({ id, candidateId, view, mode }: { id?: string; candidateId?: string; view?: string; mode?: string }) {
+export function SearchView({
+  id,
+  candidateId,
+  view,
+  mode,
+  initialUserStrategyVersionId
+}: {
+  id?: string;
+  candidateId?: string;
+  view?: string;
+  mode?: string;
+  initialUserStrategyVersionId?: string;
+}) {
   const { api, realtime, fixtures } = useClients();
   const monitor = useExperimentMonitor(api, id);
-  const activeView: CandidatePipelineView = view?.toUpperCase() === "FAILED"
-    ? "FAILED" : view?.toUpperCase() === "ALL" ? "ALL" : "RESULTS";
+  const activeView: CandidatePipelineView =
+    view?.toUpperCase() === "FAILED" ? "FAILED" : view?.toUpperCase() === "ALL" ? "ALL" : "RESULTS";
   const [pipelineSignal, setPipelineSignal] = useState(0);
   useEffect(() => {
     if (monitor.status === "success" && monitor.experiment) {
@@ -45,15 +57,27 @@ export function SearchView({ id, candidateId, view, mode }: { id?: string; candi
           <div>
             <p className="eyebrow">F-013 · contract-driven search</p>
             <h1>Search &amp; Leaderboard</h1>
-            <p className="muted">Review previous searches or configure a reproducible experiment.</p>
+            <p className="muted">
+              Review previous searches or configure a reproducible experiment.
+            </p>
           </div>
         </header>
-        {mode === "new" ? (
+        {mode === "new" || initialUserStrategyVersionId ? (
           <>
-            <div className="page-actions"><Link className="button secondary" href="/search">All experiments</Link></div>
-            <ExperimentConfigurationForm api={api} fixture={fixtures} />
+            <div className="page-actions">
+              <Link className="button secondary" href="/search">
+                All experiments
+              </Link>
+            </div>
+            <ExperimentConfigurationForm
+              api={api}
+              fixture={fixtures}
+              initialUserStrategyVersionId={initialUserStrategyVersionId}
+            />
           </>
-        ) : <RecentExperiments api={api} />}
+        ) : (
+          <RecentExperiments api={api} />
+        )}
       </main>
     );
   return (
@@ -69,15 +93,21 @@ export function SearchView({ id, candidateId, view, mode }: { id?: string; candi
       {monitor.error && (
         <section role="alert" className="panel error-state">
           <p>{monitor.error}</p>
-          <Link className="button secondary" href="/search">All experiments</Link>
+          <Link className="button secondary" href="/search">
+            All experiments
+          </Link>
         </section>
       )}
       {monitor.experiment && (
         <>
           <ExperimentSummary experiment={monitor.experiment} />
           <nav className="page-actions" aria-label="Experiment navigation">
-            <Link className="button secondary" href="/search">All experiments</Link>
-            <Link className="button secondary" href="/search?mode=new">New experiment</Link>
+            <Link className="button secondary" href="/search">
+              All experiments
+            </Link>
+            <Link className="button secondary" href="/search?mode=new">
+              New experiment
+            </Link>
           </nav>
           <ExperimentActions
             api={api}
@@ -87,14 +117,21 @@ export function SearchView({ id, candidateId, view, mode }: { id?: string; candi
           {monitor.experiment.searchJob && (
             <JobProgressList jobs={[monitor.experiment.searchJob]} title="Search coordinator" />
           )}
-          <CandidatePipelineTabs api={api} experimentId={monitor.experiment.experimentId}
+          <CandidatePipelineTabs
+            api={api}
+            experimentId={monitor.experiment.experimentId}
             view={activeView}
-            refreshVersion={pipelineSignal} />
+            refreshVersion={pipelineSignal}
+          />
         </>
       )}
       {id && candidateId && (
-        <CandidateDetailPanel api={api} experimentId={id} candidateId={candidateId}
-          returnView={activeView.toLowerCase()} />
+        <CandidateDetailPanel
+          api={api}
+          experimentId={id}
+          candidateId={candidateId}
+          returnView={activeView.toLowerCase()}
+        />
       )}
     </main>
   );

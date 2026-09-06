@@ -2,6 +2,7 @@ package com.cryptostrategy.platform.worker.config;
 
 import static org.junit.jupiter.api.Assertions.*;
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -10,7 +11,8 @@ class NewsWorkerPropertiesTest {
     @Test void accepts_only_the_approved_process_local_and_persisted_defaults(){
         var sentiment=new NewsWorkerProperties.Sentiment(URI.create("http://sentiment:8000"),"service-token-1234",Duration.ofSeconds(2),Duration.ofSeconds(30),4,50f,10,Duration.ofSeconds(30));
         var analysis=new NewsWorkerProperties.Analysis(Duration.ofSeconds(120),25,3,List.of(Duration.ofSeconds(5),Duration.ofSeconds(30)));
-        assertDoesNotThrow(()->new NewsWorkerProperties(true,sentiment,analysis,new NewsWorkerProperties.Release("model","v1","prep","sentiment-v1"),new NewsWorkerProperties.CollectionSettings(Duration.ofHours(24),List.of())));
+        var properties=assertDoesNotThrow(()->new NewsWorkerProperties(true,sentiment,analysis,new NewsWorkerProperties.Release("model","v1","prep","sentiment-v1"),new NewsWorkerProperties.CollectionSettings(Duration.ofHours(24),List.of())));
+        assertEquals(HttpClient.Version.HTTP_1_1, new NewsWorkerConfiguration().sentimentHttpClient(properties).version());
         assertEquals(4, sentiment.maxConcurrency());
         assertEquals(50f, sentiment.failureRateThreshold());
         assertEquals(10, sentiment.slidingWindowSize());

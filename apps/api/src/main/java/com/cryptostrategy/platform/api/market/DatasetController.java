@@ -76,7 +76,7 @@ public final class DatasetController {
         var ordered = listDatasets.listDatasetsPage(
                 user.userId(),
                 after == null ? null : after.timestamp(),
-                after == null ? null : after.id(),
+                after == null ? null : after.resourceKey(),
                 page.limit() + 1);
         boolean hasMore = ordered.size() > page.limit();
         var selected = hasMore ? ordered.subList(0, page.limit()) : ordered;

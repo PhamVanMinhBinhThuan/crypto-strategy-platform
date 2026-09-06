@@ -48,16 +48,14 @@ export function ViewDetailsAction({
   );
 }
 
-export function CandidateTableShell({
-  label,
-  children
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+export function CandidateTableShell({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="table-scroll candidate-table-scroll" tabIndex={0} role="region"
-      aria-label={label}>
+    <div
+      className="table-scroll candidate-table-scroll"
+      tabIndex={0}
+      role="region"
+      aria-label={label}
+    >
       {children}
     </div>
   );
@@ -89,7 +87,9 @@ export function CandidatePagination({
       <button type="button" disabled={!canPrevious || disabled} onClick={onPrevious}>
         Previous
       </button>
-      <span aria-live="polite">Showing {start}–{end} of {total}</span>
+      <span aria-live="polite">
+        Showing {start}–{end} of {total}
+      </span>
       <button type="button" disabled={!canNext || disabled} onClick={onNext}>
         Next
       </button>

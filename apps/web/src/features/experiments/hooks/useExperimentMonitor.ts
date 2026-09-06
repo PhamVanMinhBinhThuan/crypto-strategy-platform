@@ -11,7 +11,7 @@ export function useExperimentMonitor(api: ApiClient, id?: string) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [error, setError] = useState<string>();
   const requestVersion = useRef(0);
-  const loadedExperimentId = useRef<string>();
+  const loadedExperimentId = useRef<string | undefined>(undefined);
   const refresh = useCallback(async () => {
     if (!id) return;
     const currentRequest = ++requestVersion.current;

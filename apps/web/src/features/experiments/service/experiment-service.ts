@@ -38,7 +38,9 @@ const safe = async <T>(
 export const createExperimentService = (api: ApiClient) => ({
   readRecentExperiments: (cursor?: string) =>
     safe(
-      api.request(`/api/v1/experiments?limit=10${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`),
+      api.request(
+        `/api/v1/experiments?limit=10${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`
+      ),
       mapExperimentHistoryPage
     ),
   readExperiment: (id: string) =>

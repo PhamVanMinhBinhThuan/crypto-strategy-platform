@@ -16,6 +16,7 @@ dependencies {
     implementation(project(":modules:search"))
     implementation(libs.spring.jdbc)
     implementation(libs.jackson.databind)
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jdk8")
     implementation(libs.slf4j.api)
     runtimeOnly(libs.postgresql)
     testImplementation(platform(libs.spring.boot.dependencies))

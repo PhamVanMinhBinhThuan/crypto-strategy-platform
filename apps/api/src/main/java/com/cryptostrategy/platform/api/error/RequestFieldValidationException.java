@@ -12,7 +12,7 @@ public final class RequestFieldValidationException extends IllegalArgumentExcept
         this.fieldErrors = List.of(Map.of("field", field, "reason", reason));
     }
 
-    List<Map<String, String>> fieldErrors() {
+    public List<Map<String, String>> fieldErrors() {
         return fieldErrors;
     }
 }

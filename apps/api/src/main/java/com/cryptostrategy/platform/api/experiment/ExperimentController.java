@@ -306,7 +306,7 @@ public final class ExperimentController {
         var ordered = experiments.listRecent(
                 user.userId(),
                 after == null ? null : after.timestamp(),
-                after == null ? null : after.id(),
+                after == null ? null : after.resourceKey(),
                 page.limit() + 1);
         boolean hasMore = ordered.size() > page.limit();
         var selected = hasMore ? ordered.subList(0, page.limit()) : ordered;
@@ -363,7 +363,7 @@ public final class ExperimentController {
                 throw new IllegalArgumentException("Cursor does not belong to this pipeline view");
             }
             start = java.util.stream.IntStream.range(0, filtered.size())
-                    .filter(index -> filtered.get(index).candidateId().value().equals(decoded.candidateId()))
+                    .filter(index -> filtered.get(index).candidateId().equals(decoded.candidateId()))
                     .findFirst().orElseThrow(() -> new IllegalArgumentException("Cursor is stale")) + 1;
         }
         int end = Math.min(filtered.size(), start + limit);
@@ -371,7 +371,7 @@ public final class ExperimentController {
         boolean hasMore = end < filtered.size();
         String nextCursor = hasMore && !selected.isEmpty()
                 ? new CandidatePipelineCursor(normalizedView,
-                        selected.getLast().candidateId().value()).encode()
+                        selected.getLast().candidateId()).encode()
                 : null;
         return new ReadDtos.CandidatePipelinePage(
                 selected.stream().map(ReadDtos.CandidatePipelineResponse::from).toList(),

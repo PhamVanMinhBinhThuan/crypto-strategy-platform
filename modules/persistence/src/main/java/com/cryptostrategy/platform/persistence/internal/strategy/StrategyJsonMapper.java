@@ -11,13 +11,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.TreeMap;
 
 public final class StrategyJsonMapper {
-    private final ObjectMapper mapper = JsonMapper.builder().enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).build();
+    private final ObjectMapper mapper = JsonMapper.builder().addModule(new Jdk8Module()).enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS).build();
     public String descriptor(StrategyDescriptor descriptor) { return write(descriptor); }
     public String canonical(Object value) { return write(value); }
     public String parameters(StrategyParameterSet parameters) {

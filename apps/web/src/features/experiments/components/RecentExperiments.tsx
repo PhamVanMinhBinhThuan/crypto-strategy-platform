@@ -27,7 +27,9 @@ export function RecentExperiments({ api }: { api: ApiClient }) {
           <p className="eyebrow">Experiment history</p>
           <h2 id="recent-experiments-heading">Recent experiments</h2>
         </div>
-        <Link className="button" href="/search?mode=new">New experiment</Link>
+        <Link className="button" href="/search?mode=new">
+          New experiment
+        </Link>
       </div>
       {state.loading && !state.page && <p role="status">Loading recent experiments…</p>}
       {state.error && (
@@ -48,13 +50,34 @@ export function RecentExperiments({ api }: { api: ApiClient }) {
         <>
           <CandidateTableShell label="Recent experiments">
             <table className="history-table">
-              <thead><tr><th>Experiment</th><th>Dataset</th><th>Status</th><th>Progress</th><th>Created</th><th>Actions</th></tr></thead>
-              <tbody>{items.map((item) => <ExperimentRow key={item.experimentId} item={item} />)}</tbody>
+              <thead>
+                <tr>
+                  <th>Experiment</th>
+                  <th>Dataset</th>
+                  <th>Status</th>
+                  <th>Progress</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <ExperimentRow key={item.experimentId} item={item} />
+                ))}
+              </tbody>
             </table>
           </CandidateTableShell>
-          <CandidatePagination label="Recent experiments" start={start} end={end} total={total}
-            canPrevious={state.canPrevious} canNext={Boolean(state.page?.hasMore)}
-            disabled={state.loading} onPrevious={state.previous} onNext={state.next} />
+          <CandidatePagination
+            label="Recent experiments"
+            start={start}
+            end={end}
+            total={total}
+            canPrevious={state.canPrevious}
+            canNext={Boolean(state.page?.hasMore)}
+            disabled={state.loading}
+            onPrevious={state.previous}
+            onNext={state.next}
+          />
         </>
       )}
     </section>
@@ -65,12 +88,37 @@ function ExperimentRow({ item }: { item: ExperimentHistoryItem }) {
   const href = `/search/${encodeURIComponent(item.experimentId)}?view=results`;
   return (
     <tr>
-      <td><Link className="history-primary-link" href={href}>{item.name}</Link><small className="mono">{item.experimentId}</small></td>
-      <td><strong>{item.dataset.provider} · {item.dataset.pair} · {item.dataset.timeframe}</strong><small>{new Intl.NumberFormat("en-US").format(item.dataset.candleCount)} candles</small></td>
-      <td><StatusBadge value={item.status} /></td>
-      <td className="numeric"><strong>{item.progress.processed}/{item.progress.total}</strong><small>{item.progress.succeeded} succeeded · {item.progress.failed} failed</small></td>
-      <td><time dateTime={item.createdAt}>{formatDateTime(item.createdAt)}</time></td>
-      <td><Link className="button secondary history-action" href={href}>Open</Link></td>
+      <td>
+        <Link className="history-primary-link" href={href}>
+          {item.name}
+        </Link>
+        <small className="mono">{item.experimentId}</small>
+      </td>
+      <td>
+        <strong>
+          {item.dataset.provider} · {item.dataset.pair} · {item.dataset.timeframe}
+        </strong>
+        <small>{new Intl.NumberFormat("en-US").format(item.dataset.candleCount)} candles</small>
+      </td>
+      <td>
+        <StatusBadge value={item.status} />
+      </td>
+      <td className="numeric">
+        <strong>
+          {item.progress.processed}/{item.progress.total}
+        </strong>
+        <small>
+          {item.progress.succeeded} succeeded · {item.progress.failed} failed
+        </small>
+      </td>
+      <td>
+        <time dateTime={item.createdAt}>{formatDateTime(item.createdAt)}</time>
+      </td>
+      <td>
+        <Link className="button secondary history-action" href={href}>
+          Open
+        </Link>
+      </td>
     </tr>
   );
 }

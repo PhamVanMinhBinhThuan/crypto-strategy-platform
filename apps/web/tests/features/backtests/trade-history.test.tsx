@@ -10,7 +10,7 @@ import {
 describe("trade history", () => {
   it("renders the user-facing columns in authoritative order with local scrolling", () => {
     render(<TradeHistory trades={mapBacktestResult(manyTradeBacktestResult).trades} />);
-    const region = screen.getByRole("region", { name: /trade history/i });
+    const region = screen.getByRole("region", { name: "Scrollable trade history" });
     expect(region).toHaveClass("table-scroll");
     expect(within(region).getAllByRole("row")).toHaveLength(7);
     expect(screen.getByText(/recorded entry, exit, fees/i)).toBeInTheDocument();

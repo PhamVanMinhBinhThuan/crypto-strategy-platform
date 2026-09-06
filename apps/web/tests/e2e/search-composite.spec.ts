@@ -70,9 +70,7 @@ async function installBoundary(page: Page, capture?: (payload: unknown) => void)
       return fulfill(route, { items: [], nextCursor: null });
     if (method === "GET" && url.pathname === "/api/v1/search/generators")
       return fulfill(route, {
-        items: [
-          { generatorId: "random-search", version: "1.0.0", displayName: "Random Search" }
-        ]
+        items: [{ generatorId: "random-search", version: "1.0.0", displayName: "Random Search" }]
       });
     if (method === "POST" && url.pathname === "/api/v1/datasets") {
       const request = route.request().postDataJSON();

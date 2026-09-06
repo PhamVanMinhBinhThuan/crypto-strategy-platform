@@ -64,8 +64,8 @@ describe("Strategy form", () => {
     await userEvent.type(screen.getByLabelText("Tên Strategy"), "Composite");
     await userEvent.click(screen.getByText("Composite"));
     expect(screen.getByRole("button", { name: "Lưu Strategy" })).toBeDisabled();
-    await userEvent.click(screen.getByText(/MA · v1/));
-    await userEvent.click(screen.getByText(/RSI · v1/));
+    await userEvent.click(screen.getByRole("checkbox", { name: /MA.*v1/i }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /RSI.*v1/i }));
     expect(screen.getByRole("button", { name: "Lưu Strategy" })).toBeEnabled();
     await userEvent.click(screen.getByRole("button", { name: "Lưu Strategy" }));
     expect(submit.mock.calls[0][0]).toMatchObject({

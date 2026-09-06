@@ -8,6 +8,7 @@ import com.cryptostrategy.platform.evaluation.api.model.MetricVersion;
 import com.cryptostrategy.platform.evaluation.api.model.RankingVersion;
 import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardEntry;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardRevision;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardRevisionId;
@@ -307,15 +308,20 @@ public final class JdbcLeaderboardStore implements LeaderboardStore {
                     new CandidateId(rs.getString("candidate_id")),
                     rs.getInt("generation_index"), map(rs.getString("definition")),
                     rs.getString("fingerprint"), rs.getTimestamp("created_at").toInstant(),
-                    new CandidatePipelineEntry.BacktestStage(rs.getString("job_id"), backtestStatus,
-                            backtestId, instant(rs.getTimestamp("started_at")),
+                    new CandidatePipelineEntry.BacktestStage(
+                            rs.getString("job_id") == null ? null : new JobId(rs.getString("job_id")),
+                            backtestStatus,
+                            backtestId == null ? null : new LeaderboardBacktestResultId(backtestId),
+                            instant(rs.getTimestamp("started_at")),
                             instant(rs.getTimestamp("finished_at")),
                             rs.getObject("attempt_no", Integer.class),
                             evaluationId == null
                                     ? instant(rs.getTimestamp("next_retry_at")) : null,
                             evaluationId == null && ("RETRY_SCHEDULED".equals(jobStatus)
                                     || rs.getBoolean("attempt_retryable")), failure),
-                    new CandidatePipelineEntry.EvaluationStage(evaluationStatus, evaluationId,
+                    new CandidatePipelineEntry.EvaluationStage(
+                            evaluationStatus,
+                            evaluationId == null ? null : new EvaluationResultId(evaluationId),
                             rs.getBigDecimal("overall_score"), rs.getBigDecimal("total_return"),
                             rs.getBigDecimal("win_rate"), rs.getBigDecimal("maximum_drawdown"),
                             numberOfTrades, rs.getString("metric_version"), eligible,

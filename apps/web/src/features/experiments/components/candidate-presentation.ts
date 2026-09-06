@@ -22,11 +22,15 @@ const parameterNames: Readonly<Record<string, string>> = {
 };
 
 const readableValue = (value: unknown) => {
-  const raw = value && typeof value === "object" && "value" in value
-    ? (value as { value: unknown }).value
-    : value;
+  const raw =
+    value && typeof value === "object" && "value" in value
+      ? (value as { value: unknown }).value
+      : value;
   if (typeof raw === "string" && /^[A-Z][A-Z0-9_]*$/.test(raw)) {
-    return raw.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+    return raw
+      .toLowerCase()
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
   return String(raw);
 };
@@ -51,13 +55,17 @@ export const parameterSummary = (definition: Readonly<Record<string, unknown>>) 
   const components = candidateComponents(definition);
   return components
     .map((component) => {
-      const values = component.parameters && typeof component.parameters === "object"
-        ? component.parameters as Record<string, unknown>
-        : {};
+      const values =
+        component.parameters && typeof component.parameters === "object"
+          ? (component.parameters as Record<string, unknown>)
+          : {};
       const parameters = Object.entries(values)
         .map(([name, value]) => {
-          const label = parameterNames[name]
-            ?? name.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (letter) => letter.toUpperCase());
+          const label =
+            parameterNames[name] ??
+            name
+              .replace(/([a-z])([A-Z])/g, "$1 $2")
+              .replace(/^./, (letter) => letter.toUpperCase());
           return `${label} ${readableValue(value)}`;
         })
         .join(" · ");
@@ -75,8 +83,12 @@ const statusLabels: Readonly<Record<string, string>> = {
   RETRY_SCHEDULED: "Retry scheduled"
 };
 
-export const statusLabel = (value: string) => statusLabels[value]
-  ?? value.toLowerCase().replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+export const statusLabel = (value: string) =>
+  statusLabels[value] ??
+  value
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
 export const formatScore = (value: string | null) => {
   if (value === null) return "—";
@@ -96,11 +108,13 @@ export const formatDateTime = (value: string | null) => {
   if (!value) return "—";
   const date = new Date(value);
   if (Number.isNaN(date.valueOf())) return value;
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC"
-  }).format(date) + " UTC";
+  return (
+    new Intl.DateTimeFormat("en-GB", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "UTC"
+    }).format(date) + " UTC"
+  );
 };
 
 export const failurePresentation = (item: Pick<CandidatePipelineItem, "backtest">) => {
@@ -117,7 +131,7 @@ export const failurePresentation = (item: Pick<CandidatePipelineItem, "backtest"
     return { title: "Invalid strategy parameters", code, rawMessage };
   }
   if (message.includes("timeout") || message.includes("timed out") || message.includes("stale")) {
-    return { title: "Worker timeout or retry exhausted", code, rawMessage };
+    return { title: "Processing timeout or retry exhausted", code, rawMessage };
   }
   return { title: "The candidate could not be processed", code, rawMessage };
 };

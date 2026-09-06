@@ -93,14 +93,14 @@ public final class LeaderboardDtos {
             boolean hasCanonicalBacktest = value.backtestResultId() != null;
             var backtest = new ReadDtos.PipelineBacktestResponse(
                     null, hasCanonicalBacktest ? "SUCCEEDED" : value.backtestStatus(),
-                    hasCanonicalBacktest ? value.backtestResultId().value() : null,
+                    hasCanonicalBacktest ? value.backtestResultId() : null,
                     null, null, null, null, false, null);
             ReadDtos.PipelineEvaluationResponse evaluationResponse = evaluation == null
                     ? new ReadDtos.PipelineEvaluationResponse(
                             "PENDING", null, null, null, null, null, null,
                             null, null, null, null)
                     : new ReadDtos.PipelineEvaluationResponse(
-                            "SUCCEEDED", evaluation.evaluationResultId().value(),
+                            "SUCCEEDED", evaluation.evaluationResultId(),
                             evaluation.overallScore().toPlainString(),
                             evaluation.totalReturn().toPlainString(),
                             evaluation.winRate().toPlainString(),
@@ -164,7 +164,7 @@ public final class LeaderboardDtos {
                             evaluation.maximumDrawdown().toPlainString(),
                             evaluation.numberOfTrades(), evaluation.metricVersion());
             LeaderboardBacktestResultId resultId = hasCanonicalBacktest
-                    ? new LeaderboardBacktestResultId(pipeline.backtest().backtestResultId()) : null;
+                    ? pipeline.backtest().backtestResultId() : null;
             return new CandidateDetailResponse(value.candidateId(), value.generationIndex(),
                     value.definition(), value.generatorState(), value.fingerprint(),
                     DatasetProvenanceResponse.from(dataset), resultId,

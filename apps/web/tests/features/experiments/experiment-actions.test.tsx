@@ -71,7 +71,7 @@ describe("Experiment Stop actions", () => {
     expect(await screen.findByText(/verification starts as PENDING/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Open reproduced Experiment/ })).toHaveAttribute(
       "href",
-      "/search?id=experiment-reproduced"
+      "/search/experiment-reproduced"
     );
   });
 });

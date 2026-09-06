@@ -81,7 +81,7 @@ public final class RegistryFrozenStrategyResolver implements FrozenStrategyResol
                 provenance.components().getFirst().strategyReference().strategyVersionId(),
                 new StrategyPluginId("composite"), policyVersion);
         Strategy strategy = composites.materialize(compositeReference,
-                new CombinationPolicyReference(policyId, policyVersion), resolved);
+                new CombinationPolicyReference(policyId, policyVersion), policySet, resolved);
         return new ResolvedStrategy(strategy, lookback, actual);
     }
 
@@ -134,7 +134,8 @@ public final class RegistryFrozenStrategyResolver implements FrozenStrategyResol
                 components.getFirst().strategy().strategyVersionId(),
                 new StrategyPluginId("composite"), searchPolicy.version());
         Strategy strategy = composites.materialize(compositeReference,
-                new CombinationPolicyReference(searchPolicy.policyId(), searchPolicy.version()), strategies);
+                new CombinationPolicyReference(searchPolicy.policyId(), searchPolicy.version()),
+                searchPolicy.parameters(), strategies);
         return new ResolvedStrategy(strategy, lookback, actual);
     }
 

@@ -77,6 +77,7 @@ public final class UserStrategyService implements UserStrategyApplication {
         return store.publish(owner,command.versionId(),command.expectedVersionNo(),clock.instant());
     }
     @Override public UserStrategyDetails getUserStrategy(UUID owner, GetUserStrategyQuery query) { return details(owner,requireRoot(owner,query.userStrategyId())); }
+    @Override public List<UserStrategyVersion> listVersions(UUID owner, UserStrategyId id) { requireRoot(owner,id); return store.listVersions(owner,id); }
     @Override public StrategySnapshot resolveSnapshot(UUID owner, ResolveStrategySnapshotQuery query) { return store.resolvePublished(owner,query.versionId()).orElseThrow(UserStrategyService::notFound); }
     @Override public UserStrategyDetails archive(UUID owner, ArchiveUserStrategyCommand command) { UserStrategy root=requireRoot(owner,command.userStrategyId()); if(root.status()==UserStrategyStatus.ACTIVE) root=store.archive(owner,command.userStrategyId(),clock.instant()); return details(owner,root); }
     private StrategyDraftSource validate(StrategyDraftSource source) {
@@ -85,13 +86,31 @@ public final class UserStrategyService implements UserStrategyApplication {
             return new SingleStrategyDraftSource(single.strategyReference(), resolved);
         }
         CompositeStrategyDraftSource composite=(CompositeStrategyDraftSource)source;
-        if(!composite.policyId().value().equals("majority-vote")||!composite.policyVersion().toString().equals("1.0.0")) throw new StrategyException(StrategyErrorCode.UNSUPPORTED_VERSION,"Unsupported combination policy");
-        if(!composite.policyParameters().values().isEmpty()) throw new StrategyException(StrategyErrorCode.INVALID_PARAMETERS,"Combination policy does not accept parameters");
+        validatePolicy(composite);
         List<UserStrategyComponent> resolvedComponents = composite.components().stream().map(component -> {
             StrategyParameterSet resolved = registry.resolveParameters(component.strategyReference().pluginId(), component.strategyReference().implementationVersion(), component.parameters().values());
             return new UserStrategyComponent(component.strategyReference(), resolved);
         }).toList();
         return new CompositeStrategyDraftSource(composite.policyId(), composite.policyVersion(), composite.policyParameters(), resolvedComponents);
+    }
+    private void validatePolicy(CompositeStrategyDraftSource composite) {
+        if(!composite.policyVersion().toString().equals("1.0.0")) throw new StrategyException(StrategyErrorCode.UNSUPPORTED_VERSION,"Unsupported combination policy version");
+        if(composite.policyId().value().equals("majority-vote")) {
+            if(!composite.policyParameters().values().isEmpty()) throw new StrategyException(StrategyErrorCode.INVALID_PARAMETERS,"Majority vote does not accept parameters");
+            return;
+        }
+        if(!composite.policyId().value().equals("weighted-vote")) throw new StrategyException(StrategyErrorCode.UNSUPPORTED_VERSION,"Unsupported combination policy");
+        java.util.Set<String> expected = composite.components().stream()
+                .map(component -> "weight." + component.strategyReference().strategyVersionId().value())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        if(!composite.policyParameters().values().keySet().equals(expected)) throw new StrategyException(StrategyErrorCode.INVALID_PARAMETERS,"Weighted vote requires one weight for each component");
+        for(var value : composite.policyParameters().values().values()) {
+            try {
+                if(new java.math.BigDecimal(value.canonicalText()).signum() <= 0) throw new NumberFormatException();
+            } catch(NumberFormatException exception) {
+                throw new StrategyException(StrategyErrorCode.INVALID_PARAMETERS,"Component weights must be positive numbers");
+            }
+        }
     }
     private String fingerprint(StrategyDraftSource source) {
         if(source instanceof SingleStrategyDraftSource single) return fingerprint.single(single.strategyReference(),single.parameters());

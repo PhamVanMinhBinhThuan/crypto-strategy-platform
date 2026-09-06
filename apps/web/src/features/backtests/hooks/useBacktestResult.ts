@@ -3,7 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ApiClient } from "@/src/foundation/http/contracts";
 import { createBacktestResultService } from "../service/backtest-result-service";
 import type { BacktestLookup, BacktestQueryState } from "../types/backtest-result";
-import { forgetBacktestResult, rememberBacktestResult } from "@/src/foundation/navigation/resource-history";
+import {
+  forgetBacktestResult,
+  rememberBacktestResult
+} from "@/src/foundation/navigation/resource-history";
 import { useRouter } from "next/navigation";
 export function useBacktestResult(api: ApiClient, lookup: BacktestLookup) {
   const router = useRouter();
