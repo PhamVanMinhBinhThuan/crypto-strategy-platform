@@ -20,7 +20,7 @@ public final class JdbcOutboxPublicationStore implements OutboxPublicationPort {
             rs.getString("aggregate_type"),
             rs.getString("aggregate_id"),
             rs.getString("event_type"),
-            rs.getInt("event_version"),
+            rs.getString("event_version"),
             rs.getString("payload"),
             rs.getString("headers"),
             rs.getTimestamp("published_at") != null ? rs.getTimestamp("published_at").toInstant() : null,

@@ -47,7 +47,7 @@ public class OutboxPublisherEngine {
                 streamPublisher.publish(streamKey, record.messageId(), record.payload(), Map.of(
                         "eventType", record.eventType(),
                         "messageType", messageType(record),
-                        "messageVersion", Integer.toString(record.eventVersion()),
+                        "messageVersion", record.eventVersion(),
                         "aggregateType", record.aggregateType() != null ? record.aggregateType() : "",
                         "aggregateId", record.aggregateId() != null ? record.aggregateId() : ""
                 ));
