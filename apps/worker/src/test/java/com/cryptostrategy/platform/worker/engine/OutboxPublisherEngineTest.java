@@ -40,7 +40,7 @@ class OutboxPublisherEngineTest {
         Instant now = Instant.now();
         OutboxRecord record = new OutboxRecord(
                 "evt-1", "01J7K8M9N0P1Q2R3S4T5A6V7W1", "EXPERIMENT", "exp-1",
-                "EXPERIMENT_QUEUED", 1, "{}", null, null, 0, null, now, now
+                "EXPERIMENT_QUEUED", "1.0.0", "{}", null, null, 0, null, now, now
         );
         when(outboxPort.listUnpublishedBatch(workerProperties.reconciliation().outboxBatchSize()))
                 .thenReturn(List.of(record));
@@ -57,7 +57,7 @@ class OutboxPublisherEngineTest {
         Instant now = Instant.now();
         OutboxRecord record = new OutboxRecord(
                 "evt-1", "01J7K8M9N0P1Q2R3S4T5A6V7W1", "EXPERIMENT", "exp-1",
-                "EXPERIMENT_QUEUED", 1, "{}", null, null, 0, null, now, now
+                "EXPERIMENT_QUEUED", "1", "{}", null, null, 0, null, now, now
         );
         when(outboxPort.listUnpublishedBatch(workerProperties.reconciliation().outboxBatchSize()))
                 .thenReturn(List.of(record));
@@ -74,7 +74,7 @@ class OutboxPublisherEngineTest {
         Instant now = Instant.now();
         OutboxRecord record = new OutboxRecord(
                 "evt-search", "01J7K8M9N0P1Q2R3S4T5A6V7W2", "JOB", "search-job-1",
-                "SEARCH_REQUEST", 1, "{\"searchJobId\":\"job\"}", null, null, 0, null, now, now);
+                "SEARCH_REQUEST", "1", "{\"searchJobId\":\"job\"}", null, null, 0, null, now, now);
         when(outboxPort.listUnpublishedBatch(workerProperties.reconciliation().outboxBatchSize()))
                 .thenReturn(List.of(record));
 
