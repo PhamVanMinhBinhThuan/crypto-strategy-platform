@@ -48,8 +48,14 @@ Event Sourcing lưu lịch sử thay đổi thay vì trạng thái cuối — l�
 ## Bằng chứng trong project
 
 - [ADR-0009 — Reproducible Experiments](../../adr/0009-reproducible-experiments.md)
-- [Leaderboard module](../../../modules/leaderboard/)
+- [Top-K projector](../../../modules/leaderboard/src/main/java/com/cryptostrategy/platform/leaderboard/internal/TopKProjector.java)
+- [Leaderboard query service](../../../modules/leaderboard/src/main/java/com/cryptostrategy/platform/leaderboard/internal/LeaderboardQueryService.java)
+- [Candidate Evaluated handler](../../../apps/worker/src/main/java/com/cryptostrategy/platform/worker/consumer/CandidateEvaluatedHandler.java)
 - [Architecture Overview — không full CQRS](../../architecture/architecture-overview.md)
+
+## Cách nói khi trình bày
+
+> Nhóm chỉ dùng CQRS-lite cho Leaderboard: write side lưu Backtest và Evaluation chi tiết, còn read side là Top-K revision tối ưu cho UI. Nhóm không dùng Event Sourcing hay tách read/write database vì immutable Manifest đã đủ cho audit và chưa có driver biện minh cho độ phức tạp đó.
 
 ## Nguồn đề bài
 

@@ -56,7 +56,12 @@ Giúp xác định ai "sở hữu" một khái niệm và tránh "semantic colli
 - [ADR-0002 — Module Boundaries](../../adr/0002-module-boundaries.md)
 - [ADR-0005 — Strategy contract](../../adr/0005-strategy-plugin-registry.md)
 - [Strategy module API](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/api/)
-- [Backtesting module](../../../modules/backtesting/)
+- [Strategy signal](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/api/model/StrategySignal.java)
+- [Backtest trade](../../../modules/backtesting/src/main/java/com/cryptostrategy/platform/backtesting/api/model/Trade.java)
+
+## Cách nói khi trình bày
+
+> Signal và Trade đều liên quan đến mua bán nhưng không phải một khái niệm. Signal là đề xuất BUY, SELL hoặc HOLD của Strategy; Trade là giao dịch đã được Backtester mô phỏng với entry, exit, fee và PnL. Tách hai model giúp đổi cách mô phỏng giao dịch mà không làm đổi thuật toán Strategy.
 
 ## Nguồn đề bài
 

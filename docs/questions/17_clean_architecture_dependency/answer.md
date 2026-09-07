@@ -2,7 +2,7 @@
 
 ## Trả lời ngắn
 
-**Không.** Strategy chỉ được phép gọi qua `StrategyContext` (port/interface) — không import repository, không gọi Binance REST API, không biết Spring, không biết database schema. Đây là nguyên tắc Clean Architecture: business policy không phụ thuộc infrastructure. Nếu `RSIStrategy` gọi thẳng MySQL hoặc Binance JSON, đổi DB hay đổi sàn là phải sửa luôn cả Strategy — vi phạm Single Responsibility và Open/Closed.
+**Không.** Strategy nhận dữ liệu đã được chuẩn bị qua `StrategyContext`; nó không import repository, không gọi Binance REST API, không biết Spring và không biết database schema. Đây là Dependency Rule của Clean Architecture: business policy không phụ thuộc infrastructure.
 
 ## Minh họa — Sai vs Đúng
 
@@ -31,13 +31,11 @@ flowchart LR
 Dependency chỉ đi từ ngoài vào trong: Infrastructure → Adapter → Port/Interface → Domain/Business Policy.
 
 ```
-[Infrastructure: MySQL, Binance, Redis]
-    ↑ implement
-[Adapter: BinanceAdapter, JdbcCandleRepo]
-    ↑ implement  
-[Port: MarketDataProvider, CandleRepository]
-    ↑ depend on
-[Domain: RSIStrategy, MAStrategy, BacktestEngine]
+[Domain/Application định nghĩa Port]
+                ↑ adapter implement
+[Adapter: BinanceAdapter, JDBC persistence]
+                ↓ gọi infrastructure
+[Infrastructure: Binance, PostgreSQL, Redis]
 ```
 
 **Strategy nằm ở lớp Domain** — chỉ phụ thuộc vào abstraction (port), không bao giờ phụ thuộc vào concretion (adapter/infrastructure).
@@ -53,8 +51,12 @@ Dependency chỉ đi từ ngoài vào trong: Infrastructure → Adapter → Port
 - [ADR-0005 — Strategy Plugin/Registry](../../adr/0005-strategy-plugin-registry.md)
 - [ADR-0002 — Module Boundaries](../../adr/0002-module-boundaries.md)
 - [Strategy contract](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/api/)
-- [StrategyContext](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/api/StrategyContext.java)
-- [Architecture boundary test](../../../modules/strategy-core/src/test/java/com/cryptostrategy/platform/strategy/)
+- [StrategyContext](../../../modules/strategy-core/src/main/java/com/cryptostrategy/platform/strategy/api/model/StrategyContext.java)
+- [Architecture boundary test](../../../architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/ModuleBoundaryTest.java)
+
+## Cách nói khi trình bày
+
+> Strategy nhận Candle rồi quyết định BUY, SELL hoặc HOLD; nó không tự đi lấy Candle. Application/Backtest chuẩn bị dữ liệu, còn adapter chịu trách nhiệm gọi Binance hoặc PostgreSQL. Vì vậy đổi nguồn dữ liệu không làm đổi thuật toán Strategy.
 
 ## Nguồn đề bài
 
