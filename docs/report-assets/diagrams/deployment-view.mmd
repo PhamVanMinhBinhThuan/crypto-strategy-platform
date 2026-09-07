@@ -1,0 +1,29 @@
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart TB
+    BROWSER["Browser"]
+    BINANCE["Binance"]
+    NEWS["News Providers"]
+
+    subgraph ENV["Local Compose or Demo Environment"]
+        WEB["Web container"]
+        API["API container"]
+        W1["Worker instance 1"]
+        WN["Worker instance N"]
+        SENTIMENT["Sentiment container"]
+        REDIS[("Redis")]
+    end
+
+    DB[("PostgreSQL / Supabase")]
+
+    BROWSER <-->|"HTTPS/WSS or local HTTP/WS"| WEB
+    WEB <-->|"REST/WebSocket"| API
+    API <-->|"Provider protocols"| BINANCE
+    API --> NEWS
+    API --> DB
+    API --> REDIS
+    W1 --> REDIS
+    WN --> REDIS
+    W1 --> DB
+    WN --> DB
+    W1 --> SENTIMENT
+    WN --> SENTIMENT

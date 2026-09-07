@@ -1,0 +1,26 @@
+%%{init: {"theme": "neutral", "sequence": {"useMaxWidth": true}}}%%
+sequenceDiagram
+    participant Web
+    participant API
+    participant Market as Market Data Module
+    participant Binance
+    participant DB as PostgreSQL
+
+    Web->>API: SUBSCRIBE_CANDLES(pair, timeframe)
+    API->>Market: subscribeCandles(query, handler)
+    Market->>Binance: Open or reuse upstream stream
+    Binance-->>Market: Kline update
+    Market->>Market: Normalize + order + deduplicate
+    Market-->>API: Candle + connection state
+    API-->>Web: CANDLE_UPDATED
+    Binance--xMarket: Disconnect
+    Market-->>API: RECONNECTING
+    loop Bounded exponential backoff with jitter
+        Market->>Binance: Reconnect
+    end
+    Market->>Binance: Backfill from last confirmed candle
+    Binance-->>Market: Missing or overlapping candles
+    Market->>Market: Sort + deduplicate + gap check
+    Market->>DB: Persist closed candles idempotently
+    Market-->>API: Recovered updates + CONNECTED
+    API-->>Web: Snapshot/delta + connection state

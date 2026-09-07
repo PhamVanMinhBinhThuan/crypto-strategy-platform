@@ -1,0 +1,11 @@
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    MANIFEST["Immutable Experiment Manifest"] --> DATASET["Frozen Dataset"]
+    MANIFEST --> DEFINITION["Strategy / Composite Definition"]
+    DEFINITION --> REGISTRY["Strategy Registry"]
+    REGISTRY --> STRATEGY["Strategy instance"]
+    DATASET --> BACKTEST["Backtester"]
+    STRATEGY --> BACKTEST
+    BACKTEST --> TRADES["Trade sequence + Backtest Result"]
+    TRADES --> EVALUATOR["Evaluator"]
+    EVALUATOR --> METRICS["Return / Win Rate / MDD / Trades"]

@@ -1,0 +1,10 @@
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart TD
+    A["External/runtime failure"] --> B{"Failure location"}
+    B -->|"Redis or Worker"| C["Outbox + Job remain durable in PostgreSQL"]
+    C --> D["Consumer reclaim / recovery sweep"]
+    D --> E["Stable identity deduplication<br/>bounded retry"]
+    B -->|"Sentiment service"| F["News analysis PENDING/FAILED<br/>redacted error"]
+    F --> G["Market, technical Strategy and Backtest continue"]
+    B -->|"WebSocket"| H["UI keeps snapshot and reports stale/recovering"]
+    H --> I["Reconnect + REST backfill/reconcile"]

@@ -1,0 +1,20 @@
+%%{init: {"theme": "neutral"}}%%
+erDiagram
+    DATASET_VERSION ||--o{ CANDLE : contains
+    EXPERIMENT ||--|| EXPERIMENT_MANIFEST : freezes
+    EXPERIMENT_MANIFEST }o--|| DATASET_VERSION : uses
+    EXPERIMENT_MANIFEST }o--|| STRATEGY_DEFINITION : uses
+    USER ||--o{ USER_STRATEGY : owns
+    USER_STRATEGY ||--o{ USER_STRATEGY_VERSION : versions
+    USER_STRATEGY_VERSION }o--|| STRATEGY_DEFINITION : configures
+    USER_STRATEGY_VERSION ||--o{ EXPERIMENT_MANIFEST : provenance_for
+    EXPERIMENT ||--o{ CANDIDATE_DEFINITION : generates
+    EXPERIMENT ||--o{ JOB : owns
+    JOB ||--o{ EXECUTION_ATTEMPT : retries_as
+    CANDIDATE_DEFINITION ||--o| BACKTEST_RESULT : succeeds_as
+    BACKTEST_RESULT ||--o{ TRADE : contains
+    BACKTEST_RESULT ||--o{ EVALUATION_RESULT : evaluated_as
+    EVALUATION_RESULT ||--o| LEADERBOARD_ENTRY : projected_to
+    LEADERBOARD_REVISION ||--o{ LEADERBOARD_ENTRY : contains
+    NEWS_ITEM ||--o{ SENTIMENT_RESULT : analyzed_as
+    OUTBOX_EVENT }o--|| EXPERIMENT : publishes_for

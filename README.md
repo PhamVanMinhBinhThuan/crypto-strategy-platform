@@ -635,6 +635,3 @@ Xem danh sách đầy đủ và trạng thái từng quyết định tại [ADR 
 7. Chạy test phù hợp trước Pull Request và ghi rõ profile nào là LIVE hay CONTROLLED.
 8. Không commit `.env.local`, token, cookie, database URL có credential hoặc artifact chứa secret.
 
-> [!WARNING]
-> Dự án phục vụ học tập và nghiên cứu. Kết quả backtest không bảo đảm hiệu quả giao dịch trong tương lai và không phải lời khuyên tài chính. Hệ thống không thực hiện giao dịch bằng tiền thật.
-

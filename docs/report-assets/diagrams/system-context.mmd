@@ -1,0 +1,12 @@
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    USER["User / Trader"]
+    OPERATOR["Team / Operator"]
+    SYSTEM["Crypto Strategy Lab<br/>Realtime market and strategy experiment platform"]
+    BINANCE["Binance"]
+    NEWS["News Providers<br/>RSS / API / Crawler sources"]
+
+    USER -->|"Use dashboard; run experiments"| SYSTEM
+    OPERATOR -->|"Operate, observe and demonstrate"| SYSTEM
+    SYSTEM -->|"Historical and realtime market data"| BINANCE
+    SYSTEM -->|"Collect public crypto news"| NEWS
