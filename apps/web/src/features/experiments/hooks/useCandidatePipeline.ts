@@ -112,14 +112,18 @@ export function useCandidatePipeline(
     void load(view, target, active.history.slice(0, -1));
   };
   const notifyUpdate = useCallback(() => {
-    setStates((current) => ({
-      ...current,
-      RESULTS: current.RESULTS.page ? { ...current.RESULTS, stale: true } : current.RESULTS,
-      FAILED: current.FAILED.page ? { ...current.FAILED, stale: true } : current.FAILED
-    }));
-    const pipeline = states.ALL;
-    void load("ALL", pipeline.cursor, pipeline.history);
-  }, [load, states.ALL]);
+    setStates((current) => {
+      const next = { ...current };
+      for (const item of views) {
+        if (item !== view && current[item].page) {
+          next[item] = { ...current[item], stale: true };
+        }
+      }
+      return next;
+    });
+    const activeView = states[view];
+    void load(view, activeView.cursor, activeView.history);
+  }, [load, states, view]);
 
   return {
     ...active,

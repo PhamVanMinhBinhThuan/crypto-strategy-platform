@@ -12,6 +12,7 @@ export function listCandles(
     startTime: string;
     endTime: string;
     limit?: number;
+    cursor?: string;
   }
 ): Promise<ApiResult<CandlePage>> {
   const params = new URLSearchParams({
@@ -21,5 +22,6 @@ export function listCandles(
     endTime: query.endTime,
     limit: String(query.limit ?? 200)
   });
+  if (query.cursor) params.set("cursor", query.cursor);
   return requestPublic(client, candlePageSchema, `/api/v1/candles?${params}`);
 }

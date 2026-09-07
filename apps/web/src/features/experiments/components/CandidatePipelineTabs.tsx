@@ -115,6 +115,11 @@ export function CandidatePipelineTabs({
           </button>
         </div>
       )}
+      {state.loading && state.page && (
+        <p className="live-update-status" role="status">
+          Updating live candidates…
+        </p>
+      )}
       {state.loading && !state.page && <CandidateTableSkeleton />}
       {state.error && (
         <div className="candidate-table-error" role="alert">

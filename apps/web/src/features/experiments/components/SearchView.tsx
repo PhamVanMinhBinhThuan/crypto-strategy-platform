@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useClients } from "@/src/foundation/composition/client-provider";
 import { terminalExperiment } from "../types/experiment";
 import { useExperimentMonitor } from "../hooks/useExperimentMonitor";
@@ -15,6 +15,11 @@ import type { CandidatePipelineItem, CandidatePipelineView } from "../types/expe
 import { rememberExperiment } from "@/src/foundation/navigation/resource-history";
 import Link from "next/link";
 import { RecentExperiments } from "./RecentExperiments";
+import { useLeaderboard } from "@/src/features/leaderboard/hooks/useLeaderboard";
+import { useLeaderboardRealtime } from "@/src/features/leaderboard/hooks/useLeaderboardRealtime";
+import { LeaderboardControls } from "@/src/features/leaderboard/components/LeaderboardControls";
+import { LeaderboardTable } from "@/src/features/leaderboard/components/LeaderboardTable";
+import { useDebouncedRefresh } from "@/src/foundation/ui/useDebouncedRefresh";
 export function SearchView({
   id,
   candidateId,
@@ -30,6 +35,7 @@ export function SearchView({
 }) {
   const { api, realtime, fixtures } = useClients();
   const monitor = useExperimentMonitor(api, id);
+  const leaderboard = useLeaderboard(api, id);
   const activeView: CandidatePipelineView =
     view?.toUpperCase() === "FAILED" ? "FAILED" : view?.toUpperCase() === "ALL" ? "ALL" : "RESULTS";
   const [pipelineSignal, setPipelineSignal] = useState(0);
@@ -39,17 +45,21 @@ export function SearchView({
       rememberExperiment(monitor.experiment.experimentId, activeView.toLowerCase());
     }
   }, [activeView, monitor.experiment, monitor.status]);
-  const monitorRefresh = monitor.refresh;
-  const refreshExperiment = useCallback(() => {
-    void monitorRefresh();
-  }, [monitorRefresh]);
-  const refreshPipeline = useCallback(() => setPipelineSignal((value) => value + 1), []);
+  const experimentRefresh = useDebouncedRefresh(monitor.refresh);
+  const pipelineRefresh = useDebouncedRefresh(() => setPipelineSignal((value) => value + 1));
+  const leaderboardRefresh = useDebouncedRefresh(leaderboard.refresh);
   const rt = useExperimentRealtime(
     realtime,
     id,
-    refreshExperiment,
-    refreshPipeline,
+    experimentRefresh.schedule,
+    pipelineRefresh.schedule,
     monitor.experiment ? terminalExperiment(monitor.experiment.status) : false
+  );
+  useLeaderboardRealtime(
+    realtime,
+    id,
+    leaderboard.snapshot?.revision ?? 0,
+    leaderboardRefresh.schedule
   );
   if (!id)
     return (
@@ -88,6 +98,11 @@ export function SearchView({
         error={rt.subscriptionError}
         onReconnect={() => void rt.reconnect()}
       />
+      {(experimentRefresh.pending || pipelineRefresh.pending || leaderboardRefresh.pending) && (
+        <p className="live-update-status" role="status">
+          Updating live experiment data…
+        </p>
+      )}
       {monitor.status === "loading" && !monitor.experiment && (
         <p role="status">Loading authoritative experiment snapshot…</p>
       )}
@@ -113,10 +128,35 @@ export function SearchView({
           <ExperimentActions
             api={api}
             experiment={monitor.experiment}
-            onRefresh={refreshExperiment}
+            onRefresh={() => void monitor.refresh()}
           />
           {monitor.experiment.searchJob && (
             <JobProgressList jobs={[monitor.experiment.searchJob]} title="Search coordinator" />
+          )}
+          {leaderboard.error && (
+            <section className="panel error-state" role="alert">
+              <p>{leaderboard.error}</p>
+              <button className="button secondary" onClick={() => void leaderboard.refresh()}>
+                Retry leaderboard
+              </button>
+            </section>
+          )}
+          {leaderboard.snapshot ? (
+            <>
+              <LeaderboardControls
+                limit={leaderboard.limit}
+                configuredTopK={leaderboard.snapshot.topK}
+                onChange={leaderboard.setLimit}
+              />
+              <LeaderboardTable snapshot={leaderboard.snapshot} />
+            </>
+          ) : (
+            !leaderboard.error && (
+              <section className="panel" aria-live="polite">
+                <h2>Leaderboard</h2>
+                <p className="muted">Waiting for the first eligible candidate…</p>
+              </section>
+            )
           )}
           <CandidatePipelineTabs
             api={api}

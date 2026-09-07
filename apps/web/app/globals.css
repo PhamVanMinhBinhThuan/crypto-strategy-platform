@@ -2520,6 +2520,195 @@ td small {
 .backtest-trades {
   width: 100%;
 }
+.backtest-strategy-chart {
+  width: 100%;
+  max-width: 1200px;
+  overflow: hidden;
+}
+.backtest-strategy-chart > .section-heading {
+  margin-bottom: 0.85rem;
+}
+.backtest-chart-shell {
+  display: grid;
+  gap: 0.55rem;
+}
+.backtest-chart-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.backtest-chart-range {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.backtest-chart-range button {
+  min-width: 2.4rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.28rem 0.45rem;
+  background: #0a1114;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+}
+.backtest-chart-range button:hover,
+.backtest-chart-range button.active {
+  border-color: #3b9d69;
+  background: #143624;
+  color: var(--green);
+}
+.backtest-chart-navigation {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-left: 0.4rem;
+}
+.backtest-chart-navigation button {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.28rem 0.55rem;
+  background: #0a1114;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+}
+.backtest-chart-navigation button:hover:not(:disabled) {
+  border-color: #3b9d69;
+  color: var(--green);
+}
+.backtest-chart-navigation button:disabled {
+  cursor: not-allowed;
+  opacity: 0.38;
+}
+.backtest-chart-navigation span {
+  min-width: 8.5rem;
+  text-align: center;
+}
+.backtest-chart-hover-hint {
+  margin-left: auto;
+}
+.backtest-chart-inspector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.85rem;
+  min-height: 2.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #3f5a50;
+  border-radius: 8px;
+  background: #09100e;
+  color: var(--text);
+  font:
+    0.7rem ui-monospace,
+    monospace;
+}
+.backtest-chart-inspector strong {
+  color: var(--green);
+}
+.backtest-chart-inspector-series {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.backtest-chart-inspector-series i {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+.backtest-chart-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #080d0f;
+}
+.backtest-chart-scroll svg {
+  display: block;
+  min-width: 760px;
+  width: 100%;
+  height: auto;
+}
+.backtest-chart-grid line {
+  stroke: #263238;
+  stroke-width: 1;
+}
+.backtest-candle-up,
+.backtest-candle-down {
+  stroke: currentColor;
+  fill: currentColor;
+}
+.backtest-candle-up {
+  color: var(--green);
+}
+.backtest-candle-down {
+  color: var(--danger);
+}
+.backtest-candle-active {
+  filter: brightness(1.35) drop-shadow(0 0 2px currentColor);
+}
+.backtest-chart-crosshair {
+  pointer-events: none;
+  stroke: #a7b8b0;
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.backtest-chart-hitbox {
+  cursor: crosshair;
+  fill: transparent;
+  stroke: transparent;
+}
+.backtest-trade-marker circle {
+  stroke: #08100c;
+  stroke-width: 2;
+}
+.backtest-trade-marker text {
+  fill: #06100b;
+  font-size: 10px;
+  font-weight: 900;
+  pointer-events: none;
+}
+.backtest-trade-marker.marker-buy circle {
+  fill: #53df9a;
+}
+.backtest-trade-marker.marker-sell circle {
+  fill: #ff6f78;
+}
+.backtest-rsi-panel > rect {
+  fill: #0c1418;
+  stroke: var(--line);
+}
+.backtest-rsi-panel text {
+  font-size: 10px;
+  font-weight: 700;
+}
+.backtest-chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1rem;
+  margin-top: 0.85rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.backtest-chart-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.backtest-legend-line {
+  width: 1.6rem;
+  height: 2px;
+}
+.backtest-legend-marker {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 50%;
+}
+.backtest-chart-note {
+  margin: 0.65rem 0 0;
+  font-size: 0.78rem;
+}
 .backtest-trades > .section-heading {
   margin-bottom: 1rem;
 }
@@ -2704,6 +2893,11 @@ td small {
 }
 .realtime-status.stale {
   color: #ffd67a;
+}
+.live-update-status {
+  margin: 0;
+  color: var(--green);
+  font-size: 0.78rem;
 }
 .inline-error {
   flex-basis: 100%;

@@ -10,6 +10,7 @@ import { quoteCurrency } from "./backtest-presentation";
 import Link from "next/link";
 import { RecentBacktestResults } from "./RecentBacktestResults";
 import { safeExperimentReturnUrl } from "@/src/foundation/navigation/resource-history";
+import { BacktestStrategyChart } from "./BacktestStrategyChart";
 export function BacktestResultsView({
   resultId,
   backtestId,
@@ -93,9 +94,14 @@ export function BacktestResultsView({
         </Link>
       </nav>
       <ResultSummary result={state.snapshot} />
+      <BacktestStrategyChart
+        key={`chart-${state.snapshot.backtestResultId}`}
+        api={api}
+        result={state.snapshot}
+      />
       <ResultEvidence result={state.snapshot} />
       <TradeHistory
-        key={state.snapshot.backtestResultId}
+        key={`trades-${state.snapshot.backtestResultId}`}
         trades={state.snapshot.trades}
         quoteCurrency={quoteCurrency(state.snapshot.provenance.dataset?.tradingPair)}
       />
