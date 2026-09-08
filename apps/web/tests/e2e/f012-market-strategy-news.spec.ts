@@ -24,6 +24,7 @@ test("Strategy tải hai catalog độc lập và mở form từ descriptor", as
   await expect(page.getByRole("button", { name: /Momentum cơ bản/ })).toBeVisible();
   await expect(page.getByText("No personal strategies yet.")).toBeVisible();
   await page.getByRole("button", { name: /Momentum cơ bản/ }).click();
+  await page.getByRole("tab", { name: "Parameters" }).click();
   await expect(page.getByRole("heading", { name: "Create a personal strategy" })).toBeVisible();
 });
 

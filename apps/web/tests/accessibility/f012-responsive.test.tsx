@@ -8,4 +8,14 @@ describe("F-012 responsive styles", () => {
     expect(css).toMatch(/\.strategy-layout\s*{\s*grid-template-columns: 1fr/);
     expect(css).toMatch(/\.news-card\s*{\s*grid-template-columns: 1fr/);
   });
+
+  it("keeps desktop Strategy panes stable while restoring document scroll on smaller screens", () => {
+    const css = readFileSync("app/globals.css", "utf8");
+    expect(css).toMatch(/\.strategy-layout\s*{[^}]*height: clamp\(/s);
+    expect(css).toMatch(/\.strategy-library\s*{[^}]*overflow-y: auto/s);
+    expect(css).toMatch(/\.strategy-tab-content[^}]*overflow-y: auto/s);
+    expect(css).toMatch(
+      /@media \(max-width: 1280px\)[\s\S]*?\.strategy-layout\s*{[^}]*height: auto/
+    );
+  });
 });

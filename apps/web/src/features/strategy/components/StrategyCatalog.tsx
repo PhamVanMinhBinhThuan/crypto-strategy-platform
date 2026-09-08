@@ -25,7 +25,13 @@ export function StrategyCatalog({
   return (
     <aside className="strategy-library" aria-label="Strategy library">
       <section>
-        <h2>System strategies</h2>
+        <header className="strategy-library-heading">
+          <div>
+            <span className="strategy-section-kicker">Built-in</span>
+            <h2>System strategies</h2>
+          </div>
+          <span>{system.length}</span>
+        </header>
         {loadingSystem && <p role="status">Loading catalog…</p>}
         {systemError && <p role="alert">{systemError}</p>}
         {!loadingSystem && !systemError && !system.length && <p>No system strategies available.</p>}
@@ -44,7 +50,13 @@ export function StrategyCatalog({
         ))}
       </section>
       <section>
-        <h2>My library</h2>
+        <header className="strategy-library-heading">
+          <div>
+            <span className="strategy-section-kicker">Reusable</span>
+            <h2>My library</h2>
+          </div>
+          <span>{owned.length}</span>
+        </header>
         {loadingOwned && <p role="status">Loading library…</p>}
         {ownedError && <p role="alert">{ownedError}</p>}
         {!loadingOwned && !ownedError && !owned.length && <p>No personal strategies yet.</p>}
