@@ -1124,26 +1124,19 @@ table td,
   padding: 0.75rem;
   border-bottom: 1px solid #284a3a;
 }
-.composite-policy-summary h3,
-.composite-policy-summary p {
+.composite-policy-summary h3 {
   margin: 0;
 }
 .composite-policy-summary h3 {
   margin-top: 0.12rem;
   font-size: 0.95rem;
 }
-.composite-policy-summary > p {
-  padding: 0.75rem;
-  color: var(--muted);
-  font-size: 0.75rem;
-  line-height: 1.5;
-}
 .composite-component-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.45rem;
   margin: 0;
-  padding: 0 0.75rem 0.75rem;
+  padding: 0.75rem;
   list-style: none;
 }
 .composite-component-summary li {
@@ -1164,11 +1157,59 @@ table td,
   font-size: 0.64rem;
 }
 .composite-policy-summary .policy-examples {
-  padding-inline: 0.75rem;
+  padding: 0;
 }
 .composite-policy-summary .illustration-note {
   display: block;
-  padding: 0 0.75rem 0.75rem;
+  padding: 0;
+}
+.composite-policy-help {
+  margin: 0 0.75rem 0.75rem;
+  border: 1px solid rgba(57, 115, 90, 0.72);
+  border-radius: 8px;
+  background: rgba(5, 12, 10, 0.58);
+}
+.composite-policy-help summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 38px;
+  padding: 0.45rem 0.6rem;
+  color: var(--green);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  list-style: none;
+}
+.composite-policy-help summary::-webkit-details-marker {
+  display: none;
+}
+.composite-policy-help summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+.composite-help-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.7rem;
+}
+.composite-policy-help-content {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0 0.6rem 0.65rem;
+  border-top: 1px solid rgba(57, 115, 90, 0.46);
+}
+.composite-policy-help-content > p {
+  margin: 0;
+  padding-top: 0.65rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.5;
 }
 .strategy-version-history {
   border: 1px solid var(--line);
