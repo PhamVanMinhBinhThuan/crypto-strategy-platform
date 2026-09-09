@@ -9,7 +9,12 @@ const parameter = z
     minimum: decimal.nullable(),
     maximum: decimal.nullable(),
     allowedValues: z.array(z.string()),
-    description: z.string()
+    description: z.string(),
+    searchRangeHint: z
+      .object({ minimum: decimal, maximum: decimal, step: decimal })
+      .strict()
+      .nullable()
+      .optional()
   })
   .strict();
 const descriptor = z

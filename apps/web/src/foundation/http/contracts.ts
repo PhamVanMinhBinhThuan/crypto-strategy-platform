@@ -4,6 +4,7 @@ export type PublicError = Readonly<{
   correlationId?: string;
   retryable: boolean;
   retryAfterSeconds?: number;
+  fieldErrors?: ReadonlyArray<Readonly<{ field: string; reason: string }>>;
 }>;
 export type ApiResult<T> =
   { ok: true; data: T; correlationId?: string } | { ok: false; error: PublicError };

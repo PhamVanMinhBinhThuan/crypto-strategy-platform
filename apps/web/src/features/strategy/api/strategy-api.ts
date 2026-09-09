@@ -4,6 +4,7 @@ import {
   strategyPageSchema,
   userStrategyPageSchema,
   userStrategySchema,
+  userStrategyVersionListSchema,
   userStrategyVersionSchema
 } from "./schemas";
 import type { StrategyDraft, StrategySourceDraft } from "../model/strategy-draft";
@@ -18,6 +19,12 @@ export const listUserStrategies = (client: ApiClient) =>
   requestPublic(client, userStrategyPageSchema, "/api/v1/user-strategies");
 export const getUserStrategy = (client: ApiClient, id: string) =>
   requestPublic(client, userStrategySchema, `/api/v1/user-strategies/${encodeURIComponent(id)}`);
+export const listUserStrategyVersions = (client: ApiClient, id: string) =>
+  requestPublic(
+    client,
+    userStrategyVersionListSchema,
+    `/api/v1/user-strategies/${encodeURIComponent(id)}/versions`
+  );
 export const createUserStrategy = (client: ApiClient, draft: StrategyDraft) =>
   requestPublic(
     client,

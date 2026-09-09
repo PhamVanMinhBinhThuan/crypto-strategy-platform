@@ -5,14 +5,16 @@ import com.cryptostrategy.platform.strategy.api.model.CombinationPolicyId;
 import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
 import com.cryptostrategy.platform.strategy.api.model.StrategyDecision;
 import com.cryptostrategy.platform.strategy.api.model.StrategySignal;
+import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 public final class MajorityVotePolicy implements CombinationPolicy {
     private static final CombinationPolicyReference REFERENCE=new CombinationPolicyReference(new CombinationPolicyId("majority-vote"),new SemanticVersion(1,0,0));
     @Override public CombinationPolicyReference reference(){return REFERENCE;}
-    @Override public StrategySignal combine(List<StrategyDecision> decisions){
+    @Override public StrategySignal combine(List<StrategyDecision> decisions,StrategyParameterSet parameters){
         if(decisions.size()<2) throw new IllegalArgumentException("Majority vote needs two decisions");
+        if(!parameters.values().isEmpty()) throw new IllegalArgumentException("Majority vote does not accept parameters");
         Map<StrategySignal,Integer> counts=new EnumMap<>(StrategySignal.class); for(StrategySignal signal:StrategySignal.values())counts.put(signal,0);
         decisions.forEach(decision->counts.compute(decision.signal(),(key,value)->value+1));
         int max=counts.values().stream().mapToInt(Integer::intValue).max().orElse(0);

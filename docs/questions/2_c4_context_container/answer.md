@@ -47,7 +47,10 @@ Các container backend, Worker và Sentiment đã có source; Web foundation cũ
 - [Worker application](../../../apps/worker/src/main/java/com/cryptostrategy/platform/worker/WorkerApplication.java)
 - [Sentiment application](../../../apps/sentiment/app/main.py)
 
+## Cách nói khi trình bày
+
+> Context trả lời hệ thống giao tiếp với ai và hệ thống ngoài nào. Container mở hệ thống ra để thấy Web, API, Worker, Sentiment, PostgreSQL và Redis. API phục vụ request ngắn; Worker xử lý việc dài; Sentiment tách riêng vì dùng runtime Python/ML.
+
 ## Nguồn đề bài
 
 Slide 11–12 và checklist slide 39 trong [slide kiến trúc](../../KienTrucDoAn_slide.pdf); mục 2–5 và 27–30 trong [đề đồ án](../../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf).
-

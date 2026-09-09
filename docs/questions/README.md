@@ -1,6 +1,6 @@
-# 10 câu hỏi bảo vệ kiến trúc — Crypto Strategy Lab
+# 23 câu hỏi bảo vệ kiến trúc — Crypto Strategy Lab
 
-Tài liệu này trả lời 10 câu hỏi tại slide 39 (trang PDF 77) của [KienTrucDoAn_slide.pdf](../KienTrucDoAn_slide.pdf), dựa trên yêu cầu trong [Crypto Strategy Lab – Đồ án cuối kỳ.pdf](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf), tài liệu kiến trúc và source code hiện tại.
+Tài liệu gồm 10 câu hỏi bắt buộc tại slide 39 (trang PDF 77) và 13 câu hỏi mở rộng thường gặp khi vấn đáp. Nội dung được đối chiếu với [KienTrucDoAn_slide.pdf](../KienTrucDoAn_slide.pdf), [Crypto Strategy Lab – Đồ án cuối kỳ.pdf](../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf), tài liệu kiến trúc và source code hiện tại.
 
 ## Phần 1 — 10 câu bắt buộc (Slide 39 Checklist)
 
@@ -65,5 +65,4 @@ Các câu này xuất hiện trong slide nhưng không nằm trong checklist 10 
 - Dùng Mermaid trong từng câu để giải thích trực quan.
 - Mở các link **Bằng chứng trong project** khi giảng viên hỏi sâu.
 - `Implemented` nghĩa là có source/test trong repository; `Planned` nghĩa là chưa có phép đo thật. Tài liệu không coi số liệu mục tiêu là kết quả đã đạt.
-
 

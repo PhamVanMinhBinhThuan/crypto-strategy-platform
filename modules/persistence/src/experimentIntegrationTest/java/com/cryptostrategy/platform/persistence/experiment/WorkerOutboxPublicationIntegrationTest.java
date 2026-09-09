@@ -59,13 +59,18 @@ class WorkerOutboxPublicationIntegrationTest {
         // 1. Insert an outbox event
         jdbcTemplate.update(
                 "INSERT INTO platform.outbox_event (outbox_event_id, message_id, aggregate_type, aggregate_id, event_type, event_version, payload, occurred_at, created_at) " +
-                "VALUES (?, ?, 'EXPERIMENT', ?, 'EXPERIMENT_QUEUED', 1, '{}'::jsonb, ?, ?)",
+                "VALUES (?, ?, 'EXPERIMENT', ?, 'EXPERIMENT_QUEUED', '1.0.0', '{}'::jsonb, ?, ?)",
                 eventId, messageId, messageId, Timestamp.from(now), Timestamp.from(now)
         );
 
         // 2. Fetch unpublished batch
         List<OutboxRecord> batch = outboxPort.listUnpublishedBatch(100);
         assertThat(batch.stream().anyMatch(r -> r.outboxEventId().equals(eventId))).isTrue();
+        assertThat(batch.stream()
+                .filter(r -> r.outboxEventId().equals(eventId))
+                .findFirst()
+                .orElseThrow()
+                .eventVersion()).isEqualTo("1.0.0");
 
         // 3. Mark success
         outboxPort.recordPublishSuccess(eventId, Instant.now());

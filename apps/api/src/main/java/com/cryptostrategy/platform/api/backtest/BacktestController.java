@@ -48,7 +48,7 @@ public final class BacktestController {
                 request,
                 (key, hash) -> backtests.startStandaloneBacktest(
                         user.userId(),
-                        requests.map(request, key, hash, resolvedCorrelationId)));
+                        requests.map(user.userId(), request, key, hash, resolvedCorrelationId)));
         var response = CommandDtos.BacktestAcceptedResponse.from(acceptance);
         return ResponseEntity.accepted()
                 .location(URI.create("/api/v1/jobs/" + response.jobId().value()))

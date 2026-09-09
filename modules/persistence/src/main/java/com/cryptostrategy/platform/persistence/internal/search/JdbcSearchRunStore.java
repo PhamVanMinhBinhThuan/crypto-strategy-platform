@@ -75,6 +75,7 @@ public final class JdbcSearchRunStore implements SearchRunStore {
                 replacement.generatorState().fingerprint(),
                 replacement.nextGenerationIndex(),
                 replacement.status().name(),
+                replacement.terminalReason() == null ? null : replacement.terminalReason().name(),
                 replacement.version(),
                 timestamp(replacement.startedAt()),
                 timestamp(replacement.deadlineAt()),
@@ -138,8 +139,10 @@ public final class JdbcSearchRunStore implements SearchRunStore {
                 run.seed(), run.searchSpaceFingerprint(), run.generatorState().contractVersion(),
                 run.generatorState().canonicalState(), run.generatorState().fingerprint(),
                 run.nextGenerationIndex(), run.stopConditions().maximumCandidates(),
-                run.stopConditions().maximumDuration().toMillis(), run.maxInFlight(), run.status().name(),
-                run.version(), timestamp(run.startedAt()), timestamp(run.deadlineAt()),
+                run.stopConditions().maximumDuration().toMillis(),
+                run.stopConditions().maximumWithoutImprovement(), run.maxInFlight(), run.status().name(),
+                run.terminalReason() == null ? null : run.terminalReason().name(), run.version(),
+                timestamp(run.startedAt()), timestamp(run.deadlineAt()),
                 timestamp(run.finishedAt()), run.failureCode(), run.failureMessage(),
                 Timestamp.from(run.createdAt()), Timestamp.from(run.updatedAt())
         };

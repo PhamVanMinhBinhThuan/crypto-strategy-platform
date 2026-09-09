@@ -98,7 +98,9 @@ class IdempotencyCommandIntegrationTest {
     void configurePublishedPorts() {
         receipts.clear();
         logicalOutcomes.set(0);
-        when(datasets.getDataset(new DatasetVersionId(DATASET_ID))).thenReturn(dataset());
+        when(datasets.getDataset(any(UUID.class),
+                org.mockito.ArgumentMatchers.eq(new DatasetVersionId(DATASET_ID))))
+                .thenReturn(dataset());
         when(backtests.startStandaloneBacktest(
                         any(UUID.class), any(StartStandaloneBacktestCommand.class)))
                 .thenAnswer(invocation -> accept(

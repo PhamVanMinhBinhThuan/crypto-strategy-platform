@@ -6,6 +6,8 @@ describe("newsReducer", () => {
   const initialState: NewsState = {
     items: [],
     cursor: null,
+    currentCursor: undefined,
+    cursorHistory: [],
     hasMore: false,
     queryGeneration: 1,
     loading: false,
@@ -47,7 +49,9 @@ describe("newsReducer", () => {
       generation: 1,
       items: [item1],
       nextCursor: "c1",
-      hasMore: true
+      hasMore: true,
+      currentCursor: undefined,
+      cursorHistory: []
     });
 
     // Fetch second page that has duplicate item1 and a newer item2
@@ -56,12 +60,15 @@ describe("newsReducer", () => {
       generation: 1,
       items: [item1, item2],
       nextCursor: null,
-      hasMore: false
+      hasMore: false,
+      currentCursor: "c1",
+      cursorHistory: [undefined]
     });
 
     expect(next.items).toHaveLength(2);
     expect(next.items[0].newsId).toBe("2"); // Newer first
     expect(next.items[1].newsId).toBe("1");
+    expect(next.cursorHistory).toEqual([undefined]);
   });
 
   it("ignores late responses from older generations", () => {
@@ -70,7 +77,9 @@ describe("newsReducer", () => {
       generation: 0, // Late response
       items: [item1],
       nextCursor: null,
-      hasMore: false
+      hasMore: false,
+      currentCursor: undefined,
+      cursorHistory: []
     });
     expect(next.items).toHaveLength(0);
   });

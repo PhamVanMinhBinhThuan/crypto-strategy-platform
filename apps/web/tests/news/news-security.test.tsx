@@ -11,8 +11,11 @@ describe("News security", () => {
         items={[item]}
         loading={false}
         hasMore={false}
+        pageNumber={1}
+        canPrevious={false}
         onRetry={() => {}}
-        onLoadMore={() => {}}
+        onPrevious={() => {}}
+        onNext={() => {}}
       />
     );
     const link = screen.getByRole("link");

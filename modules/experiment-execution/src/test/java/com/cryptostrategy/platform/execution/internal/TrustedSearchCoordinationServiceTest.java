@@ -17,6 +17,7 @@ import com.cryptostrategy.platform.search.api.model.SearchRunId;
 import com.cryptostrategy.platform.search.api.model.SearchRunMode;
 import com.cryptostrategy.platform.search.api.model.SearchRunStatus;
 import com.cryptostrategy.platform.search.api.model.SearchStopConditions;
+import com.cryptostrategy.platform.search.api.model.SearchTerminalReason;
 import com.cryptostrategy.platform.strategy.api.model.parameter.ParameterType;
 import java.time.Clock;
 import java.time.Duration;
@@ -101,6 +102,36 @@ class TrustedSearchCoordinationServiceTest {
         assertThat(running.deadlineAt()).isEqualTo(START.plusSeconds(60));
     }
 
+    @Test
+    void deterministicSettledPrefixStopsAfterConfiguredNoImprovementThreshold() {
+        TrustedSearchCoordinationGateway gateway = mock(TrustedSearchCoordinationGateway.class);
+        SearchRun running = pending(10, 2).start(START);
+        Instant completedAt = START.plusSeconds(20);
+        SearchRun stopping = running.requestStop(completedAt, SearchTerminalReason.NO_IMPROVEMENT);
+        SearchRun stopped = stopping.stop(completedAt);
+        var before = new TrustedSearchCoordinationGateway.AuthoritativeSnapshot(
+                running, 3, 3, 0, completedAt, 10, 2);
+        var afterStopping = new TrustedSearchCoordinationGateway.AuthoritativeSnapshot(
+                stopping, 3, 3, 0, completedAt, 10, 2);
+        var afterStopped = new TrustedSearchCoordinationGateway.AuthoritativeSnapshot(
+                stopped, 3, 3, 0, completedAt, 10, 2);
+        when(gateway.loadCompletion(experiment(running), candidate(), job()))
+                .thenReturn(Optional.of(before));
+        when(gateway.commit(any())).thenReturn(true);
+        when(gateway.load(experiment(running)))
+                .thenReturn(Optional.of(afterStopping))
+                .thenReturn(Optional.of(afterStopped));
+
+        var result = new TrustedSearchCoordinationService(
+                gateway, Clock.fixed(completedAt, ZoneOffset.UTC)).reconcileCompletion(
+                        new TrustedSearchCoordinationUseCase.CompletionTrigger(
+                                "no-improvement", experiment(running), candidate(), job(),
+                                completedAt, "correlation"));
+
+        assertThat(result.status()).isEqualTo(SearchRunStatus.STOPPED);
+        assertThat(afterStopped.run().terminalReason()).isEqualTo(SearchTerminalReason.NO_IMPROVEMENT);
+    }
+
     private static TrustedSearchCoordinationGateway.AuthoritativeSnapshot snapshot(
             SearchRun run, int allocated, int completed, int failed, Instant latest) {
         return new TrustedSearchCoordinationGateway.AuthoritativeSnapshot(
@@ -108,6 +139,10 @@ class TrustedSearchCoordinationServiceTest {
     }
 
     private static SearchRun pending() {
+        return pending(2, null);
+    }
+
+    private static SearchRun pending(int maximumCandidates, Integer maximumWithoutImprovement) {
         return SearchRun.pending(new SearchRunId("01J7K8M9N0P1Q2R3S4T5A6V7W1"),
                 new com.cryptostrategy.platform.search.api.model.SearchExperimentId("01J7K8M9N0P1Q2R3S4T5A6V7W2"),
                 new com.cryptostrategy.platform.search.api.model.SearchJobId("01J7K8M9N0P1Q2R3S4T5A6V7W3"),
@@ -115,7 +150,8 @@ class TrustedSearchCoordinationServiceTest {
                 new GeneratorDescriptor(new GeneratorId("random-search"), GeneratorVersion.parse("1.0.0"),
                         "random-state-v1", Set.of(ParameterType.INTEGER), "descriptor"),
                 7, "space", new GeneratorState("random-state-v1", "{}", "state"),
-                new SearchStopConditions(2, Duration.ofSeconds(60)), 1, START.minusSeconds(1));
+                new SearchStopConditions(maximumCandidates, Duration.ofSeconds(60),
+                        maximumWithoutImprovement), 1, START.minusSeconds(1));
     }
 
     private static com.cryptostrategy.platform.experiment.api.ExperimentId experiment(SearchRun run) {

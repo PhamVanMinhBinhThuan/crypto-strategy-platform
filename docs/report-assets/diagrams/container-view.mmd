@@ -1,0 +1,27 @@
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart TB
+    USER["User / Trader"]
+    BINANCE["Binance"]
+    NEWS_PROVIDER["News Providers"]
+
+    subgraph LAB["Crypto Strategy Lab"]
+        WEB["apps/web<br/>React / Next.js Dashboard"]
+        API["apps/api<br/>Java 21 / Spring Boot 3"]
+        WORKER["apps/worker<br/>Java background workers"]
+        SENTIMENT["apps/sentiment<br/>Python / FastAPI"]
+        AUTH["Supabase Auth<br/>Identity / JWT"]
+        DB[("PostgreSQL / Supabase<br/>Business source of truth")]
+        REDIS[("Redis<br/>Streams / cache / transient state")]
+    end
+
+    USER <-->|"HTTPS / WSS"| WEB
+    WEB <-->|"Sign in / refresh"| AUTH
+    WEB <-->|"REST / WebSocket + user auth"| API
+    API <-->|"HTTPS / WSS"| BINANCE
+    API -->|"HTTPS / RSS"| NEWS_PROVIDER
+    API --> DB
+    API -->|"cache / events"| REDIS
+    WORKER -->|"consumer group"| REDIS
+    WORKER --> DB
+    WORKER -->|"Internal HTTP / JSON"| SENTIMENT
+    SENTIMENT -.->|"Health / readiness"| WORKER

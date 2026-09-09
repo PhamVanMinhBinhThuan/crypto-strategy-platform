@@ -3,7 +3,7 @@ import { mapLeaderboard } from "@/src/features/leaderboard/mappers/leaderboard-m
 import { leaderboardPage } from "@/src/features/leaderboard/fixtures/leaderboard-fixtures";
 import { capLeaderboardLimit } from "@/src/features/leaderboard/types/leaderboard";
 describe("Leaderboard contract", () => {
-  it("preserves server order and the six released entry fields", () => {
+  it("preserves server order and additive composite evidence fields", () => {
     const value = mapLeaderboard(leaderboardPage);
     expect(value.items.map((e) => e.rank)).toEqual([1, 2]);
     expect(Object.keys(value.items[0]!)).toEqual([
@@ -12,8 +12,17 @@ describe("Leaderboard contract", () => {
       "backtestResultId",
       "score",
       "maximumDrawdown",
-      "evaluationFingerprint"
+      "evaluationFingerprint",
+      "candidateId",
+      "candidateFingerprint",
+      "candidateSummary",
+      "metrics"
     ]);
+    expect(value.items[0]?.metrics).toMatchObject({
+      totalReturn: "0.425",
+      winRate: "0.582",
+      numberOfTrades: 1245
+    });
   });
   it("caps limits by public and configured bounds", () => {
     expect(capLeaderboardLimit(0)).toBe(10);

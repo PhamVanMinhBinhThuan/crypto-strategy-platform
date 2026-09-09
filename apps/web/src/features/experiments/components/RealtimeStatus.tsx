@@ -9,10 +9,11 @@ export function RealtimeStatus({
   onReconnect: () => void;
 }) {
   const stale = value.status !== "connected";
+  const label = `${value.status.charAt(0).toUpperCase()}${value.status.slice(1)}`;
   return (
     <aside className={`realtime-status ${stale ? "stale" : "fresh"}`} aria-live="polite">
       <span aria-hidden="true">{stale ? "○" : "●"}</span>
-      <strong>{value.status}</strong>
+      <strong>{label}</strong>
       {value.status === "reconnecting" && <span>Attempt {value.attempt}; snapshot is stale.</span>}
       {value.exhausted && (
         <>

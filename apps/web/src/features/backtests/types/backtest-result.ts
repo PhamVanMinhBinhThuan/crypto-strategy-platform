@@ -118,6 +118,29 @@ export type BacktestQueryState =
       error: PublicError;
       snapshot?: BacktestResultViewModel;
     };
+export type BacktestResultHistoryItem = Readonly<{
+  backtestResultId: string;
+  experimentId: string;
+  candidateId: string;
+  generationIndex: number;
+  experimentName: string;
+  definition: Readonly<Record<string, unknown>>;
+  strategySummary: string;
+  metrics: Readonly<{
+    totalReturn: string;
+    winRate: string;
+    maximumDrawdown: string;
+    numberOfTrades: number;
+  }>;
+  score: string | null;
+  completedAt: string;
+}>;
+export type BacktestResultHistoryPage = Readonly<{
+  items: readonly BacktestResultHistoryItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  totalCount: number;
+}>;
 export function parseBacktestLookup(values: {
   resultId?: string;
   backtestId?: string;

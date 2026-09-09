@@ -23,30 +23,45 @@ export function useExperimentCommands(api: ApiClient) {
     const setter = kind === "start" ? setStart : setReproduce;
     setter({ status: "submitting", key: ref.current });
     const service = createExperimentCommandService(api);
-    const r =
-      kind === "start"
-        ? await service.start(draft!, ref.current)
-        : await service.reproduce(id!, ref.current);
-    busy.current[kind] = false;
-    if (r.ok) {
+    try {
+      const r =
+        kind === "start"
+          ? await service.start(draft!, ref.current)
+          : await service.reproduce(id!, ref.current);
+      if (r.ok) {
+        setter({
+          status: "accepted",
+          key: ref.current,
+          experimentId: r.data.experimentId,
+          jobId: r.data.jobId,
+          acceptedStatus: r.data.status
+        });
+        return;
+      }
+      const status =
+        r.error.code === "DEPENDENCY_UNAVAILABLE" || r.error.code === "BLOCKED_SEARCH_COORDINATOR"
+          ? "dependency-unavailable"
+          : r.error.code === "IDEMPOTENCY_KEY_CONFLICT"
+            ? "conflict"
+            : r.error.code === "TRANSPORT_UNCERTAIN"
+              ? "uncertain"
+              : r.error.retryable
+                ? "retryable-failure"
+                : "terminal-failure";
+      setter({ status, key: ref.current, error: r.error });
+    } catch {
       setter({
-        status: "accepted",
+        status: "uncertain",
         key: ref.current,
-        experimentId: r.data.experimentId,
-        jobId: r.data.jobId,
-        acceptedStatus: r.data.status
+        error: {
+          code: "TRANSPORT_UNCERTAIN",
+          message: "The request may have been accepted, but no response was received.",
+          retryable: true
+        }
       });
-      return;
+    } finally {
+      busy.current[kind] = false;
     }
-    const status =
-      r.error.code === "DEPENDENCY_UNAVAILABLE" || r.error.code === "BLOCKED_SEARCH_COORDINATOR"
-        ? "dependency-unavailable"
-        : r.error.code === "TRANSPORT_UNCERTAIN"
-          ? "uncertain"
-          : r.error.retryable
-            ? "retryable-failure"
-            : "terminal-failure";
-    setter({ status, key: ref.current, error: r.error });
   };
   return {
     start,

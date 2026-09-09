@@ -24,11 +24,12 @@ export function LeaderboardTable({ snapshot }: { snapshot: LeaderboardSnapshot }
             <thead>
               <tr>
                 <th>Rank</th>
-                <th>Evaluation Result ID</th>
-                <th>Backtest Result ID</th>
+                <th>Candidate</th>
                 <th>Score</th>
+                <th>Total Return</th>
+                <th>Win Rate</th>
                 <th>Maximum Drawdown</th>
-                <th>Evaluation Fingerprint</th>
+                <th>Trades</th>
                 <th>
                   <span className="sr-only">Action</span>
                 </th>
@@ -38,16 +39,32 @@ export function LeaderboardTable({ snapshot }: { snapshot: LeaderboardSnapshot }
               {snapshot.items.map((e) => (
                 <tr key={e.evaluationResultId}>
                   <td className="numeric">{e.rank}</td>
-                  <td className="mono">{e.evaluationResultId}</td>
-                  <td className="mono">{e.backtestResultId}</td>
+                  <td>
+                    <span>{e.candidateSummary ?? e.candidateId ?? "Historical candidate"}</span>
+                    {e.candidateFingerprint && (
+                      <small className="mono">{e.candidateFingerprint}</small>
+                    )}
+                  </td>
                   <td className="numeric" title={e.score}>
                     {e.score}
                   </td>
                   <td className="numeric" title={e.maximumDrawdown}>
-                    {e.maximumDrawdown}
+                    {e.metrics?.totalReturn ?? "--"}
                   </td>
-                  <td className="mono">{e.evaluationFingerprint}</td>
+                  <td className="numeric">{e.metrics?.winRate ?? "--"}</td>
+                  <td className="numeric" title={e.metrics?.maximumDrawdown ?? e.maximumDrawdown}>
+                    {e.metrics?.maximumDrawdown ?? e.maximumDrawdown}
+                  </td>
+                  <td className="numeric">{e.metrics?.numberOfTrades ?? "--"}</td>
                   <td>
+                    {e.candidateId && (
+                      <Link
+                        className="table-action"
+                        href={`/search/${encodeURIComponent(snapshot.experimentId)}?candidateId=${encodeURIComponent(e.candidateId)}`}
+                      >
+                        Candidate detail
+                      </Link>
+                    )}
                     <Link
                       className="table-action"
                       href={`/backtests?resultId=${encodeURIComponent(e.backtestResultId)}`}

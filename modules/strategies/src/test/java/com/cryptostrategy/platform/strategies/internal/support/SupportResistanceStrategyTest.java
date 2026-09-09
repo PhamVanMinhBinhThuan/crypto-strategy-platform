@@ -43,7 +43,7 @@ class SupportResistanceStrategyTest {
         assertEquals("1.0.0", plugin.descriptor().reference().implementationVersion().toString());
         assertEquals("strategy-contract-v1", plugin.descriptor().contractVersion());
         assertEquals("STRUCTURE", plugin.descriptor().category());
-        assertEquals(DEFAULT_LOOKBACK + 1, plugin.descriptor().requiredLookback());
+        assertEquals(3, plugin.descriptor().requiredLookback());
         assertEquals(
                 Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD),
                 plugin.descriptor().supportedSignals());

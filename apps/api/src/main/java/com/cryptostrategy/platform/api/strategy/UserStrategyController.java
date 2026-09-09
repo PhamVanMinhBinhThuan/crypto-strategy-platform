@@ -94,6 +94,17 @@ public final class UserStrategyController {
                 new GetUserStrategyQuery(new UserStrategyId(userStrategyId))));
     }
 
+    @GetMapping("/{userStrategyId}/versions")
+    public StrategyDtos.UserStrategyVersionList listVersions(
+            @AuthenticationPrincipal AuthenticatedUserContext user,
+            @PathVariable String userStrategyId) {
+        return new StrategyDtos.UserStrategyVersionList(strategies
+                .listVersions(user.userId(), new UserStrategyId(userStrategyId))
+                .stream()
+                .map(StrategyDtos.UserStrategyVersionResponse::from)
+                .toList());
+    }
+
     @PostMapping("/{userStrategyId}/versions")
     public ResponseEntity<StrategyDtos.UserStrategyVersionResponse> createVersion(
             @AuthenticationPrincipal AuthenticatedUserContext user,

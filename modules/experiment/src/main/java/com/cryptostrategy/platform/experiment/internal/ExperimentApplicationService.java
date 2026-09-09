@@ -7,6 +7,7 @@ import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
 import com.cryptostrategy.platform.experiment.api.ExperimentStatus;
+import com.cryptostrategy.platform.experiment.api.ExperimentSummary;
 import com.cryptostrategy.platform.experiment.api.error.ExperimentValidationException;
 import com.cryptostrategy.platform.experiment.api.error.ResourceInaccessibleException;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
@@ -127,6 +128,26 @@ public class ExperimentApplicationService implements
         Objects.requireNonNull(ownerUserId, "ownerUserId cannot be null");
         Objects.requireNonNull(experimentId, "experimentId cannot be null");
         return experimentStore.findManifestByExperimentId(ownerUserId, experimentId);
+    }
+
+    @Override
+    public List<ExperimentSummary> listRecent(
+            UUID ownerUserId, Instant beforeCreatedAt, String beforeExperimentId, int limit) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId cannot be null");
+        if ((beforeCreatedAt == null) != (beforeExperimentId == null)) {
+            throw new IllegalArgumentException("Experiment cursor boundary is incomplete");
+        }
+        if (limit < 1 || limit > 101) {
+            throw new IllegalArgumentException("Experiment page limit is invalid");
+        }
+        return experimentStore.listExperimentsPage(
+                ownerUserId, beforeCreatedAt, beforeExperimentId, limit);
+    }
+
+    @Override
+    public long count(UUID ownerUserId) {
+        Objects.requireNonNull(ownerUserId, "ownerUserId cannot be null");
+        return experimentStore.countExperiments(ownerUserId);
     }
 
     @Override

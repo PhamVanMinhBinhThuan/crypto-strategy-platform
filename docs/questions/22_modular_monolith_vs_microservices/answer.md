@@ -49,7 +49,12 @@ Câu trả lời chuẩn cho giảng viên: *"Microservices không được đi�
 - [ADR-0002 — Module Boundaries](../../adr/0002-module-boundaries.md)
 - [API Application](../../../apps/api/src/main/java/com/cryptostrategy/platform/api/ApiApplication.java)
 - [Worker Application](../../../apps/worker/src/main/java/com/cryptostrategy/platform/worker/WorkerApplication.java)
-- [ArchUnit boundary tests](../../../modules/)
+- [ArchUnit module boundary test](../../../architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/ModuleBoundaryTest.java)
+- [Application boundary test](../../../architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/ApplicationBoundaryTest.java)
+
+## Cách nói khi trình bày
+
+> Nhóm giữ domain Java theo Modular Monolith vì nhóm nhỏ và cần phát triển nhanh, nhưng boundary vẫn được kiểm tra bằng ArchUnit. Chỉ Worker và Sentiment được tách runtime vì chúng có tải, khả năng scale và failure mode khác API. Nhóm không tách microservice chỉ để có nhiều service.
 
 ## Nguồn đề bài
 

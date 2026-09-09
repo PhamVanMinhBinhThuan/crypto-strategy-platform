@@ -31,7 +31,7 @@ class OutboxPublicationStoreTest {
     @SuppressWarnings("unchecked")
     void listUnpublishedBatchQueriesSqlWithLimit() {
         OutboxRecord record = new OutboxRecord(
-                "evt-1", "msg-1", "EXPERIMENT", "exp-1", "EXPERIMENT_QUEUED", 1,
+                "evt-1", "msg-1", "EXPERIMENT", "exp-1", "EXPERIMENT_QUEUED", "1.0.0",
                 "{}", null, null, 0, null, Instant.now(), Instant.now()
         );
         when(jdbcTemplate.query(eq(WorkerSql.SELECT_UNPUBLISHED_OUTBOX), any(RowMapper.class), eq(25)))

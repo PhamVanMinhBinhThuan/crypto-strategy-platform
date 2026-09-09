@@ -37,6 +37,7 @@ final class MarketRequestMapper {
             if (startTime == null
                     || endTime == null
                     || !startTime.isBefore(endTime)
+                    || endTime.isAfter(Instant.now())
                     || !canonicalTimeframe.isAligned(startTime)
                     || !canonicalTimeframe.isAligned(endTime)) {
                 throw new IllegalArgumentException("Market range is invalid");

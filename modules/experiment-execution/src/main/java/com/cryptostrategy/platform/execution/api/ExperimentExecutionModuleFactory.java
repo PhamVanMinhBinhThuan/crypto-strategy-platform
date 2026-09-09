@@ -21,6 +21,16 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Published composition boundary; hosts never instantiate execution internals. */
 public final class ExperimentExecutionModuleFactory {
     private ExperimentExecutionModuleFactory() {}
+    public static ListSearchGeneratorsUseCase searchGenerators() {
+        return () -> {
+            var descriptor = com.cryptostrategy.platform.search.api.SearchModuleFactory
+                    .baselineDefinition(0L).descriptor();
+            return java.util.List.of(new ListSearchGeneratorsUseCase.GeneratorDescriptor(
+                    new RequestedGeneratorId(descriptor.generatorId().value()),
+                    descriptor.generatorVersion().toString(), "Random Search",
+                    descriptor.stateContractVersion(), descriptor.descriptorFingerprint()));
+        };
+    }
     public static StartSearchExperimentUseCase start(SearchExperimentTransactionGateway gateway) { return new SearchExperimentOrchestrationService(gateway); }
     public static StartSearchReproductionUseCase reproduce(SearchReproductionGateway gateway) { return new SearchReproductionApplicationService(gateway); }
     public static SearchStartCommandFactory startCommands(GetDatasetUseCase datasets, StrategyRegistry strategies,

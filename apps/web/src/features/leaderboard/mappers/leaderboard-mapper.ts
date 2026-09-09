@@ -7,7 +7,20 @@ const entry = z
     backtestResultId: z.string().min(1),
     score: decimal,
     maximumDrawdown: decimal,
-    evaluationFingerprint: z.string().min(1)
+    evaluationFingerprint: z.string().min(1),
+    candidateId: z.string().min(1).nullish(),
+    candidateFingerprint: z.string().min(1).nullish(),
+    candidateSummary: z.string().min(1).nullish(),
+    metrics: z
+      .object({
+        totalReturn: decimal,
+        winRate: decimal,
+        maximumDrawdown: decimal,
+        numberOfTrades: z.number().int().nonnegative(),
+        metricVersion: z.string().min(1)
+      })
+      .strict()
+      .nullish()
   })
   .strict();
 const schema = z

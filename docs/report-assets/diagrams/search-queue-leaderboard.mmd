@@ -1,0 +1,31 @@
+%%{init: {"theme": "neutral", "sequence": {"useMaxWidth": true}}}%%
+sequenceDiagram
+    actor User
+    participant Web
+    participant API
+    participant Execution as Experiment Execution
+    participant Search
+    participant DB as PostgreSQL/Outbox
+    participant Redis as Redis Streams
+    participant Worker
+    participant Ranking
+
+    User->>Web: Start Search
+    Web->>API: Create/start Experiment
+    API->>Execution: Start command
+    Execution->>DB: Manifest + Job + Outbox (atomic)
+    API-->>Web: 202 + IDs + QUEUED
+    DB->>Redis: Outbox publisher sends SEARCH_REQUEST
+    loop Bounded in-flight until stop condition
+        Redis-->>Search: Consumer group delivery
+        Search->>DB: Candidate + Backtest Job + Outbox
+        DB->>Redis: Publish Backtest Job
+        Redis-->>Worker: At-least-once delivery
+        Worker->>Worker: Backtest + Evaluate
+        Worker->>DB: Result + Evaluation + Outbox (atomic)
+        Worker->>Redis: ACK after durable commit
+        Redis-->>Ranking: CANDIDATE_EVALUATED
+        Ranking->>DB: Idempotent Top-K revision
+        Ranking-->>API: Progress / revision event
+        API-->>Web: WebSocket update hint
+    end

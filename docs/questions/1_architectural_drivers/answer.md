@@ -48,8 +48,11 @@ Các cấu trúc chính đã có implementation và test. Những mục tiêu đ
 - [Architecture Evidence](../../architecture/architecture-evidence.md)
 - [ADR-0001 — Modular Monolith](../../adr/0001-modular-monolith.md)
 
+## Cách nói khi trình bày
+
+> Architectural driver là yêu cầu quan trọng đủ mạnh để ảnh hưởng trực tiếp đến kiến trúc. Ví dụ, vì cần thêm Strategy mà không sửa Backtester nên nhóm dùng Plugin/Registry; vì Backtest dài không được chặn API nên dùng Queue–Worker; vì kết quả phải truy lại được nên lưu Manifest, version và fingerprint.
+
 ## Nguồn đề bài
 
 - Slide 4–5 và checklist slide 39 trong [slide kiến trúc](../../KienTrucDoAn_slide.pdf).
 - Mục 2, 11–24, 32 và 35–36 trong [đề đồ án](../../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf).
-

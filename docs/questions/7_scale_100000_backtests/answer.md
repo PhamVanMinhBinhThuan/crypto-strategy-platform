@@ -9,7 +9,7 @@ Không chạy 100.000 Backtest trực tiếp trong HTTP request vì sẽ gây ti
 3. Nhiều Worker độc lập đọc Job từ Queue qua cơ chế Consumer Group để chia tải.
 4. Worker đọc dữ liệu thị trường theo từng lô nhỏ (Batching), chạy xong ghi kết quả xuống DB.
 
-Kiến trúc này cho phép scale ngang (cắm thêm bao nhiêu máy Worker tùy thích) khi số lượng backtest lên tới hàng trăm ngàn.
+Kiến trúc này cho phép scale ngang bằng cách tăng số Worker. Tuy nhiên, không thể tăng vô hạn vì PostgreSQL connection pool, Redis, network và Dataset I/O có thể trở thành bottleneck.
 
 ## Minh họa
 
@@ -57,23 +57,29 @@ public interface DatasetCandleReader {
 Bằng chứng: [`DatasetCandleReader.java`](../../../modules/market-data/src/main/java/com/cryptostrategy/platform/marketdata/api/port/out/DatasetCandleReader.java).
 
 ### 3. Top-K Projection (Tối ưu truy vấn bảng xếp hạng)
-Sau khi chạy xong 100.000 backtest, hệ thống không `ORDER BY PnL` toàn bộ 100.000 dòng mỗi khi user f5 màn hình Leaderboard (rất chậm). Cơ sở dữ liệu sử dụng bảng phụ chỉ lưu 50 kết quả tốt nhất (Top-K) để render cực nhanh.
+Leaderboard tạo một revision chỉ chứa số lượng kết quả tốt nhất do Experiment cấu hình bằng `topK`, thay vì trả toàn bộ Candidate cho UI. `TopKProjector` lọc kết quả hợp lệ, sắp xếp ổn định rồi lấy đúng giới hạn này. `topK` không cố định là 50; public API hiện cho phép cấu hình từ 1 đến 100.
 
-### 4. Đo lường thời gian thực thi (Metrics & Timeout)
-Mỗi Backtest Job đều được bấm giờ (ghi nhận `started_at` và `completed_at` hoặc dùng Micrometer/StopWatch). Việc này giúp hệ thống:
-- Biết được trung bình 1 candidate chạy mất bao lâu để dự đoán thời gian hoàn thành 100,000 backtest.
-- Tự động huỷ (chuyển sang Dead Letter Queue) các Job bị treo (vượt quá `JOB_EXECUTION_TIMEOUT`) để không làm kẹt Worker.
+Bằng chứng: [`TopKProjector.java`](../../../modules/leaderboard/src/main/java/com/cryptostrategy/platform/leaderboard/internal/TopKProjector.java) và [OpenAPI contract](../../api/openapi.yaml).
+
+### 4. Recovery và quan sát tiến trình
+
+Job và Attempt lưu trạng thái cùng thời điểm bắt đầu/kết thúc trong PostgreSQL. Nếu một Attempt ở trạng thái chạy quá lâu, Recovery Sweeper đánh dấu nó stale và áp dụng policy retry. Lỗi không thể xử lý được mới đi Dead Letter Stream; không nên hiểu mọi Job chạy lâu đều bị tự động đưa vào DLQ.
+
+Bằng chứng: [`RecoverySweeperEngine.java`](../../../apps/worker/src/main/java/com/cryptostrategy/platform/worker/engine/RecoverySweeperEngine.java) và [`StaleAttemptAndRecoveryIntegrationTest.java`](../../../apps/worker/src/test/java/com/cryptostrategy/platform/worker/integration/StaleAttemptAndRecoveryIntegrationTest.java).
 
 ## Vì sao UI/Frontend không bị chậm?
 
-Luồng xử lý nặng (chạy Backtest) đã bị đẩy ra một Process hoàn toàn riêng biệt là `apps/worker`. Process phục vụ API (`apps/api`) chỉ làm nhiệm vụ ghi nhận yêu cầu và trả về `HTTP 202 Accepted`. Nhờ tách biệt này, Frontend sẽ không bao giờ bị đứng/lag. User sẽ thấy tiến trình chạy tăng dần 1% -> 100% qua cơ chế Polling hoặc WebSocket.
+Luồng xử lý nặng được đẩy sang process `apps/worker`. `apps/api` ghi nhận yêu cầu và trả về `HTTP 202 Accepted` mà không chờ toàn bộ Search hoàn tất. Nhờ vậy Backtest không giữ HTTP request; frontend theo dõi snapshot/progress qua REST và WebSocket.
 
 ## Trạng thái hiện tại
 
 - **Đã có:** Worker runtime, Redis Stream adapters, Outbox publisher, recovery/dedup tests và batch Dataset reader.
-- Thiết kế áp dụng hoàn hảo mẫu kiến trúc **Event-Driven & Queue-Worker**. Scale ngang tăng throughput rất tốt, chỉ cần lưu ý connection pool của PostgreSQL khi cắm quá nhiều Worker.
+- **Chưa được chứng minh bằng benchmark:** 100.000 Backtests và mức tăng throughput khi chạy 1 so với 3 Worker. Đây là mục tiêu kiến trúc, không phải số liệu đã đạt.
+
+## Cách nói khi trình bày
+
+> API không tự chạy 100.000 Backtests. Nó lưu cấu hình và Job rồi trả về ngay. Redis Stream chia Job cho nhiều Worker; mỗi Worker đọc dữ liệu theo batch, chạy và lưu kết quả. Có thể tăng Worker để tăng tốc, nhưng nhóm vẫn phải benchmark vì database hoặc I/O có thể trở thành nút thắt.
 
 ## Nguồn đề bài
 
 Mục 15–24 của [đề đồ án](../../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf); slide 17–21, ATAM scenario C và checklist slide 39 trong [slide kiến trúc](../../KienTrucDoAn_slide.pdf).
-

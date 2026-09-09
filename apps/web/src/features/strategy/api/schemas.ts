@@ -9,7 +9,16 @@ export const parameterDescriptorSchema = z
     minimum: decimalStringSchema.nullable(),
     maximum: decimalStringSchema.nullable(),
     allowedValues: z.array(z.string()),
-    description: z.string()
+    description: z.string(),
+    searchRangeHint: z
+      .object({
+        minimum: decimalStringSchema,
+        maximum: decimalStringSchema,
+        step: decimalStringSchema
+      })
+      .strict()
+      .nullable()
+      .optional()
   })
   .strict();
 export const strategyDescriptorSchema = z
@@ -66,6 +75,9 @@ export const userStrategyVersionSchema = z
     publishedAt: z.iso.datetime({ offset: true }).nullable(),
     createdAt: z.iso.datetime({ offset: true })
   })
+  .strict();
+export const userStrategyVersionListSchema = z
+  .object({ items: z.array(userStrategyVersionSchema) })
   .strict();
 export const userStrategySchema = z
   .object({

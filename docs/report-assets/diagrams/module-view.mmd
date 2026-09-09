@@ -1,0 +1,20 @@
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart TB
+    APPS["Composition roots<br/>apps/api + apps/worker"] --> EXEC["experiment-execution"]
+    APPS --> PERSISTENCE["persistence adapters"]
+    EXEC --> SEARCH["search"]
+    EXEC --> BACKTEST["backtesting"]
+    EXEC --> EVALUATION["evaluation"]
+    EXEC --> LEADERBOARD["leaderboard"]
+    EXEC --> EXPERIMENT["experiment"]
+    BACKTEST --> MARKET["market-data public API"]
+    BACKTEST --> CORE["strategy-core"]
+    SEARCH --> CORE
+    STRATEGIES["strategies"] --> CORE
+    COMBINATION["combination"] --> CORE
+    LEADERBOARD --> EVALUATION
+    PERSISTENCE --> PORTS["Capability output ports"]
+    MARKET --> DOMAIN["domain"]
+    CORE --> DOMAIN
+    EXPERIMENT --> DOMAIN
+    CONTRACTS["contracts"] --> DOMAIN

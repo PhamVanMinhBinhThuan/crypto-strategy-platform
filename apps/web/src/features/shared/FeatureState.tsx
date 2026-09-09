@@ -4,7 +4,7 @@ export function FeatureState<T>({
   state,
   children,
   onRetry,
-  emptyTitle = "Chưa có dữ liệu."
+  emptyTitle = "No data available."
 }: {
   state: AsyncState<T>;
   children: (data: T) => React.ReactNode;
@@ -14,7 +14,7 @@ export function FeatureState<T>({
   if (state.kind === "loading")
     return (
       <div className="feature-state" role="status">
-        Đang tải…
+        Loading…
       </div>
     );
   if (state.kind === "empty")
@@ -26,16 +26,16 @@ export function FeatureState<T>({
   if (state.kind === "error")
     return (
       <div className="feature-state" role="alert">
-        <h2>Không thể tải dữ liệu</h2>
+        <h2>Unable to load data</h2>
         <p>{state.message}</p>
-        {state.retryable && onRetry && <button onClick={onRetry}>Thử lại</button>}
+        {state.retryable && onRetry && <button onClick={onRetry}>Retry</button>}
       </div>
     );
   if (state.kind === "degraded")
     return (
       <section className="feature-degraded">
         <div role="status">
-          <strong>Một phần dữ liệu đang gián đoạn</strong>
+          <strong>Some data is temporarily unavailable</strong>
           <span>{state.message}</span>
         </div>
         {state.data !== undefined && children(state.data)}

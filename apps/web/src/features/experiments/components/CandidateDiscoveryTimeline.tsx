@@ -17,6 +17,9 @@ export function CandidateDiscoveryTimeline({
             <li key={c.candidateId}>
               <strong>Generation {c.generationIndex}</strong>
               <span className="mono">{c.candidateId}</span>
+              {c.definition.kind === "COMPOSITE" && Array.isArray(c.definition.components) && (
+                <span>{c.definition.components.length} component composite · Majority Vote</span>
+              )}
               <small>{c.fingerprint}</small>
             </li>
           ))}

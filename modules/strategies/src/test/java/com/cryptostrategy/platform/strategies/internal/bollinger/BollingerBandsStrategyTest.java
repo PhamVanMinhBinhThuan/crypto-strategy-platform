@@ -43,7 +43,7 @@ class BollingerBandsStrategyTest {
         assertEquals("1.0.0", plugin.descriptor().reference().implementationVersion().toString());
         assertEquals("strategy-contract-v1", plugin.descriptor().contractVersion());
         assertEquals("VOLATILITY", plugin.descriptor().category());
-        assertEquals(DEFAULT_PERIOD, plugin.descriptor().requiredLookback());
+        assertEquals(2, plugin.descriptor().requiredLookback());
         assertEquals(
                 Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD),
                 plugin.descriptor().supportedSignals());

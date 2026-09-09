@@ -5,6 +5,7 @@ import com.cryptostrategy.platform.experiment.api.CandidateId;
 import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
+import com.cryptostrategy.platform.experiment.api.error.InvalidStateTransitionException;
 import com.cryptostrategy.platform.experiment.api.job.AttemptId;
 import com.cryptostrategy.platform.experiment.api.job.ExecutionAttempt;
 import com.cryptostrategy.platform.experiment.api.job.FailureClassification;
@@ -32,6 +33,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AttemptFinalizationConcurrencyIntegrationTest {
 
@@ -87,6 +89,12 @@ class AttemptFinalizationConcurrencyIntegrationTest {
         // 2. Start attempt
         ExecutionAttempt attempt = attemptStore.startNextAttempt(ownerUserId, jobId, "worker-1", now);
         AttemptId attemptId = attempt.attemptId();
+
+        assertThatThrownBy(() -> attemptStore.startNextAttempt(
+                ownerUserId, jobId, "duplicate-worker", now.plusMillis(1)))
+                .isInstanceOf(InvalidStateTransitionException.class)
+                .hasMessageContaining("while it is RUNNING");
+        assertThat(attemptStore.listAttemptsByJobId(ownerUserId, jobId)).hasSize(1);
 
         // 3. Compete: Worker A (finalizeSuccess) vs Worker B / Stale Reconciler (finalizeTerminalFailure)
         ExecutorService executor = Executors.newFixedThreadPool(2);

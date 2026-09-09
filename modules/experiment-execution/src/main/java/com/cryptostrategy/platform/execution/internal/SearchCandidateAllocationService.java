@@ -62,9 +62,11 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
         Objects.requireNonNull(command, "command");
         var context = contexts.load(command.experimentId().value(), command.searchJobId().value())
                 .orElseThrow(() -> new IllegalArgumentException("Search allocation context is inaccessible"));
-        int allocated = context.acceptedCandidateFingerprints().size();
+        int allocated = context.allocatedWork();
         int active = allocated - context.completedWork() - context.failedWork();
-        int targetWindow = Math.min(command.concurrencyHint(), command.topKTarget());
+        // Top-K controls only Leaderboard retention. It must never throttle how many
+        // candidates the durable execution window is allowed to keep in flight.
+        int targetWindow = command.concurrencyHint();
 
         while (active < targetWindow) {
             SearchRunClaim claim = runs.findBySearchJobId(new com.cryptostrategy.platform.search.api.model.SearchJobId(command.searchJobId().value()))
@@ -75,10 +77,19 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
                     || run.nextGenerationIndex() >= run.stopConditions().maximumCandidates()) {
                 return result(run, allocated, active, context);
             }
-            GenerationOutcome outcome = generation.generate(run.generatorId(), run.generatorVersion(),
-                    new GenerationRequest(context.searchSpace(), run.seed(), Optional.of(run.generatorState()),
-                            Math.toIntExact(run.nextGenerationIndex()),
-                            context.acceptedCandidateFingerprints(), DRAW_BUDGET));
+            GenerationRequest request;
+            if (context.compositeSearchSpace().isPresent()) {
+                request = GenerationRequest.composite(context.compositeSearchSpace().orElseThrow(),
+                        run.seed(), Optional.of(run.generatorState()),
+                        Math.toIntExact(run.nextGenerationIndex()),
+                        context.acceptedCandidateFingerprints(), DRAW_BUDGET);
+            } else {
+                request = new GenerationRequest(context.searchSpace(), run.seed(),
+                        Optional.of(run.generatorState()), Math.toIntExact(run.nextGenerationIndex()),
+                        context.acceptedCandidateFingerprints(), DRAW_BUDGET);
+            }
+            GenerationOutcome outcome = generation.generate(
+                    run.generatorId(), run.generatorVersion(), request);
             if (!(outcome instanceof GenerationOutcome.Generated generated)) {
                 return result(run, allocated, active, context);
             }
@@ -87,7 +98,7 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
             CandidateId candidateId = new CandidateId(Ulids.generate());
             JobId backtestJobId = new JobId(Ulids.generate());
             var candidate = new CandidateDefinition(candidateId, new ExperimentId(run.experimentId().value()),
-                    generated.candidate().generationIndex(), parameterMap(generated),
+                    generated.candidate().generationIndex(), candidateDefinition(generated),
                     Map.of("contractVersion", generated.nextState().contractVersion(),
                             "canonicalState", generated.nextState().canonicalState(),
                             "fingerprint", generated.nextState().fingerprint()),
@@ -106,10 +117,14 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
                     "BACKTEST_JOB", "1", backtestPayload(messageId, command, candidateId, backtestJobId, now),
                     Map.of("correlationId", command.correlationId()), now);
             SearchAllocationResult committed = transactions.allocate(new AllocateSearchCandidateCommand(
-                    context.ownerUserId(), claim, replacement, candidate, job, decision, outbox));
+                    context.ownerUserId(), claim, replacement, candidate, job, decision, outbox,
+                    command.globalInFlightLimit()));
+            if (committed.status() == SearchAllocationResult.Status.WINDOW_FULL) {
+                return result(run, allocated, active, context);
+            }
             if (committed.status() == SearchAllocationResult.Status.STALE_FENCE) {
                 context = contexts.load(command.experimentId().value(), command.searchJobId().value()).orElseThrow();
-                allocated = context.acceptedCandidateFingerprints().size();
+                allocated = context.allocatedWork();
                 active = allocated - context.completedWork() - context.failedWork();
                 continue;
             }
@@ -118,15 +133,48 @@ public final class SearchCandidateAllocationService implements SearchCandidateAl
             var fingerprints = new java.util.HashSet<>(context.acceptedCandidateFingerprints());
             fingerprints.add(generated.candidate().fingerprint());
             context = new SearchAllocationContextGateway.Context(context.ownerUserId(), context.searchSpace(),
-                    fingerprints, context.completedWork(), context.failedWork());
+                    context.compositeSearchSpace(), fingerprints, allocated,
+                    context.completedWork(), context.failedWork());
         }
         var run = runs.findBySearchJobId(new com.cryptostrategy.platform.search.api.model.SearchJobId(command.searchJobId().value())).orElseThrow();
         return result(run, allocated, active, context);
     }
 
+    private static Map<String, Object> candidateDefinition(GenerationOutcome.Generated generated) {
+        if (generated.candidate().compositeDefinition().isPresent()) {
+            var composite = generated.candidate().compositeDefinition().orElseThrow();
+            return Map.of(
+                    "schemaVersion", 2,
+                    "kind", "COMPOSITE",
+                    "combinationPolicy", Map.of(
+                            "policyId", composite.combinationPolicy().policyId().value(),
+                            "version", composite.combinationPolicy().version().toString(),
+                            "parameters", Map.of()),
+                    "components", composite.components().stream().map(component -> Map.of(
+                            "strategyVersionId", component.strategy().strategyVersionId().value(),
+                            "strategyId", component.strategy().pluginId().value(),
+                            "strategyVersion", component.strategy().implementationVersion().toString(),
+                            "parameters", typedParameters(component.parameters()))).toList());
+        }
+        return parameterMap(generated);
+    }
+
     private static Map<String, Object> parameterMap(GenerationOutcome.Generated generated) {
+        return rawParameters(generated.candidate().parameters());
+    }
+
+    private static Map<String, Object> rawParameters(
+            com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet parameters) {
         Map<String, Object> values = new LinkedHashMap<>();
-        generated.candidate().parameters().values().forEach((name, value) -> values.put(name, raw(value)));
+        parameters.values().forEach((name, value) -> values.put(name, raw(value)));
+        return Map.copyOf(values);
+    }
+
+    private static Map<String, Object> typedParameters(
+            com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet parameters) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        parameters.values().forEach((name, value) -> values.put(name,
+                Map.of("type", value.type().name(), "value", raw(value))));
         return Map.copyOf(values);
     }
 

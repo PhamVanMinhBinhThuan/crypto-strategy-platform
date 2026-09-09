@@ -227,7 +227,7 @@ test.describe("360px mobile: primary actions and overflow (FR-038)", () => {
     await authenticate(page);
     await page.goto("/backtests?backtestId=backtest-013");
 
-    await expect(page.getByRole("heading", { name: "Backtest Results" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /backtest/i })).toBeVisible();
 
     const noOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth

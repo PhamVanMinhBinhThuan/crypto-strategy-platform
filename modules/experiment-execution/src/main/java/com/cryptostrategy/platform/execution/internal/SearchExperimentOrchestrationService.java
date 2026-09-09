@@ -35,9 +35,21 @@ public final class SearchExperimentOrchestrationService implements StartSearchEx
             throw new IdempotencyConflictException(
                     "Idempotency key was already used with a different request payload");
         }
+        var searchRunId = result.searchRunId() == null
+                ? command.searchRun().searchRunId() : result.searchRunId();
+        if (searchRunId == null) {
+            searchRunId = new com.cryptostrategy.platform.search.api.model.SearchRunId(
+                    result.searchJobId().value());
+        }
+        String configurationFingerprint = result.configurationFingerprint() == null
+                ? command.manifest().fingerprint() : result.configurationFingerprint();
+        if (configurationFingerprint == null) configurationFingerprint = "legacy:unknown";
         return new Acceptance(
                 result.experimentId(),
                 result.searchJobId(),
+                new com.cryptostrategy.platform.execution.api.SearchRunReferenceId(searchRunId.value()),
+                configurationFingerprint,
+                result.configurationVersion(),
                 "QUEUED",
                 result.status() == StartSearchGraphResult.Status.REPLAY);
     }

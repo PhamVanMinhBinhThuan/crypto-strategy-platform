@@ -24,7 +24,7 @@ flowchart TD
 
 | Scenario | Kiến trúc test cái gì? | Câu trả lời của nhóm |
 | --- | --- | --- |
-| A — Thêm MACD | Modifiability | `+ MACDStrategy, register()` — 2 dòng, không sửa Backtester/Evaluator/UI |
+| A — Thêm MACD | Modifiability | Thêm Strategy, Plugin, registration và test; không sửa Backtester/Evaluator/UI business logic |
 | B — Binance disconnect | Reliability | RealtimeRecoveryCoordinator: reconnect → backfill gap → deduplicate |
 | C — 100.000 backtests | Scalability + Performance | Async Queue, Consumer Group, bounded batch, idempotency |
 | D — News Service down | Failure Isolation | SentimentClient: timeout → retry giới hạn → circuit open → News degraded |
@@ -35,6 +35,12 @@ flowchart TD
 - Scenario C: mục tiêu "3 Worker đạt ít nhất 2× một Worker" vẫn là **Planned** — chưa có benchmark thật.
 - Scenario B: Binance gap recovery có test đơn vị nhưng end-to-end với mạng thật chưa đo độ trễ.
 - Kiến trúc cô lập failure theo capability, không cô lập hoàn toàn shared API/DB.
+
+MACD trong scenario là phép thử khả năng mở rộng, không phải Strategy production hiện đã có. Fixture kiến trúc chứng minh plugin mới tuân theo dependency rule tại [`MacdStrategyPluginFixture.java`](../../../architecture-tests/src/test/java/com/cryptostrategy/platform/architecture/fixtures/strategyextension/MacdStrategyPluginFixture.java).
+
+## Cách nói khi trình bày
+
+> ATAM dùng các tình huống khó để “đập thử” kiến trúc. Rủi ro lớn nhất của nhóm là tải Backtest rất lớn: Queue–Worker đã giải quyết cách phân phối và phục hồi, nhưng throughput thật vẫn phải benchmark. Vì vậy nhóm phân biệt rõ tactic đã implement với con số chưa được đo.
 
 ## Bằng chứng trong project
 

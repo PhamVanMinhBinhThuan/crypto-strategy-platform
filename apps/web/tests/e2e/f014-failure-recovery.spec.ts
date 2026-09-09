@@ -133,14 +133,14 @@ test("mất realtime giữ snapshot cũ, báo stale và reconcile terminal sau r
   await page.goto(`/search?id=${experimentId}`);
   await expect(page.getByRole("heading", { name: runningExperiment.name })).toBeVisible();
   await expect(page.locator(".status-running")).toHaveText("RUNNING");
-  await expect(page.locator(".realtime-status strong")).toHaveText("connected");
+  await expect(page.locator(".realtime-status strong")).toHaveText("Connected");
 
   recovered = true;
   await page.evaluate(() =>
     (window as typeof window & { __f014CrashRealtime: () => void }).__f014CrashRealtime()
   );
 
-  await expect(page.locator(".realtime-status strong")).toHaveText("reconnecting");
+  await expect(page.locator(".realtime-status strong")).toHaveText("Reconnecting");
   await expect(page.getByText(/snapshot is stale/)).toBeVisible();
   await expect(page.locator(".status-running")).toHaveText("RUNNING");
 
@@ -181,10 +181,10 @@ test("Sentiment degraded vẫn giữ News đọc được và retry về dữ li
 
   await page.goto("/news");
   await expect(page.getByText(item.title)).toBeVisible();
-  await expect(page.getByText(/Sentiment tạm gián đoạn/)).toBeVisible();
+  await expect(page.getByText(/Sentiment analysis is temporarily unavailable/)).toBeVisible();
 
   recovered = true;
   await page.reload();
   await expect(page.getByText("POSITIVE", { exact: true })).toBeVisible();
-  await expect(page.getByText(/Sentiment tạm gián đoạn/)).toHaveCount(0);
+  await expect(page.getByText(/Sentiment analysis is temporarily unavailable/)).toHaveCount(0);
 });

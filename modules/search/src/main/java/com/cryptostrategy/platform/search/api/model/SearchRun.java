@@ -19,6 +19,7 @@ public record SearchRun(
         SearchStopConditions stopConditions,
         int maxInFlight,
         SearchRunStatus status,
+        SearchTerminalReason terminalReason,
         long version,
         Instant startedAt,
         Instant deadlineAt,
@@ -59,6 +60,13 @@ public record SearchRun(
             throw new IllegalArgumentException("updatedAt cannot precede createdAt");
         }
         validateLifecycle(status, startedAt, deadlineAt, finishedAt, failureCode, failureMessage);
+        if ((status == SearchRunStatus.PENDING || status == SearchRunStatus.RUNNING)
+                && terminalReason != null) {
+            throw new IllegalArgumentException("Active Search Run cannot have a terminal reason");
+        }
+        if ((status == SearchRunStatus.STOPPING || status.isTerminal()) && terminalReason == null) {
+            throw new IllegalArgumentException("Closing Search Run requires a terminal reason");
+        }
     }
 
     public static SearchRun pending(
@@ -78,7 +86,7 @@ public record SearchRun(
         Objects.requireNonNull(generator, "generator");
         return new SearchRun(searchRunId, experimentId, searchJobId, mode, sourceExperimentId,
                 generator.generatorId(), generator.generatorVersion(), seed, searchSpaceFingerprint,
-                initialState, 0, stopConditions, maxInFlight, SearchRunStatus.PENDING, 0,
+                initialState, 0, stopConditions, maxInFlight, SearchRunStatus.PENDING, null, 0,
                 null, null, null, null, null, createdAt, createdAt);
     }
 
@@ -90,7 +98,7 @@ public record SearchRun(
         }
         requireStatus(SearchRunStatus.PENDING, "start");
         return copy(generatorState, nextGenerationIndex, SearchRunStatus.RUNNING, version + 1,
-                now, now.plus(stopConditions.maximumDuration()), null, null, null, now);
+                null, now, now.plus(stopConditions.maximumDuration()), null, null, null, now);
     }
 
     /** Persists generator progress; allocation may advance the generation index by exactly one. */
@@ -105,30 +113,40 @@ public record SearchRun(
         if (nextState.fingerprint().equals(generatorState.fingerprint())) {
             throw new IllegalArgumentException("generator state must progress");
         }
-        return copy(nextState, resultingGenerationIndex, status, version + 1, startedAt,
-                deadlineAt, null, null, null, now);
+        return copy(nextState, resultingGenerationIndex, status, version + 1, terminalReason,
+                startedAt, deadlineAt, null, null, null, now);
     }
 
     public SearchRun requestStop(Instant now) {
+        return requestStop(now, SearchTerminalReason.EXPLICIT_STOP);
+    }
+
+    public SearchRun requestStop(Instant now, SearchTerminalReason reason) {
         if (status == SearchRunStatus.STOPPING || status == SearchRunStatus.STOPPED) {
             return this;
         }
+        Objects.requireNonNull(reason, "reason");
         requireMutationTime(now);
         if (status != SearchRunStatus.PENDING && status != SearchRunStatus.RUNNING) {
             throw invalidTransition("request stop");
         }
         return copy(generatorState, nextGenerationIndex, SearchRunStatus.STOPPING, version + 1,
-                startedAt, deadlineAt, null, null, null, now);
+                reason, startedAt, deadlineAt, null, null, null, now);
     }
 
     public SearchRun complete(Instant completedAt) {
+        return complete(completedAt, SearchTerminalReason.MAXIMUM_CANDIDATES);
+    }
+
+    public SearchRun complete(Instant completedAt, SearchTerminalReason reason) {
         if (status == SearchRunStatus.COMPLETED) {
             return this;
         }
+        Objects.requireNonNull(reason, "reason");
         requireMutationTime(completedAt);
         requireStatus(SearchRunStatus.RUNNING, "complete");
         return copy(generatorState, nextGenerationIndex, SearchRunStatus.COMPLETED, version + 1,
-                startedAt, deadlineAt, completedAt, null, null, completedAt);
+                reason, startedAt, deadlineAt, completedAt, null, null, completedAt);
     }
 
     public SearchRun stop(Instant stoppedAt) {
@@ -138,7 +156,7 @@ public record SearchRun(
         requireMutationTime(stoppedAt);
         requireStatus(SearchRunStatus.STOPPING, "stop");
         return copy(generatorState, nextGenerationIndex, SearchRunStatus.STOPPED, version + 1,
-                startedAt, deadlineAt, stoppedAt, null, null, stoppedAt);
+                terminalReason, startedAt, deadlineAt, stoppedAt, null, null, stoppedAt);
     }
 
     public SearchRun fail(String code, String safeMessage, Instant failedAt) {
@@ -152,16 +170,19 @@ public record SearchRun(
         code = requireCode(code);
         safeMessage = requireText(safeMessage, "failureMessage");
         return copy(generatorState, nextGenerationIndex, SearchRunStatus.FAILED, version + 1,
-                startedAt, deadlineAt, failedAt, code, safeMessage, failedAt);
+                SearchTerminalReason.TERMINAL_FAILURE, startedAt, deadlineAt, failedAt,
+                code, safeMessage, failedAt);
     }
 
     private SearchRun copy(GeneratorState nextState, long nextIndex, SearchRunStatus nextStatus,
-                           long nextVersion, Instant nextStartedAt, Instant nextDeadlineAt,
+                           long nextVersion, SearchTerminalReason nextTerminalReason,
+                           Instant nextStartedAt, Instant nextDeadlineAt,
                            Instant nextFinishedAt, String nextFailureCode, String nextFailureMessage,
                            Instant nextUpdatedAt) {
         return new SearchRun(searchRunId, experimentId, searchJobId, mode, sourceExperimentId,
                 generatorId, generatorVersion, seed, searchSpaceFingerprint, nextState, nextIndex,
-                stopConditions, maxInFlight, nextStatus, nextVersion, nextStartedAt, nextDeadlineAt,
+                stopConditions, maxInFlight, nextStatus, nextTerminalReason, nextVersion,
+                nextStartedAt, nextDeadlineAt,
                 nextFinishedAt, nextFailureCode, nextFailureMessage, createdAt, nextUpdatedAt);
     }
 

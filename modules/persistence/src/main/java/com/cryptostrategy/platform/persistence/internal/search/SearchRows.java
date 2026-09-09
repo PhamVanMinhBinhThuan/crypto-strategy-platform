@@ -33,9 +33,11 @@ final class SearchRows {
                 resultSet.getLong("next_generation_index"),
                 new SearchStopConditions(
                         resultSet.getInt("maximum_candidates"),
-                        Duration.ofMillis(resultSet.getLong("maximum_duration_ms"))),
+                        Duration.ofMillis(resultSet.getLong("maximum_duration_ms")),
+                        integer(resultSet, "maximum_without_improvement")),
                 resultSet.getInt("max_in_flight"),
                 SearchRunStatus.valueOf(resultSet.getString("status")),
+                terminalReason(resultSet),
                 resultSet.getLong("version"),
                 instant(resultSet, "started_at"),
                 instant(resultSet, "deadline_at"),
@@ -49,5 +51,24 @@ final class SearchRows {
     private static java.time.Instant instant(ResultSet resultSet, String column) throws SQLException {
         var timestamp = resultSet.getTimestamp(column);
         return timestamp == null ? null : timestamp.toInstant();
+    }
+
+    private static Integer integer(ResultSet resultSet, String column) throws SQLException {
+        int value = resultSet.getInt(column);
+        return resultSet.wasNull() ? null : value;
+    }
+
+    private static com.cryptostrategy.platform.search.api.model.SearchTerminalReason terminalReason(
+            ResultSet resultSet) throws SQLException {
+        String reason = resultSet.getString("terminal_reason");
+        if (reason != null) {
+            return com.cryptostrategy.platform.search.api.model.SearchTerminalReason.valueOf(reason);
+        }
+        return switch (SearchRunStatus.valueOf(resultSet.getString("status"))) {
+            case COMPLETED -> com.cryptostrategy.platform.search.api.model.SearchTerminalReason.MAXIMUM_CANDIDATES;
+            case STOPPED, STOPPING -> com.cryptostrategy.platform.search.api.model.SearchTerminalReason.EXPLICIT_STOP;
+            case FAILED -> com.cryptostrategy.platform.search.api.model.SearchTerminalReason.TERMINAL_FAILURE;
+            default -> null;
+        };
     }
 }

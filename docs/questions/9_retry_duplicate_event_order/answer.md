@@ -40,7 +40,10 @@ Transactional Outbox giải quyết khoảng trống “DB đã commit nhưng ch
 - [Snapshot recovery test](../../../apps/api/src/test/java/com/cryptostrategy/platform/api/realtime/SnapshotRecoveryTest.java)
 - [WebSocket event contract](../../api/websocket-events.md)
 
+## Cách nói khi trình bày
+
+> Hệ thống dùng at-least-once nên message có thể lặp. Worker kiểm tra message ID và database constraint để không tạo effect lần hai; lỗi tạm thời mới retry, lỗi vĩnh viễn đi DLQ. Với event đến sai thứ tự, UI chỉ nhận revision mới hơn hoặc Candle mới hơn.
+
 ## Nguồn đề bài
 
 Mục 23–24, 32 và 34 trong [đề đồ án](../../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf); các slide reliability/recovery và checklist slide 39 trong [slide kiến trúc](../../KienTrucDoAn_slide.pdf).
-

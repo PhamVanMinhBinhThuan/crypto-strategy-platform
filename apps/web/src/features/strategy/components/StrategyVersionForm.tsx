@@ -31,6 +31,32 @@ export function StrategyVersionForm({
       ? current.components.map((item) => selectionKey(item.strategyId, item.version))
       : []
   );
+  const [componentValues, setComponentValues] = useState<Record<string, Record<string, string>>>(
+    () =>
+      current.type === "COMPOSITE"
+        ? Object.fromEntries(
+            current.components.map((item) => [
+              item.strategyVersionId,
+              stringValues(item.parameters)
+            ])
+          )
+        : {}
+  );
+  const [policyId, setPolicyId] = useState<"majority-vote" | "weighted-vote">(() =>
+    current.type === "COMPOSITE" && current.policyId === "weighted-vote"
+      ? "weighted-vote"
+      : "majority-vote"
+  );
+  const [componentWeights, setComponentWeights] = useState<Record<string, string>>(() =>
+    current.type === "COMPOSITE"
+      ? Object.fromEntries(
+          current.components.map((item) => [
+            item.strategyVersionId,
+            current.policyParameters[`weight.${item.strategyVersionId}`] ?? "1"
+          ])
+        )
+      : {}
+  );
   const descriptor = singleSource
     ? systemStrategies.find(
         (item) =>
@@ -42,16 +68,12 @@ export function StrategyVersionForm({
     () => (descriptor ? validateStrategyParameters(descriptor, values) : {}),
     [descriptor, values]
   );
-  const selection = (item: StrategyDescriptor): StrategySelectionDraft => {
-    const previous =
-      current.type === "COMPOSITE"
-        ? current.components.find(
-            (component) =>
-              component.strategyId === item.strategyId && component.version === item.version
-          )
-        : undefined;
+  const selection = (
+    item: StrategyDescriptor,
+    configuredValues?: Readonly<Record<string, string>>
+  ): StrategySelectionDraft => {
     const sourceValues =
-      previous?.parameters ??
+      configuredValues ??
       Object.fromEntries(item.parameters.map((field) => [field.name, field.defaultValue ?? ""]));
     return {
       strategyId: item.strategyId,
@@ -59,6 +81,26 @@ export function StrategyVersionForm({
       parameters: serializeStrategyParameters(item, sourceValues)
     };
   };
+  const selectedDescriptors = systemStrategies.filter((item) =>
+    componentKeys.includes(selectionKey(item.strategyId, item.version))
+  );
+  const resolvedComponentValues = (item: StrategyDescriptor) =>
+    Object.fromEntries(
+      item.parameters.map((field) => [
+        field.name,
+        componentValues[item.strategyVersionId]?.[field.name] ?? field.defaultValue ?? ""
+      ])
+    );
+  const componentParametersValid = selectedDescriptors.every(
+    (item) =>
+      Object.keys(validateStrategyParameters(item, resolvedComponentValues(item))).length === 0
+  );
+  const weightsValid =
+    policyId === "majority-vote" ||
+    selectedDescriptors.every((item) => {
+      const raw = componentWeights[item.strategyVersionId] ?? "1";
+      return raw.trim() !== "" && Number.isFinite(Number(raw)) && Number(raw) > 0;
+    });
   const nextSource: StrategySourceDraft | undefined = descriptor
     ? {
         type: "SINGLE",
@@ -71,12 +113,20 @@ export function StrategyVersionForm({
     : current.type === "COMPOSITE"
       ? {
           type: "COMPOSITE",
-          policyId: current.policyId,
-          policyVersion: current.policyVersion,
-          policyParameters: current.policyParameters,
-          components: systemStrategies
-            .filter((item) => componentKeys.includes(selectionKey(item.strategyId, item.version)))
-            .map(selection)
+          policyId,
+          policyVersion: "1.0.0",
+          policyParameters:
+            policyId === "weighted-vote"
+              ? Object.fromEntries(
+                  selectedDescriptors.map((item) => [
+                    `weight.${item.strategyVersionId}`,
+                    componentWeights[item.strategyVersionId] ?? "1"
+                  ])
+                )
+              : {},
+          components: selectedDescriptors.map((item) =>
+            selection(item, resolvedComponentValues(item))
+          )
         }
       : undefined;
   const originalSource: StrategySourceDraft | undefined = descriptor
@@ -94,14 +144,14 @@ export function StrategyVersionForm({
           policyId: current.policyId,
           policyVersion: current.policyVersion,
           policyParameters: current.policyParameters,
-          components: systemStrategies
-            .filter((item) =>
-              current.components.some(
-                (component) =>
-                  component.strategyId === item.strategyId && component.version === item.version
-              )
-            )
-            .map(selection)
+          components: current.components.flatMap((component) => {
+            const item = systemStrategies.find(
+              (candidate) =>
+                candidate.strategyId === component.strategyId &&
+                candidate.version === component.version
+            );
+            return item ? [selection(item, component.parameters)] : [];
+          })
         }
       : undefined;
   const changed = JSON.stringify(nextSource) !== JSON.stringify(originalSource);
@@ -109,15 +159,17 @@ export function StrategyVersionForm({
     !nextSource ||
     Object.keys(issues).length > 0 ||
     (nextSource.type === "COMPOSITE" && nextSource.components.length < 2) ||
+    !componentParametersValid ||
+    !weightsValid ||
     !changed;
 
   if (!nextSource)
     return (
       <section className="strategy-form">
-        <h2>Không thể tạo version mới</h2>
-        <p>Strategy hệ thống gốc không còn khả dụng trong catalog.</p>
+        <h2>Unable to create a new version</h2>
+        <p>The original system strategy is no longer available in the catalog.</p>
         <button type="button" onClick={onCancel}>
-          Đóng
+          Close
         </button>
       </section>
     );
@@ -130,8 +182,8 @@ export function StrategyVersionForm({
         if (!invalid) void onSubmit(nextSource);
       }}
     >
-      <h2>Tạo version {owned.latestVersion.versionNo + 1}</h2>
-      <p>Thay đổi cấu hình bên dưới. Version hiện tại vẫn được giữ nguyên.</p>
+      <h2>Create version {owned.latestVersion.versionNo + 1}</h2>
+      <p>Change the configuration below. The current version will remain unchanged.</p>
       {descriptor &&
         descriptor.parameters.map((field) => (
           <label key={field.name}>
@@ -175,35 +227,130 @@ export function StrategyVersionForm({
         ))}
       {current.type === "COMPOSITE" && (
         <fieldset>
-          <legend>Thành phần (ít nhất 2)</legend>
+          <legend>Components (at least 2)</legend>
+          <label className="combination-policy-select">
+            Combination policy
+            <select
+              value={policyId}
+              onChange={(event) =>
+                setPolicyId(event.target.value as "majority-vote" | "weighted-vote")
+              }
+            >
+              <option value="majority-vote">Majority Vote</option>
+              <option value="weighted-vote">Weighted Vote</option>
+            </select>
+          </label>
           {systemStrategies.map((item) => {
             const key = selectionKey(item.strategyId, item.version);
+            const selected = componentKeys.includes(key);
+            const resolvedValues = resolvedComponentValues(item);
+            const componentIssues = validateStrategyParameters(item, resolvedValues);
             return (
-              <label key={item.strategyVersionId}>
-                <input
-                  type="checkbox"
-                  checked={componentKeys.includes(key)}
-                  onChange={(event) =>
-                    setComponentKeys((existing) =>
-                      event.target.checked
-                        ? [...existing, key]
-                        : existing.filter((value) => value !== key)
-                    )
-                  }
-                />{" "}
-                {item.displayName} · v{item.version}
-              </label>
+              <div
+                className={`composite-component${selected ? " is-selected" : ""}`}
+                key={item.strategyVersionId}
+              >
+                <label className="composite-component-toggle">
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    onChange={(event) =>
+                      setComponentKeys((existing) =>
+                        event.target.checked
+                          ? [...existing, key]
+                          : existing.filter((value) => value !== key)
+                      )
+                    }
+                  />
+                  <span>
+                    <strong>{item.displayName}</strong>
+                    <small>v{item.version}</small>
+                  </span>
+                </label>
+                {selected && (
+                  <>
+                    {policyId === "weighted-vote" && (
+                      <label className="component-weight">
+                        Voting weight
+                        <input
+                          aria-label={`${item.displayName} · voting weight`}
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          value={componentWeights[item.strategyVersionId] ?? "1"}
+                          onChange={(event) =>
+                            setComponentWeights((existing) => ({
+                              ...existing,
+                              [item.strategyVersionId]: event.target.value
+                            }))
+                          }
+                        />
+                      </label>
+                    )}
+                    <div className="composite-parameter-grid">
+                      {item.parameters.length ? (
+                        item.parameters.map((field) => {
+                          const update = (value: string) =>
+                            setComponentValues((existing) => ({
+                              ...existing,
+                              [item.strategyVersionId]: {
+                                ...existing[item.strategyVersionId],
+                                [field.name]: value
+                              }
+                            }));
+                          return (
+                            <label key={field.name}>
+                              {field.name}
+                              {field.type === "ENUM" || field.type === "BOOLEAN" ? (
+                                <select
+                                  aria-label={`${item.displayName} · ${field.name}`}
+                                  value={resolvedValues[field.name]}
+                                  onChange={(event) => update(event.target.value)}
+                                  aria-invalid={Boolean(componentIssues[field.name])}
+                                >
+                                  {(field.type === "BOOLEAN"
+                                    ? ["true", "false"]
+                                    : field.allowedValues
+                                  ).map((option) => (
+                                    <option key={option} value={option}>
+                                      {option}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  aria-label={`${item.displayName} · ${field.name}`}
+                                  inputMode={field.type === "INTEGER" ? "numeric" : "decimal"}
+                                  value={resolvedValues[field.name]}
+                                  onChange={(event) => update(event.target.value)}
+                                  aria-invalid={Boolean(componentIssues[field.name])}
+                                />
+                              )}
+                              {componentIssues[field.name] && (
+                                <small role="alert">{componentIssues[field.name]}</small>
+                              )}
+                            </label>
+                          );
+                        })
+                      ) : (
+                        <small>This strategy has no configurable parameters.</small>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             );
           })}
+          {!weightsValid && <small role="alert">All weights must be greater than zero.</small>}
         </fieldset>
       )}
-      {!changed && <small role="note">Hãy thay đổi ít nhất một tham số hoặc thành phần.</small>}
+      {!changed && <small role="note">Change at least one parameter or component.</small>}
       <div className="strategy-actions">
         <button type="button" disabled={pending} onClick={onCancel}>
-          Hủy
+          Cancel
         </button>
         <button className="button" disabled={pending || invalid}>
-          {pending ? "Đang lưu…" : "Lưu version mới"}
+          {pending ? "Saving…" : "Save new version"}
         </button>
       </div>
     </form>

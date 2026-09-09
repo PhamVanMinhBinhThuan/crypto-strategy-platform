@@ -156,7 +156,7 @@ for (const viewport of viewports) {
     await expectNoPageOverflow(page);
 
     await page.goto("/backtests?resultId=result-a11y");
-    await expect(page.getByRole("heading", { name: "Backtest Results" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /backtest/i })).toBeVisible();
     const trades = page.getByRole("region", { name: "Scrollable trade history" });
     await trades.scrollIntoViewIfNeeded();
     await expect(trades).toBeInViewport();

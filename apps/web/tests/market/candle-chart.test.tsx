@@ -10,6 +10,6 @@ describe("Candle chart", () => {
   });
   it("renders an empty state", () => {
     render(<CandleChart candles={[]} label="empty" />);
-    expect(screen.getByRole("status")).toHaveTextContent("Chưa có dữ liệu");
+    expect(screen.getByRole("status")).toHaveTextContent("No candle data");
   });
 });

@@ -5,7 +5,7 @@ export default function Page() {
     <Suspense
       fallback={
         <div className="market-empty" role="status">
-          Đang tải Market…
+          Loading market…
         </div>
       }
     >

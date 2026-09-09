@@ -10,13 +10,22 @@ import com.cryptostrategy.platform.marketdata.api.model.DatasetSnapshot;
 import com.cryptostrategy.platform.marketdata.api.model.PersistedCandle;
 import com.cryptostrategy.platform.marketdata.api.port.out.DatasetStore;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.support.TransactionTemplate;
 
 public final class JdbcDatasetStoreAdapter implements DatasetStore {
+    private static final Logger LOG = LoggerFactory.getLogger(JdbcDatasetStoreAdapter.class);
+    private static final int BATCH_SIZE = 1_000;
+
     private final JdbcTemplate jdbc; private final TransactionTemplate transactions; private final JdbcMarketReferenceDataAdapter references;
     private final JdbcCandleStoreAdapter candles; private final JdbcDatasetCandleReader reader;
     public JdbcDatasetStoreAdapter(JdbcTemplate jdbc, TransactionTemplate transactions, JdbcMarketReferenceDataAdapter references,
@@ -24,24 +33,89 @@ public final class JdbcDatasetStoreAdapter implements DatasetStore {
         this.jdbc = jdbc; this.transactions = transactions; this.references = references; this.candles = candles; this.reader = reader;
     }
     @Override public DatasetSnapshot finalizeAtomically(DatasetFinalization finalization) {
+        return finalizeAtomically(finalization, null);
+    }
+    @Override public DatasetSnapshot finalizeAtomically(
+            DatasetFinalization finalization, UUID ownerUserId) {
+        long startedAt = System.nanoTime();
         try {
-            return transactions.execute(status -> insert(finalization));
+            DatasetSnapshot stored = Objects.requireNonNull(transactions.execute(status -> {
+                DatasetSnapshot snapshot = insert(finalization);
+                if (ownerUserId != null) grantAccess(ownerUserId, snapshot.datasetVersionId());
+                return snapshot;
+            }), "Dataset transaction returned no result");
+            logPersistenceCompleted(stored, finalization.candles().size(), false, startedAt);
+            return stored;
         } catch (DuplicateKeyException duplicate) {
             DatasetSnapshot winner = findByChecksum(finalization.snapshot().checksum()).orElseThrow(() -> duplicate);
             if (!equivalent(winner, finalization)) throw new MarketDataException(MarketDataErrorCode.MARKET_DATA_INTEGRITY_CONFLICT, "Dataset checksum provenance conflict");
+            if (ownerUserId != null) grantAccess(ownerUserId, winner.datasetVersionId());
+            logPersistenceCompleted(winner, finalization.candles().size(), true, startedAt);
             return winner;
         }
     }
     private DatasetSnapshot insert(DatasetFinalization finalization) {
         DatasetSnapshot snapshot = finalization.snapshot(); TradingPair pair = references.resolveTradingPair(snapshot.tradingPair());
-        List<PersistedCandle> persisted = candles.saveClosedBatch(finalization.candles());
+        List<PersistedCandle> persisted = candles.saveClosedBatch(finalization.candles(), pair);
         jdbc.update(MarketDataSql.INSERT_DATASET, snapshot.datasetVersionId().value(), snapshot.version(), snapshot.provider().value(), pair.tradingPairId().value(), snapshot.timeframe().code(), snapshot.normalizationVersion(),
                 Timestamp.from(snapshot.rangeStart()), Timestamp.from(snapshot.rangeEnd()), snapshot.candleCount(), snapshot.checksum(), Timestamp.from(snapshot.createdAt()));
-        for (int sequence = 0; sequence < persisted.size(); sequence++) jdbc.update(MarketDataSql.INSERT_MEMBER, snapshot.datasetVersionId().value(), sequence, persisted.get(sequence).candleId().value());
+        List<DatasetMemberInsert> members = new ArrayList<>(persisted.size());
+        for (int sequence = 0; sequence < persisted.size(); sequence++) {
+            members.add(new DatasetMemberInsert(
+                    snapshot.datasetVersionId(), sequence, persisted.get(sequence)));
+        }
+        jdbc.batchUpdate(
+                MarketDataSql.INSERT_MEMBER,
+                members,
+                BATCH_SIZE,
+                (statement, member) -> {
+                    statement.setString(1, member.datasetVersionId().value());
+                    statement.setInt(2, member.sequence());
+                    statement.setString(3, member.candle().candleId().value());
+                });
         return find(snapshot.datasetVersionId()).orElseThrow();
     }
     @Override public Optional<DatasetSnapshot> find(DatasetVersionId datasetId) { return jdbc.query(MarketDataSql.FIND_DATASET_ID, (rs, row) -> MarketDataRows.dataset(rs), datasetId.value()).stream().findFirst(); }
+    @Override public Optional<DatasetSnapshot> findAccessible(
+            UUID ownerUserId, DatasetVersionId datasetId) {
+        if (ownerUserId == null) return Optional.empty();
+        return jdbc.query(MarketDataSql.FIND_ACCESSIBLE_DATASET_ID,
+                (rs, row) -> MarketDataRows.dataset(rs), ownerUserId, datasetId.value())
+                .stream().findFirst();
+    }
     @Override public Optional<DatasetSnapshot> findByChecksum(String checksum) { return jdbc.query(MarketDataSql.FIND_DATASET_CHECKSUM, (rs, row) -> MarketDataRows.dataset(rs), checksum).stream().findFirst(); }
+    @Override public List<DatasetSnapshot> listRecent(int limit) {
+        if (limit < 1 || limit > 100) throw new IllegalArgumentException("Dataset list limit must be between 1 and 100");
+        return List.copyOf(jdbc.query(MarketDataSql.LIST_RECENT_DATASETS,
+                (rs, row) -> MarketDataRows.dataset(rs), limit));
+    }
+    @Override public List<DatasetSnapshot> listRecent(UUID ownerUserId, int limit) {
+        if (ownerUserId == null) return listRecent(limit);
+        if (limit < 1 || limit > 100) throw new IllegalArgumentException("Dataset list limit must be between 1 and 100");
+        return List.copyOf(jdbc.query(MarketDataSql.LIST_RECENT_DATASETS_FOR_OWNER,
+                (rs, row) -> MarketDataRows.dataset(rs), ownerUserId, limit));
+    }
+    @Override public List<DatasetSnapshot> listPage(
+            UUID ownerUserId, Instant beforeCreatedAt, String beforeDatasetId, int limit) {
+        if (ownerUserId == null) throw new IllegalArgumentException("Dataset owner is required");
+        if ((beforeCreatedAt == null) != (beforeDatasetId == null)) {
+            throw new IllegalArgumentException("Dataset cursor boundary is incomplete");
+        }
+        if (limit < 1 || limit > 101) throw new IllegalArgumentException("Dataset page limit is invalid");
+        Timestamp boundary = beforeCreatedAt == null ? null : Timestamp.from(beforeCreatedAt);
+        return List.copyOf(jdbc.query(MarketDataSql.LIST_DATASET_PAGE_FOR_OWNER,
+                (rs, row) -> MarketDataRows.dataset(rs), ownerUserId,
+                boundary, boundary, beforeDatasetId, limit));
+    }
+    @Override public long count(UUID ownerUserId) {
+        if (ownerUserId == null) throw new IllegalArgumentException("Dataset owner is required");
+        Long count = jdbc.queryForObject(MarketDataSql.COUNT_DATASETS_FOR_OWNER,
+                Long.class, ownerUserId);
+        return count == null ? 0 : count;
+    }
+    @Override public void grantAccess(UUID ownerUserId, DatasetVersionId datasetId) {
+        jdbc.update(MarketDataSql.GRANT_DATASET_ACCESS, ownerUserId, datasetId.value());
+    }
     private boolean equivalent(DatasetSnapshot winner, DatasetFinalization expected) {
         DatasetSnapshot candidate = expected.snapshot();
         if (!winner.version().equals(candidate.version()) || !winner.normalizationVersion().equals(candidate.normalizationVersion())
@@ -61,4 +135,26 @@ public final class JdbcDatasetStoreAdapter implements DatasetStore {
         }
         return sequence == expected.candles().size();
     }
+
+    private static void logPersistenceCompleted(
+            DatasetSnapshot snapshot,
+            int candleCount,
+            boolean reused,
+            long startedAt) {
+        long elapsedMillis = (System.nanoTime() - startedAt) / 1_000_000L;
+        int batchCount = (candleCount + BATCH_SIZE - 1) / BATCH_SIZE;
+        LOG.info(
+                "marketDataEvent=datasetPersistenceCompleted datasetId={} candleCount={} candleBatches={} memberBatches={} reused={} elapsedMs={}",
+                snapshot.datasetVersionId().value(),
+                candleCount,
+                batchCount,
+                batchCount,
+                reused,
+                elapsedMillis);
+    }
+
+    private record DatasetMemberInsert(
+            DatasetVersionId datasetVersionId,
+            int sequence,
+            PersistedCandle candle) { }
 }

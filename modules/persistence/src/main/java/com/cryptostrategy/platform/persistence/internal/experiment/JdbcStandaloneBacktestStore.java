@@ -189,7 +189,7 @@ public final class JdbcStandaloneBacktestStore implements StandaloneBacktestStor
                 legacyStrategyVersion(manifest),
                 jsonMapper.writeJson(manifest.strategyProvenance().parameters()),
                 jsonMapper.writeJson(manifest.backtestConfig()),
-                jsonMapper.writeJson(manifest.searchConfig()),
+                jsonMapper.writeSearchConfig(manifest.searchConfig()),
                 jsonMapper.writeJson(manifest.evaluationConfig()),
                 null,
                 manifest.softwareVersion(),
@@ -208,7 +208,7 @@ public final class JdbcStandaloneBacktestStore implements StandaloneBacktestStor
                 candidate.candidateId().value(),
                 candidate.experimentId().value(),
                 candidate.generationIndex(),
-                jsonMapper.writeJson(candidate.definition()),
+                jsonMapper.writeCandidateDefinition(candidate.definition()),
                 jsonMapper.writeJson(candidate.generatorState()),
                 candidate.fingerprint(),
                 toTimestamp(candidate.createdAt()));

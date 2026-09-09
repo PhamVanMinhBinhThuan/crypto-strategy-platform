@@ -1,0 +1,13 @@
+%%{init: {"theme": "neutral", "flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    ENTRY["Leaderboard Entry<br/>revision + rank"] --> EVAL["Evaluation Result<br/>metrics + fingerprint"]
+    EVAL --> RESULT["Backtest Result<br/>ordered Trades"]
+    RESULT --> ATTEMPT["Successful Attempt"]
+    ATTEMPT --> CAND["Candidate Definition"]
+    CAND --> EXP["Frozen Experiment Manifest"]
+    EXP --> DATA["Dataset Version<br/>checksum"]
+    EXP --> STRAT["Strategy version + parameters<br/>fingerprint"]
+    EXP --> ASSUME["Backtest assumptions version"]
+    EXP --> VERS["metricVersion + rankingVersion"]
+    EXP --> REPRO["Reproduction run"]
+    REPRO --> VERIFY["MATCHED / MISMATCHED"]

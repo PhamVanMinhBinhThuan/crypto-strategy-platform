@@ -6,13 +6,13 @@ describe("F-012 shared states", () => {
   it("renders consistent loading, empty and bounded retry", async () => {
     const retry = vi.fn(),
       view = render(<FeatureState state={{ kind: "loading" }}>{() => null}</FeatureState>);
-    expect(screen.getByRole("status")).toHaveTextContent("Đang tải");
+    expect(screen.getByRole("status")).toHaveTextContent("Loading");
     view.rerender(
-      <FeatureState state={{ kind: "empty" }} emptyTitle="Không có kết quả">
+      <FeatureState state={{ kind: "empty" }} emptyTitle="No results">
         {() => null}
       </FeatureState>
     );
-    expect(screen.getByText("Không có kết quả")).toBeInTheDocument();
+    expect(screen.getByText("No results")).toBeInTheDocument();
     view.rerender(
       <FeatureState
         state={{ kind: "error", message: "Tạm gián đoạn", retryable: true }}
@@ -21,7 +21,7 @@ describe("F-012 shared states", () => {
         {() => null}
       </FeatureState>
     );
-    await userEvent.click(screen.getByRole("button", { name: "Thử lại" }));
+    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(retry).toHaveBeenCalledOnce();
   });
   it("keeps successful data visible in degraded state", () => {

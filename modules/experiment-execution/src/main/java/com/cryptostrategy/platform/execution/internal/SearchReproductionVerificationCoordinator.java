@@ -70,12 +70,15 @@ public final class SearchReproductionVerificationCoordinator {
                 reproduced.evaluation().maximumDrawdown(), reproduced.evaluation().numberOfTrades()));
         boolean fingerprints = source.backtest().fingerprint().equals(reproduced.backtest().fingerprint())
                 && source.evaluation().fingerprint().equals(reproduced.evaluation().fingerprint())
-                && source.leaderboard().fingerprint().equals(reproduced.leaderboard().fingerprint());
+                && source.leaderboard().fingerprint().equals(reproduced.leaderboard().fingerprint())
+                && source.orderedCandidateFingerprints().equals(
+                        reproduced.orderedCandidateFingerprints());
         Map<String, Object> differences = new LinkedHashMap<>();
         if (!trades) differences.put("tradeSequence", Map.of("sourceCount", sourceTrades.size(),
                 "reproductionCount", reproducedTrades.size()));
         if (!metrics) differences.put("metrics", "canonical metric tuple differs");
-        if (!fingerprints) differences.put("fingerprints", "evidence fingerprints differ");
+        if (!fingerprints) differences.put("fingerprints",
+                "candidate or result evidence fingerprints differ");
         return new Comparison(trades, metrics, fingerprints, Map.copyOf(differences));
     }
 
@@ -87,7 +90,8 @@ public final class SearchReproductionVerificationCoordinator {
 
     private static String fingerprint(ExecutionEvidence value) {
         String canonical = value.backtest().fingerprint() + "|" + value.evaluation().fingerprint()
-                + "|" + value.leaderboard().fingerprint();
+                + "|" + value.leaderboard().fingerprint() + "|"
+                + String.join(",", value.orderedCandidateFingerprints());
         try {
             return "sha256:" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
                     .digest(canonical.getBytes(StandardCharsets.UTF_8)));

@@ -48,7 +48,10 @@ Boundary đã được thể hiện bằng Gradle modules, package `api`/`intern
 - [Experiment public API](../../../modules/experiment/src/main/java/com/cryptostrategy/platform/experiment/api)
 - [News public API](../../../modules/news/src/main/java/com/cryptostrategy/platform/news/api)
 
+## Cách nói khi trình bày
+
+> Mỗi module sở hữu nghiệp vụ và dữ liệu của mình, chỉ cho module khác đi qua public API hoặc port. Market sở hữu Candle/Dataset; Strategy sở hữu thuật toán và Signal; Experiment sở hữu Candidate/Job; News sở hữu News/Sentiment. Architecture test cấm import package `internal` chéo module.
+
 ## Nguồn đề bài
 
 Slide 13–16 và checklist slide 39 trong [slide kiến trúc](../../KienTrucDoAn_slide.pdf); mục 32 về kiến trúc và các module nghiệp vụ trong [đề đồ án](../../Crypto%20Strategy%20Lab%20%E2%80%93%20%C4%90%E1%BB%93%20%C3%A1n%20cu%E1%BB%91i%20k%E1%BB%B3.pdf).
-

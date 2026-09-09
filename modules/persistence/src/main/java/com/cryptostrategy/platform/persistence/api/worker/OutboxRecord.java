@@ -9,7 +9,7 @@ public record OutboxRecord(
         String aggregateType,
         String aggregateId,
         String eventType,
-        int eventVersion,
+        String eventVersion,
         String payload,
         String headers,
         Instant publishedAt,
@@ -22,6 +22,7 @@ public record OutboxRecord(
         Objects.requireNonNull(outboxEventId, "outboxEventId cannot be null");
         Objects.requireNonNull(messageId, "messageId cannot be null");
         Objects.requireNonNull(eventType, "eventType cannot be null");
+        Objects.requireNonNull(eventVersion, "eventVersion cannot be null");
         Objects.requireNonNull(payload, "payload cannot be null");
     }
 }

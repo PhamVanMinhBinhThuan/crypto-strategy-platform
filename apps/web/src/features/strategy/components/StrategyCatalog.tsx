@@ -6,6 +6,8 @@ export function StrategyCatalog({
   loadingOwned,
   systemError,
   ownedError,
+  selectedSystemId,
+  selectedOwnedId,
   onSelectSystem,
   onSelectOwned
 }: {
@@ -15,18 +17,31 @@ export function StrategyCatalog({
   loadingOwned: boolean;
   systemError?: string;
   ownedError?: string;
+  selectedSystemId?: string;
+  selectedOwnedId?: string;
   onSelectSystem: (v: StrategyDescriptor) => void;
   onSelectOwned: (id: string) => void;
 }) {
   return (
-    <aside className="strategy-library" aria-label="Thư viện Strategy">
+    <aside className="strategy-library" aria-label="Strategy library">
       <section>
-        <h2>Strategy hệ thống</h2>
-        {loadingSystem && <p role="status">Đang tải catalog…</p>}
+        <header className="strategy-library-heading">
+          <div>
+            <span className="strategy-section-kicker">Built-in</span>
+            <h2>System strategies</h2>
+          </div>
+          <span>{system.length}</span>
+        </header>
+        {loadingSystem && <p role="status">Loading catalog…</p>}
         {systemError && <p role="alert">{systemError}</p>}
-        {!loadingSystem && !systemError && !system.length && <p>Chưa có Strategy hệ thống.</p>}
+        {!loadingSystem && !systemError && !system.length && <p>No system strategies available.</p>}
         {system.map((item) => (
-          <button key={item.strategyVersionId} onClick={() => onSelectSystem(item)}>
+          <button
+            className={selectedSystemId === item.strategyVersionId ? "is-selected" : undefined}
+            aria-pressed={selectedSystemId === item.strategyVersionId}
+            key={item.strategyVersionId}
+            onClick={() => onSelectSystem(item)}
+          >
             <strong>{item.displayName}</strong>
             <span>
               {item.category} · v{item.version}
@@ -35,12 +50,23 @@ export function StrategyCatalog({
         ))}
       </section>
       <section>
-        <h2>Thư viện của tôi</h2>
-        {loadingOwned && <p role="status">Đang tải thư viện…</p>}
+        <header className="strategy-library-heading">
+          <div>
+            <span className="strategy-section-kicker">Reusable</span>
+            <h2>My library</h2>
+          </div>
+          <span>{owned.length}</span>
+        </header>
+        {loadingOwned && <p role="status">Loading library…</p>}
         {ownedError && <p role="alert">{ownedError}</p>}
-        {!loadingOwned && !ownedError && !owned.length && <p>Chưa có Strategy riêng.</p>}
+        {!loadingOwned && !ownedError && !owned.length && <p>No personal strategies yet.</p>}
         {owned.map((item) => (
-          <button key={item.userStrategyId} onClick={() => onSelectOwned(item.userStrategyId)}>
+          <button
+            className={selectedOwnedId === item.userStrategyId ? "is-selected" : undefined}
+            aria-pressed={selectedOwnedId === item.userStrategyId}
+            key={item.userStrategyId}
+            onClick={() => onSelectOwned(item.userStrategyId)}
+          >
             <strong>{item.name}</strong>
             <span>{item.kind}</span>
           </button>

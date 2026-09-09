@@ -66,10 +66,10 @@ describe("Strategy parameter validator", () => {
         mode: "other"
       })
     ).toEqual({
-      period: "Phải là số nguyên.",
-      threshold: "Tối thiểu 0.000000000001.",
-      enabled: "Phải là true hoặc false.",
-      mode: "Giá trị không được hỗ trợ."
+      period: "Must be a whole number.",
+      threshold: "Minimum value: 0.000000000001.",
+      enabled: "Must be true or false.",
+      mode: "Unsupported value."
     });
   });
   it("accepts valid exact values", () =>

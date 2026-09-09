@@ -32,6 +32,7 @@ export function useExperimentRealtime(
         if (reconciler.accept(event, id)) {
           setSubscriptionError("Realtime event was invalid; authoritative state was reloaded.");
           onExperimentRefresh();
+          onCandidateRefresh();
         }
         return;
       }
@@ -47,7 +48,10 @@ export function useExperimentRealtime(
           recovering = false;
           buffered.splice(0).forEach((e) => {
             if (e.eventType === "BACKTEST_COMPLETED") onCandidateRefresh();
-            else onExperimentRefresh();
+            else if (e.eventType === "EXPERIMENT_PROGRESS_UPDATED") {
+              onExperimentRefresh();
+              onCandidateRefresh();
+            } else onExperimentRefresh();
           });
         });
         return;
@@ -57,7 +61,10 @@ export function useExperimentRealtime(
           String((event.payload as Record<string, unknown>).code ?? "Subscription failed")
         );
       else if (event.eventType === "BACKTEST_COMPLETED") onCandidateRefresh();
-      else if (event.eventType === "EXPERIMENT_PROGRESS_UPDATED") onExperimentRefresh();
+      else if (event.eventType === "EXPERIMENT_PROGRESS_UPDATED") {
+        onExperimentRefresh();
+        onCandidateRefresh();
+      }
     });
     realtime.subscribe({
       subscriptionId,
@@ -73,7 +80,10 @@ export function useExperimentRealtime(
     };
   }, [id, onCandidateRefresh, onExperimentRefresh, realtime, reconciler, subscriptionId, terminal]);
   useEffect(() => {
-    if (terminal) onExperimentRefresh();
-  }, [terminal, onExperimentRefresh]);
+    if (terminal) {
+      onExperimentRefresh();
+      onCandidateRefresh();
+    }
+  }, [terminal, onCandidateRefresh, onExperimentRefresh]);
   return { connection, subscriptionError, reconnect: () => realtime.connect() };
 }

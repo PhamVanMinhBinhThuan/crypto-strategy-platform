@@ -6,6 +6,7 @@ import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
 import com.cryptostrategy.platform.experiment.api.ExperimentStatus;
+import com.cryptostrategy.platform.experiment.api.ExperimentSummary;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
 import com.cryptostrategy.platform.experiment.api.port.out.ExperimentStore;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -66,7 +67,7 @@ public class JdbcExperimentStore implements ExperimentStore {
                     legacyStrategyVersion(draftManifest),
                     jsonMapper.writeJson(draftManifest.strategyProvenance().parameters()),
                     jsonMapper.writeJson(draftManifest.backtestConfig()),
-                    jsonMapper.writeJson(draftManifest.searchConfig()),
+                    jsonMapper.writeSearchConfig(draftManifest.searchConfig()),
                     jsonMapper.writeJson(draftManifest.evaluationConfig()),
                     draftManifest.sentimentConfig() != null ? jsonMapper.writeJson(draftManifest.sentimentConfig()) : null,
                     draftManifest.softwareVersion(),
@@ -111,6 +112,38 @@ public class JdbcExperimentStore implements ExperimentStore {
     }
 
     @Override
+    public List<ExperimentSummary> listExperimentsPage(
+            UUID ownerUserId, Instant beforeCreatedAt, String beforeExperimentId, int limit) {
+        Timestamp boundary = toTimestamp(beforeCreatedAt);
+        return jdbcTemplate.query(
+                ExperimentSql.SELECT_EXPERIMENT_PAGE,
+                (rs, rowNum) -> new ExperimentSummary(
+                        new ExperimentId(rs.getString("experiment_id")),
+                        rs.getString("name"),
+                        ExperimentStatus.valueOf(rs.getString("status")),
+                        rs.getString("dataset_provider"),
+                        rs.getString("dataset_pair"),
+                        rs.getString("dataset_timeframe"),
+                        rs.getLong("candle_count"),
+                        rs.getInt("total_candidates"),
+                        rs.getInt("succeeded_candidates"),
+                        rs.getInt("failed_candidates"),
+                        rs.getTimestamp("started_at") == null
+                                ? null : rs.getTimestamp("started_at").toInstant(),
+                        rs.getTimestamp("completed_at") == null
+                                ? null : rs.getTimestamp("completed_at").toInstant(),
+                        rs.getTimestamp("created_at").toInstant()),
+                ownerUserId, boundary, boundary, beforeExperimentId, limit);
+    }
+
+    @Override
+    public long countExperiments(UUID ownerUserId) {
+        Long count = jdbcTemplate.queryForObject(
+                ExperimentSql.COUNT_EXPERIMENTS, Long.class, ownerUserId);
+        return count == null ? 0 : count;
+    }
+
+    @Override
     public void updateManifest(UUID ownerUserId, ExperimentId experimentId, ExperimentManifest updatedManifest) {
         jdbcTemplate.update(
                 ExperimentSql.UPDATE_MANIFEST,
@@ -120,7 +153,7 @@ public class JdbcExperimentStore implements ExperimentStore {
                 legacyStrategyVersion(updatedManifest),
                 jsonMapper.writeJson(updatedManifest.strategyProvenance().parameters()),
                 jsonMapper.writeJson(updatedManifest.backtestConfig()),
-                jsonMapper.writeJson(updatedManifest.searchConfig()),
+                jsonMapper.writeSearchConfig(updatedManifest.searchConfig()),
                 jsonMapper.writeJson(updatedManifest.evaluationConfig()),
                 updatedManifest.sentimentConfig() != null ? jsonMapper.writeJson(updatedManifest.sentimentConfig()) : null,
                 updatedManifest.softwareVersion(),
@@ -226,7 +259,7 @@ public class JdbcExperimentStore implements ExperimentStore {
                 candidate.candidateId().value(),
                 candidate.experimentId().value(),
                 candidate.generationIndex(),
-                jsonMapper.writeJson(candidate.definition()),
+                jsonMapper.writeCandidateDefinition(candidate.definition()),
                 candidate.generatorState() != null ? jsonMapper.writeJson(candidate.generatorState()) : null,
                 candidate.fingerprint(),
                 toTimestamp(candidate.createdAt())
