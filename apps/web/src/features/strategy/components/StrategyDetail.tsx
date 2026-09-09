@@ -43,11 +43,6 @@ export function StrategyDetail({
                   </div>
                   <span className="policy-badge">v{source.policyVersion}</span>
                 </header>
-                <p>
-                  {weighted
-                    ? "Each signal is multiplied by its weight. The signal with the highest total wins; ties return HOLD."
-                    : "Each strategy gets one vote. The signal with the most votes wins; ties return HOLD."}
-                </p>
                 <ul className="composite-component-summary">
                   {source.components.map((component) => {
                     const system = systemStrategies.find(
@@ -65,19 +60,34 @@ export function StrategyDetail({
                     );
                   })}
                 </ul>
-                <div className="policy-examples" aria-label="Signal combination examples">
-                  <span>
-                    <code>{weighted ? "BUY 0.7 · SELL 0.3" : "BUY 2 · SELL 1"}</code>
-                    <strong>→ BUY</strong>
-                  </span>
-                  <span>
-                    <code>{weighted ? "BUY 0.5 · SELL 0.5" : "BUY 1 · SELL 1"}</code>
-                    <strong>→ HOLD</strong>
-                  </span>
-                </div>
-                <small className="illustration-note">
-                  Illustrative policy examples, not current market signals.
-                </small>
+                <details className="composite-policy-help">
+                  <summary>
+                    <span className="composite-help-icon" aria-hidden="true">
+                      ?
+                    </span>
+                    How does {weighted ? "weighted" : "majority"} voting work?
+                  </summary>
+                  <div className="composite-policy-help-content">
+                    <p>
+                      {weighted
+                        ? "Each signal is multiplied by its weight. The signal with the highest total wins; ties return HOLD."
+                        : "Each strategy gets one vote. The signal with the most votes wins; ties return HOLD."}
+                    </p>
+                    <div className="policy-examples" aria-label="Signal combination examples">
+                      <span>
+                        <code>{weighted ? "BUY 0.7 · SELL 0.3" : "BUY 2 · SELL 1"}</code>
+                        <strong>→ BUY</strong>
+                      </span>
+                      <span>
+                        <code>{weighted ? "BUY 0.5 · SELL 0.5" : "BUY 1 · SELL 1"}</code>
+                        <strong>→ HOLD</strong>
+                      </span>
+                    </div>
+                    <small className="illustration-note">
+                      Illustrative policy examples, not current market signals.
+                    </small>
+                  </div>
+                </details>
               </section>
             );
           })()}

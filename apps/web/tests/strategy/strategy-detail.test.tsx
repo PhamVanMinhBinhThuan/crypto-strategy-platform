@@ -89,9 +89,11 @@ describe("Strategy detail", () => {
   it("explains weighted conflict resolution and configured components", () => {
     render(<StrategyDetail owned={compositeOwned} systemStrategies={[descriptor]} />);
     const policy = screen.getByRole("region", { name: "Composite policy" });
+    const help = screen.getByText("How does weighted voting work?").closest("details");
     expect(policy).toHaveTextContent("Weighted Vote");
     expect(policy).toHaveTextContent("Moving Average Crossover");
     expect(policy).toHaveTextContent("weight 0.7");
+    expect(help).not.toHaveAttribute("open");
     expect(policy).toHaveTextContent("BUY 0.5 · SELL 0.5→ HOLD");
     expect(policy).toHaveTextContent("not current market signals");
   });

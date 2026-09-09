@@ -54,6 +54,10 @@ Tách service khi có driver rõ ràng: scale độc lập, fault isolation khá
 - [ADR-0008 — Sentiment boundary](../../adr/0008-sentiment-service-boundary.md)
 - [Architecture Overview — Deliberate Trade-offs](../../architecture/architecture-overview.md)
 
+## Cách nói khi trình bày
+
+> Trade-off lớn nhất là nhóm đổi sự đơn giản lấy khả năng scale và phục hồi ở đúng chỗ cần thiết. Queue–Worker giúp API không bị chặn nhưng tạo eventual consistency và duplicate. Modular Monolith dễ vận hành cho nhóm nhỏ nhưng cần architecture test để giữ boundary.
+
 ## Nguồn đề bài
 
 Slide 68–69 (Trade-off Matrix), slide 47 và phụ lục I trong [slide kiến trúc](../../KienTrucDoAn_slide.pdf).

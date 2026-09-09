@@ -18,12 +18,11 @@ flowchart LR
     MODEL --> API["Backend REST/WebSocket"] --> WEB["Frontend không đổi"]
 ```
 
-## Adapter phải làm gì?
+## Adapter & API làm nhiệm vụ gì?
 
-- Đổi symbol/interval/timestamp/OHLCV của provider sang kiểu chuẩn.
-- Validate dữ liệu, dịch rate-limit/network error thành lỗi hệ thống.
-- Historical: pagination, sort và deduplicate.
-- Realtime: reconnect, gap recovery và connection status.
+- **Frontend độc lập Schema:** Đổi symbol/interval/timestamp/OHLCV đặc thù của provider sang kiểu chuẩn (Canonical Candle). Frontend không bao giờ thấy mã lỗi hay cấu trúc JSON của Binance.
+- **Realtime Flow & WebSocket:** Cung cấp luồng dữ liệu thời gian thực (stream) rõ ràng, có xử lý tự động reconnect, gap recovery và connection status ngầm phía Backend.
+- **Multi-timeframe (Tối đa 4 chart):** Thông qua WebSocket Multiplexing, Frontend có thể mở tối đa 4 chart, mỗi chart đăng ký (subscribe) một timeframe độc lập (ví dụ chart 1 xem 1m, chart 2 xem 15m) trên cùng một kết nối mạng mà không bị xung đột dữ liệu.
 - Không để response object hoặc credential của provider thoát khỏi module Market.
 
 Ví dụ Binance có thể dùng `BTCUSDT`, trong khi public contract dùng `BTC/USDT`. OKX có format khác nhưng adapter của OKX chịu trách nhiệm chuyển đổi.
