@@ -37,9 +37,10 @@ const workspaceTabs: readonly { id: WorkspaceTab; label: string }[] = [
   { id: "versions", label: "Versions" },
   { id: "backtests", label: "Backtests" }
 ];
-export function StrategyWorkspace() {
+export function StrategyWorkspace({ initialStrategyId }: { initialStrategyId?: string }) {
   const { api } = useClients();
   const controller = useRef(new StrategyMutationController());
+  const initialSelectionApplied = useRef(false);
   const [system, setSystem] = useState<StrategyDescriptor[]>([]),
     [owned, setOwned] = useState<UserStrategySummary[]>([]),
     [selectedSystem, setSelectedSystem] = useState<StrategyDescriptor>(),
@@ -56,15 +57,23 @@ export function StrategyWorkspace() {
     [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
   const loadSystem = useCallback(async () => {
     const result = await listSystemStrategies(api);
-    if (result.ok) setSystem(result.data.items);
-    else
+    if (result.ok) {
+      setSystem(result.data.items);
+      if (!initialSelectionApplied.current && initialStrategyId) {
+        const requested = result.data.items.find((item) => item.strategyId === initialStrategyId);
+        if (requested) {
+          initialSelectionApplied.current = true;
+          setSelectedSystem(requested);
+        }
+      }
+    } else
       setSystemError(
         result.error.retryable
           ? "The system strategy catalog is temporarily unavailable. Please try again."
           : "Unable to load the system strategy catalog."
       );
     setSystemLoading(false);
-  }, [api]);
+  }, [api, initialStrategyId]);
   const loadOwned = useCallback(async () => {
     const result = await listUserStrategies(api);
     if (result.ok) setOwned(result.data.items);

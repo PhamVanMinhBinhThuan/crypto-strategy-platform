@@ -7,6 +7,7 @@ import com.cryptostrategy.platform.evaluation.api.model.EvaluationResultId;
 import com.cryptostrategy.platform.evaluation.api.model.MetricVersion;
 import com.cryptostrategy.platform.evaluation.api.model.RankingVersion;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.provenance.SentimentProvenanceSnapshot;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardRevision;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardRevisionId;
 import com.cryptostrategy.platform.execution.api.ExecutionEvidence;
@@ -23,10 +24,12 @@ import java.util.Collections;
 public final class JdbcExecutionEvidenceReader implements ExecutionEvidenceReader {
     private final JdbcTemplate jdbc;
     private final JdbcBacktestEvidenceReader backtestReader;
+    private final BacktestJsonMapper json;
 
     public JdbcExecutionEvidenceReader(JdbcTemplate jdbc) { 
         this.jdbc = Objects.requireNonNull(jdbc);
-        this.backtestReader = new JdbcBacktestEvidenceReader(jdbc, new BacktestJsonMapper());
+        this.json = new BacktestJsonMapper();
+        this.backtestReader = new JdbcBacktestEvidenceReader(jdbc, json);
     }
 
     @Override
@@ -59,6 +62,15 @@ public final class JdbcExecutionEvidenceReader implements ExecutionEvidenceReade
         List<String> candidateFingerprints = jdbc.query(
                 "select fingerprint from experiment.candidate_definition where experiment_id=? order by generation_index,candidate_id",
                 (rs, row) -> rs.getString(1), experimentId.value());
-        return new ExecutionEvidence(backtest, evaluation, leaderboard, candidateFingerprints);
+        List<String> sentimentConfigs = jdbc.query("""
+                select sentiment_config::text
+                from experiment.experiment_manifest
+                where experiment_id=? and sentiment_config is not null
+                """, (rs, row) -> rs.getString(1), experimentId.value());
+        var sentimentProvenance = sentimentConfigs.isEmpty()
+                ? java.util.Optional.<SentimentProvenanceSnapshot>empty()
+                : SentimentProvenanceSnapshot.fromConfig(json.readMap(sentimentConfigs.getFirst()));
+        return new ExecutionEvidence(backtest, evaluation, leaderboard, candidateFingerprints,
+                sentimentProvenance);
     }
 }

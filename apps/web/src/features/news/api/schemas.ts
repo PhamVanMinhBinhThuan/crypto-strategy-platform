@@ -32,3 +32,10 @@ export const newsItemSchema = z
       context.addIssue({ code: "custom", message: "Incomplete analysis cannot expose sentiment." });
   });
 export const newsPageSchema = paginationSchema.extend({ items: z.array(newsItemSchema) });
+export const sentimentServiceStatusSchema = z
+  .object({
+    status: z.enum(["AVAILABLE", "DEGRADED"]),
+    message: z.string().min(1),
+    checkedAt: utcInstantSchema
+  })
+  .strict();

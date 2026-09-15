@@ -57,7 +57,6 @@ public interface DatasetCandleReader {
 Bằng chứng: [`DatasetCandleReader.java`](../../../modules/market-data/src/main/java/com/cryptostrategy/platform/marketdata/api/port/out/DatasetCandleReader.java).
 
 ### 3. Top-K Projection (Tối ưu truy vấn bảng xếp hạng)
-
 Leaderboard tạo một revision chỉ chứa số lượng kết quả tốt nhất do Experiment cấu hình bằng `topK`, thay vì trả toàn bộ Candidate cho UI. `TopKProjector` lọc kết quả hợp lệ, sắp xếp ổn định rồi lấy đúng giới hạn này. `topK` không cố định là 50; public API hiện cho phép cấu hình từ 1 đến 100.
 
 Bằng chứng: [`TopKProjector.java`](../../../modules/leaderboard/src/main/java/com/cryptostrategy/platform/leaderboard/internal/TopKProjector.java) và [OpenAPI contract](../../api/openapi.yaml).

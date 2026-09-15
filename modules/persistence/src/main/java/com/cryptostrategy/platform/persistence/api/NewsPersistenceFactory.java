@@ -11,7 +11,7 @@ public final class NewsPersistenceFactory {
     private NewsPersistenceFactory() {}
     public static Components create(DataSource source) {
         var jdbc=new JdbcTemplate(source); var tx=new TransactionTemplate(new DataSourceTransactionManager(source)); var errors=new NewsPersistenceExceptionTranslator();
-        return new Components(new JdbcNewsItemStoreAdapter(jdbc,tx,errors),new JdbcAnalysisWorkStoreAdapter(jdbc,tx,errors),new JdbcSentimentModelReleaseStore(jdbc,tx,errors),new JdbcNewsQueryAdapter(jdbc),new JdbcSentimentAuditStore(jdbc));
+        return new Components(new JdbcNewsItemStoreAdapter(jdbc,tx,errors),new JdbcAnalysisWorkStoreAdapter(jdbc,tx,errors),new JdbcSentimentModelReleaseStore(jdbc,tx,errors),new JdbcNewsQueryAdapter(jdbc),new JdbcSentimentAuditStore(jdbc),new JdbcSentimentSnapshotSource(jdbc),new JdbcSentimentSnapshotStore(jdbc,tx,errors));
     }
-    public record Components(NewsItemStore items,AnalysisWorkStore work,SentimentModelReleaseStore releases,NewsQueryPort queries,SentimentAuditStore audit) {}
+    public record Components(NewsItemStore items,AnalysisWorkStore work,SentimentModelReleaseStore releases,NewsQueryPort queries,SentimentAuditStore audit,SentimentSnapshotSource snapshotSource,SentimentSnapshotStore snapshots) {}
 }

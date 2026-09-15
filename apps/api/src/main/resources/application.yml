@@ -57,6 +57,14 @@ platform:
         max-attempts: ${PLATFORM_MARKET_DATA_BINANCE_RECONNECT_MAX_ATTEMPTS:5}
         initial-delay: ${PLATFORM_MARKET_DATA_BINANCE_RECONNECT_INITIAL_DELAY:PT0.5S}
         max-delay: ${PLATFORM_MARKET_DATA_BINANCE_RECONNECT_MAX_DELAY:PT5S}
+  sentiment:
+    base-url: ${SENTIMENT_SERVICE_URL:http://127.0.0.1:8000}
+    status-timeout: ${PLATFORM_SENTIMENT_STATUS_TIMEOUT:PT1S}
+    release:
+      model-name: ${SENTIMENT_MODEL_NAME:multichannel-english}
+      model-version: ${SENTIMENT_MODEL_VERSION:multichannel-english-1.0.0}
+      preprocessing-version: ${SENTIMENT_PREPROCESSING_VERSION:multichannel-whitespace-en-1}
+      contract-version: sentiment-v1
   security:
     allowed-origins: ${PLATFORM_SECURITY_ALLOWED_ORIGINS:}
     jwt:

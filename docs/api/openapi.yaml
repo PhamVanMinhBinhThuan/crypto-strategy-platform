@@ -809,6 +809,25 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '503': { $ref: '#/components/responses/ServiceUnavailable' }
 
+  /news-items/sentiment-status:
+    get:
+      tags: [News]
+      operationId: getSentimentServiceStatus
+      summary: Get current Sentiment service availability
+      description: Reports degradation without hiding previously stored News and sentiment results.
+      parameters:
+        - $ref: '#/components/parameters/CorrelationId'
+      responses:
+        '200':
+          description: Current availability snapshot. A downstream outage is represented as DEGRADED, not as an API failure.
+          headers:
+            X-Correlation-Id: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SentimentServiceStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
   /news-items:
     get:
       tags: [News]
@@ -1181,7 +1200,7 @@ components:
     StrategyParameterDescriptor:
       type: object
       additionalProperties: false
-      required: [name, type, required, defaultValue, minimum, maximum, allowedValues, description]
+      required: [name, type, required, defaultValue, minimum, maximum, allowedValues, description, searchRangeHint]
       properties:
         name: { type: string, minLength: 1 }
         type: { $ref: '#/components/schemas/StrategyParameterType' }
@@ -1199,6 +1218,18 @@ components:
           type: array
           items: { type: string }
         description: { type: string }
+        searchRangeHint:
+          oneOf:
+            - $ref: '#/components/schemas/SearchRangeHint'
+            - type: 'null'
+    SearchRangeHint:
+      type: object
+      additionalProperties: false
+      required: [minimum, maximum, step]
+      properties:
+        minimum: { $ref: '#/components/schemas/DecimalString' }
+        maximum: { $ref: '#/components/schemas/DecimalString' }
+        step: { $ref: '#/components/schemas/DecimalString' }
     CrossParameterRule:
       type: object
       additionalProperties: false
@@ -1570,10 +1601,46 @@ components:
         definition: { type: object, additionalProperties: true }
         fingerprint: { type: string, minLength: 1 }
         createdAt: { type: string, format: date-time }
+    SentimentModelEvidence:
+      type: object
+      additionalProperties: false
+      required: [name, version, preprocessingVersion]
+      properties:
+        name: { type: string, minLength: 1 }
+        version: { type: string, minLength: 1 }
+        preprocessingVersion: { type: string, minLength: 1 }
+    SentimentDecisionEvidence:
+      type: object
+      additionalProperties: false
+      required: [occurredAt, signal, reasonCode, score, eligibleArticleCount, lookbackHours, buyThreshold, sellThreshold, evidenceFingerprint]
+      properties:
+        occurredAt: { type: string, format: date-time }
+        signal: { $ref: '#/components/schemas/Signal' }
+        reasonCode: { type: string, minLength: 1 }
+        score: { type: [string, 'null'] }
+        eligibleArticleCount: { type: [string, 'null'] }
+        lookbackHours: { type: [string, 'null'] }
+        buyThreshold: { type: [string, 'null'] }
+        sellThreshold: { type: [string, 'null'] }
+        evidenceFingerprint: { type: [string, 'null'], pattern: '^sha256:[0-9a-f]{64}$' }
+    SentimentProvenance:
+      type: object
+      additionalProperties: false
+      required: [snapshotId, snapshotFingerprint, schemaVersion, model, articleCount, evidenceFingerprint, decisions]
+      properties:
+        snapshotId: { $ref: '#/components/schemas/OpaqueId' }
+        snapshotFingerprint: { type: string, pattern: '^sha256:[0-9a-f]{64}$' }
+        schemaVersion: { type: string, const: sentiment-snapshot-v1 }
+        model: { $ref: '#/components/schemas/SentimentModelEvidence' }
+        articleCount: { type: integer, minimum: 0 }
+        evidenceFingerprint: { type: [string, 'null'], pattern: '^sha256:[0-9a-f]{64}$' }
+        decisions:
+          type: array
+          items: { $ref: '#/components/schemas/SentimentDecisionEvidence' }
     BacktestProvenance:
       type: object
       additionalProperties: false
-      required: [experimentId, candidateId, jobId, successfulAttemptId, manifestFingerprint, datasetFingerprint, strategyFingerprint, resultFingerprint, manifestVersion, dataset, strategy, candidate, softwareVersion, gitCommit]
+      required: [experimentId, candidateId, jobId, successfulAttemptId, manifestFingerprint, datasetFingerprint, strategyFingerprint, resultFingerprint, manifestVersion, dataset, strategy, candidate, softwareVersion, gitCommit, sentimentProvenance]
       properties:
         experimentId: { $ref: '#/components/schemas/OpaqueId' }
         candidateId: { $ref: '#/components/schemas/OpaqueId' }
@@ -1598,6 +1665,10 @@ components:
             - type: 'null'
         softwareVersion: { type: [string, 'null'] }
         gitCommit: { type: [string, 'null'] }
+        sentimentProvenance:
+          oneOf:
+            - $ref: '#/components/schemas/SentimentProvenance'
+            - type: 'null'
     BacktestAssumptions:
       type: object
       additionalProperties: false
@@ -2031,6 +2102,14 @@ components:
     NewsAnalysisStatus:
       type: string
       enum: [PENDING, ANALYZING, ANALYZED, FAILED_RETRYABLE, FAILED]
+    SentimentServiceStatus:
+      type: object
+      additionalProperties: false
+      required: [status, message, checkedAt]
+      properties:
+        status: { type: string, enum: [AVAILABLE, DEGRADED] }
+        message: { type: string, minLength: 1 }
+        checkedAt: { type: string, format: date-time }
     NewsItem:
       type: object
       additionalProperties: false

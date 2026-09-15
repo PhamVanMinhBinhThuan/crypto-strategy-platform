@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { newsItemSchema, newsPageSchema } from "@/src/features/news/api/schemas";
+import {
+  newsItemSchema,
+  newsPageSchema,
+  sentimentServiceStatusSchema
+} from "@/src/features/news/api/schemas";
 import { newsPageFixture } from "../fixtures/f012/public-contract";
-import { listNewsItems } from "@/src/features/news/api/news-api";
+import { getSentimentServiceStatus, listNewsItems } from "@/src/features/news/api/news-api";
 import type { ApiClient } from "@/src/foundation/http/contracts";
 
 describe("News API Contract", () => {
@@ -62,5 +66,24 @@ describe("News API Contract", () => {
     expect((await listNewsItems(api, { statuses: ["PENDING", "FAILED"] })).ok).toBe(true);
     expect(requested).toContain("analysisStatus=PENDING&analysisStatus=FAILED");
     expect(requested).not.toContain("tradingPairId");
+  });
+
+  it("validates and requests the Sentiment service status", async () => {
+    let requested = "";
+    const payload = {
+      status: "DEGRADED",
+      message: "Sentiment service is unavailable.",
+      checkedAt: "2026-09-08T00:00:00Z"
+    };
+    expect(sentimentServiceStatusSchema.safeParse(payload).success).toBe(true);
+    const api = {
+      request: async (path: string) => {
+        requested = path;
+        return { ok: true as const, data: payload };
+      }
+    } as ApiClient;
+
+    expect((await getSentimentServiceStatus(api)).ok).toBe(true);
+    expect(requested).toBe("/api/v1/news-items/sentiment-status");
   });
 });

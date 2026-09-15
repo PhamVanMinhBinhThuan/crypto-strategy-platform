@@ -76,7 +76,8 @@ test("traces canonical Result evidence then creates a separately linked reproduc
         createdAt: "2026-09-04T08:01:00Z"
       },
       softwareVersion: "f014-demo",
-      gitCommit: "50c28d9"
+      gitCommit: "50c28d9",
+      sentimentProvenance: null
     }
   };
 
@@ -156,23 +157,27 @@ test("traces canonical Result evidence then creates a separately linked reproduc
   });
 
   await page.goto("/backtests?resultId=result-013");
-  await expect(page.getByRole("heading", { name: "Dataset evidence" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Frozen dataset" })).toBeVisible();
+  await page.getByText("Technical details & reproducibility").click();
   await expect(page.getByText("binance-btcusdt-1h-v1")).toBeVisible();
   await expect(page.getByText(`sha256:${"b".repeat(64)}`)).toBeVisible();
   await expect(page.getByText("moving-average-crossover@1.0.0")).toBeVisible();
-  await expect(page.getByText(/fastPeriod=20/)).toBeVisible();
-  await expect(page.getByText(/"slowPeriod":50/)).toBeVisible();
+  await expect(page.getByText(/"fastPeriod": 20/)).toBeVisible();
+  await expect(page.getByText(/"slowPeriod": 50/)).toBeVisible();
   await expect(page.getByText("attempt-accepted-014")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Reproduction comparison inputs" })).toBeVisible();
+  await expect(page.getByText("Manifest fingerprint")).toBeVisible();
 
-  await page.goto(`/search?id=${sourceExperimentId}`);
+  await page.goto(`/search/${sourceExperimentId}`);
   await expect(page.getByRole("heading", { name: "Source research run" })).toBeVisible();
   await page.getByRole("button", { name: "Reproduce Experiment" }).click();
   const linked = page.getByRole("link", { name: /Open reproduced Experiment/ });
-  await expect(linked).toHaveAttribute("href", `/search?id=${reproductionExperimentId}`);
+  await expect(linked).toHaveAttribute("href", `/search/${reproductionExperimentId}`);
   expect(reproduceCalls).toBe(1);
 
   await linked.click();
+  await expect(page).toHaveURL(new RegExp(`/search/${reproductionExperimentId}$`), {
+    timeout: 15_000
+  });
   await expect(page.getByRole("heading", { name: "Independent reproduction" })).toBeVisible();
   await expect(
     page.getByText(new RegExp(`Linked reproduction of Experiment ${sourceExperimentId}`))

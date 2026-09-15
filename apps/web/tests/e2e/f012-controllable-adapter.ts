@@ -34,6 +34,74 @@ const strategy = {
   descriptorFingerprint: "sha256:example"
 };
 
+const systemStrategies = [
+  strategy,
+  ...["ma-crossover", "bollinger-bands", "support-resistance"].map((strategyId, index) => ({
+    ...strategy,
+    strategyId,
+    strategyVersionId: `01JTECHNICALVERSION0000000${index + 2}`,
+    displayName: ["Moving Average Crossover", "Bollinger Bands", "Support / Resistance"][index],
+    descriptorFingerprint: `sha256:technical-${index}`
+  })),
+  {
+    ...strategy,
+    strategyId: "sentiment-polarity",
+    strategyVersionId: "01JSENTIMENTVERSION0000001",
+    displayName: "Sentiment Polarity",
+    description: "Aggregates a frozen News sentiment snapshot into BUY, SELL, or HOLD.",
+    category: "SENTIMENT",
+    requiredLookback: 1,
+    parameters: [
+      {
+        name: "lookbackHours",
+        type: "INTEGER",
+        required: true,
+        defaultValue: "24",
+        minimum: "1",
+        maximum: "168",
+        allowedValues: [],
+        description: "News lookback ending at the evaluation candle.",
+        searchRangeHint: { minimum: "6", maximum: "48", step: "6" }
+      },
+      {
+        name: "minimumArticles",
+        type: "INTEGER",
+        required: true,
+        defaultValue: "2",
+        minimum: "1",
+        maximum: "100",
+        allowedValues: [],
+        description: "Minimum eligible analyzed articles.",
+        searchRangeHint: { minimum: "1", maximum: "5", step: "1" }
+      },
+      {
+        name: "buyThreshold",
+        type: "DECIMAL",
+        required: true,
+        defaultValue: "0.25",
+        minimum: "-1",
+        maximum: "1",
+        allowedValues: [],
+        description: "Aggregate score at or above this value emits BUY.",
+        searchRangeHint: { minimum: "0.1", maximum: "0.5", step: "0.1" }
+      },
+      {
+        name: "sellThreshold",
+        type: "DECIMAL",
+        required: true,
+        defaultValue: "-0.25",
+        minimum: "-1",
+        maximum: "1",
+        allowedValues: [],
+        description: "Aggregate score at or below this value emits SELL.",
+        searchRangeHint: { minimum: "-0.5", maximum: "-0.1", step: "0.1" }
+      }
+    ],
+    constraints: [{ lowerParameter: "sellThreshold", upperParameter: "buyThreshold" }],
+    descriptorFingerprint: "strategy-descriptor-v1:sentiment-polarity:1.0.0"
+  }
+];
+
 const news = {
   items: [
     {
@@ -66,11 +134,17 @@ export async function installF012Adapter(page: Page) {
         }))
       };
     } else if (url.pathname === "/api/v1/strategies") {
-      body = { items: [strategy], nextCursor: null, hasMore: false };
+      body = { items: systemStrategies, nextCursor: null, hasMore: false };
     } else if (url.pathname === "/api/v1/user-strategies") {
       body = { items: [], nextCursor: null, hasMore: false };
     } else if (url.pathname === "/api/v1/news-items") {
       body = news;
+    } else if (url.pathname === "/api/v1/news-items/sentiment-status") {
+      body = {
+        status: "AVAILABLE",
+        message: "Sentiment analysis is available.",
+        checkedAt: "2026-09-03T01:00:00Z"
+      };
     } else {
       await route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
       return;

@@ -67,6 +67,12 @@ export function StrategyParameters({
           </div>
           <span>{descriptor.parameters.length} fields</span>
         </header>
+        {descriptor.strategyId === "sentiment-polarity" ? (
+          <p className="sentiment-parameter-intro">
+            Lookback limits eligible News by time, minimum articles protects weak samples, and the
+            BUY/SELL thresholds divide the aggregate score into BUY, HOLD, or SELL.
+          </p>
+        ) : null}
         <ParameterList
           descriptor={descriptor}
           values={Object.fromEntries(

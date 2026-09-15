@@ -77,6 +77,36 @@ const candidateEvidence = z
     createdAt: z.string().datetime()
   })
   .strict();
+const sentimentDecisionEvidence = z
+  .object({
+    occurredAt: z.string().datetime(),
+    signal: z.enum(["BUY", "SELL", "HOLD"]),
+    reasonCode: z.string().min(1),
+    score: decimal.nullable(),
+    eligibleArticleCount: z.string().regex(/^\d+$/).nullable(),
+    lookbackHours: z.string().regex(/^\d+$/).nullable(),
+    buyThreshold: decimal.nullable(),
+    sellThreshold: decimal.nullable(),
+    evidenceFingerprint: z.string().nullable()
+  })
+  .strict();
+const sentimentProvenance = z
+  .object({
+    snapshotId: z.string().min(1),
+    snapshotFingerprint: z.string().min(1),
+    schemaVersion: z.literal("sentiment-snapshot-v1"),
+    model: z
+      .object({
+        name: z.string().min(1),
+        version: z.string().min(1),
+        preprocessingVersion: z.string().min(1)
+      })
+      .strict(),
+    articleCount: z.number().int().nonnegative(),
+    evidenceFingerprint: z.string().nullable(),
+    decisions: z.array(sentimentDecisionEvidence)
+  })
+  .strict();
 const schema = z
   .object({
     backtestResultId: z.string().min(1),
@@ -99,7 +129,8 @@ const schema = z
         strategy: strategyEvidence.nullable(),
         candidate: candidateEvidence.nullable(),
         softwareVersion: z.string().nullable(),
-        gitCommit: z.string().nullable()
+        gitCommit: z.string().nullable(),
+        sentimentProvenance: sentimentProvenance.nullable()
       })
       .strict(),
     assumptions: z

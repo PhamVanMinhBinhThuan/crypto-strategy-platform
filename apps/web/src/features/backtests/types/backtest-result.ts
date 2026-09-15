@@ -60,6 +60,26 @@ export type CandidateEvidence = Readonly<{
   fingerprint: string;
   createdAt: string;
 }>;
+export type SentimentDecisionEvidence = Readonly<{
+  occurredAt: string;
+  signal: "BUY" | "SELL" | "HOLD";
+  reasonCode: string;
+  score: string | null;
+  eligibleArticleCount: string | null;
+  lookbackHours: string | null;
+  buyThreshold: string | null;
+  sellThreshold: string | null;
+  evidenceFingerprint: string | null;
+}>;
+export type SentimentProvenance = Readonly<{
+  snapshotId: string;
+  snapshotFingerprint: string;
+  schemaVersion: string;
+  model: Readonly<{ name: string; version: string; preprocessingVersion: string }>;
+  articleCount: number;
+  evidenceFingerprint: string | null;
+  decisions: readonly SentimentDecisionEvidence[];
+}>;
 export type BacktestResultViewModel = Readonly<{
   backtestResultId: BacktestResultId;
   backtestId?: BacktestId;
@@ -91,6 +111,7 @@ export type BacktestResultViewModel = Readonly<{
       candidate: CandidateEvidence | null;
       softwareVersion: string | null;
       gitCommit: string | null;
+      sentimentProvenance: SentimentProvenance | null;
     }>;
   assumptions: Readonly<{
     assumptionsVersion: string;

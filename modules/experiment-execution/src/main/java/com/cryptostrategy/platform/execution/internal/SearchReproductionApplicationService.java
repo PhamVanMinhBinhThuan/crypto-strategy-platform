@@ -6,6 +6,7 @@ import com.cryptostrategy.platform.domain.api.identity.Ulids;
 import com.cryptostrategy.platform.execution.api.ReproductionVerificationId;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchReproductionUseCase;
 import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionGateway;
+import com.cryptostrategy.platform.execution.api.port.out.SentimentSnapshotPreflight;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.error.IdempotencyConflictException;
 import com.cryptostrategy.platform.experiment.api.error.ResourceInaccessibleException;
@@ -15,9 +16,17 @@ import java.util.Objects;
 /** Validate owner/terminal/evidence trước khi yêu cầu một atomic immutable-source copy. */
 public final class SearchReproductionApplicationService implements StartSearchReproductionUseCase {
     private final SearchReproductionGateway gateway;
+    private final SentimentSnapshotPreflight sentimentSnapshots;
 
     public SearchReproductionApplicationService(SearchReproductionGateway gateway) {
+        this(gateway, SentimentSnapshotPreflight.unavailable());
+    }
+
+    public SearchReproductionApplicationService(
+            SearchReproductionGateway gateway,
+            SentimentSnapshotPreflight sentimentSnapshots) {
         this.gateway = Objects.requireNonNull(gateway, "gateway");
+        this.sentimentSnapshots = Objects.requireNonNull(sentimentSnapshots, "sentimentSnapshots");
     }
 
     @Override
@@ -30,6 +39,7 @@ public final class SearchReproductionApplicationService implements StartSearchRe
         if (!source.evidenceComplete()) {
             throw new IllegalStateException("Source Experiment lacks reproduction evidence");
         }
+        source.sentimentProvenance().ifPresent(sentimentSnapshots::verify);
         ExperimentId target = new ExperimentId(Ulids.generate());
         JobId searchJob = new JobId(Ulids.generate());
         var copies = source.orderedCandidateIds().stream().map(sourceCandidate ->

@@ -122,6 +122,10 @@ Không đưa model nội bộ vào `modules/contracts` chỉ để tiện import
 
 Thêm dependency ngoài bảng phải cập nhật ADR này hoặc tạo ADR thay thế và được nhóm review.
 
+ADR-0018 không thêm dependency capability mới: `strategy-core` sở hữu supplemental-input contract
+trung lập; News sở hữu snapshot nguồn; application composition mapping giữa hai public contract trước
+khi Backtesting chạy. `backtesting` và `strategies` không phụ thuộc trực tiếp vào `news`.
+
 ### 4. Dependency bị cấm
 
 | From                          | Không được phụ thuộc                                                 | Lý do                                                         |

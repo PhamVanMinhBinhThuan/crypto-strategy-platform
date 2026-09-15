@@ -6,6 +6,7 @@ import com.cryptostrategy.platform.contracts.api.SearchRequestPayload;
 import com.cryptostrategy.platform.backtesting.api.model.BacktestAssumptions;
 import com.cryptostrategy.platform.execution.api.port.in.SearchStartCommandFactory;
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUseCase.StartCommand;
+import com.cryptostrategy.platform.execution.api.port.out.SentimentSnapshotPreflight;
 import com.cryptostrategy.platform.experiment.api.Experiment;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
@@ -13,6 +14,7 @@ import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
 import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenanceSnapshot;
+import com.cryptostrategy.platform.experiment.api.provenance.SentimentProvenanceSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyComponentSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
@@ -43,6 +45,7 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
     private final StrategyRegistry strategies;
     private final ResolveStrategySnapshotUseCase userStrategies;
     private final StrategyFingerprintCalculator fingerprints;
+    private final SentimentSnapshotPreflight sentimentSnapshots;
     private final ObjectMapper json;
     private final String softwareVersion;
     private final String gitCommit;
@@ -51,10 +54,19 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
     public SearchStartCommandFactoryService(GetDatasetUseCase datasets, StrategyRegistry strategies,
             ResolveStrategySnapshotUseCase userStrategies, StrategyFingerprintCalculator fingerprints,
             ObjectMapper json, String softwareVersion, String gitCommit, Clock clock) {
+        this(datasets, strategies, userStrategies, fingerprints, SentimentSnapshotPreflight.unavailable(),
+                json, softwareVersion, gitCommit, clock);
+    }
+
+    public SearchStartCommandFactoryService(GetDatasetUseCase datasets, StrategyRegistry strategies,
+            ResolveStrategySnapshotUseCase userStrategies, StrategyFingerprintCalculator fingerprints,
+            SentimentSnapshotPreflight sentimentSnapshots, ObjectMapper json,
+            String softwareVersion, String gitCommit, Clock clock) {
         this.datasets = Objects.requireNonNull(datasets);
         this.strategies = Objects.requireNonNull(strategies);
         this.userStrategies = Objects.requireNonNull(userStrategies);
         this.fingerprints = Objects.requireNonNull(fingerprints);
+        this.sentimentSnapshots = Objects.requireNonNull(sentimentSnapshots);
         this.json = Objects.requireNonNull(json);
         this.softwareVersion = Objects.requireNonNull(softwareVersion);
         this.gitCommit = Objects.requireNonNull(gitCommit);
@@ -107,6 +119,9 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
         if (finiteCardinality.signum() == 0) throw new IllegalArgumentException("Search Space is empty");
         maximumCandidates = finiteCardinality.min(BigInteger.valueOf(maximumCandidates)).intValueExact();
         StrategyProvenanceSnapshot strategySnapshot = strategyInput.provenance();
+        Optional<SentimentProvenanceSnapshot> sentimentProvenance = freezeSentimentIfRequired(
+                request.ownerUserId(), strategySnapshot, dataset.tradingPair().baseAsset().assetId(),
+                dataset.rangeEnd());
         ExperimentId experimentId = ExperimentId.generate();
         JobId searchJobId = JobId.generate();
         SearchRunId searchRunId = SearchRunId.generate();
@@ -160,12 +175,19 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 "positionMode", "LONG_ONLY",
                 "forceCloseAtEnd", true,
                 "roundingMode", "HALF_EVEN");
+        String manifestFingerprintMaterial = request.canonicalRequestHash() + '\n'
+                + searchSpaceFingerprint;
+        if (sentimentProvenance.isPresent()) {
+            manifestFingerprintMaterial += '\n' + writeJson(
+                    new TreeMap<>(sentimentProvenance.orElseThrow().toConfig()));
+        }
         ExperimentManifest manifest = new ExperimentManifest(experimentId,
                 compositeV2 ? "manifest-v2" : "manifest-v1", datasetSnapshot,
                 strategySnapshot, backtestConfig, Map.copyOf(searchConfig),
-                Map.of("metricVersion", "metric-v1", "rankingVersion", "ranking-v1"), null,
+                Map.of("metricVersion", "metric-v1", "rankingVersion", "ranking-v1"),
+                sentimentProvenance.map(SentimentProvenanceSnapshot::toConfig).orElse(null),
                 softwareVersion, gitCommit,
-                sha256(request.canonicalRequestHash() + '\n' + searchSpaceFingerprint), now);
+                sha256(manifestFingerprintMaterial), now);
         String messageId = com.cryptostrategy.platform.domain.api.identity.Ulids.generate();
         var envelope = new MessageEnvelope<>(messageId, MessageTypes.CURRENT_VERSION,
                 MessageTypes.SEARCH_REQUEST, now, request.correlationId(),
@@ -175,6 +197,35 @@ public final class SearchStartCommandFactoryService implements SearchStartComman
                 Map.of("correlationId", request.correlationId()), now);
         return new StartCommand(request.ownerUserId(), request.idempotencyKey(), request.canonicalRequestHash(),
                 now.plus(Duration.ofHours(24)), experiment, manifest, searchJob, run, outbox);
+    }
+
+    private Optional<SentimentProvenanceSnapshot> freezeSentimentIfRequired(
+            UUID ownerUserId,
+            StrategyProvenanceSnapshot strategy,
+            com.cryptostrategy.platform.domain.api.market.AssetId assetId,
+            Instant publicationCutoff) {
+        if (!requiresSentiment(strategy)) {
+            return Optional.empty();
+        }
+        SentimentProvenanceSnapshot provenance = sentimentSnapshots.freeze(
+                new SentimentSnapshotPreflight.FreezeRequest(
+                        ownerUserId, assetId, publicationCutoff));
+        if (!assetId.equals(provenance.assetId())
+                || !publicationCutoff.equals(provenance.publicationCutoff())
+                || !"sentiment-snapshot-v1".equals(provenance.snapshotSchemaVersion())) {
+            throw new IllegalStateException("Sentiment snapshot provenance does not match the frozen Dataset");
+        }
+        return Optional.of(provenance);
+    }
+
+    private static boolean requiresSentiment(StrategyProvenanceSnapshot strategy) {
+        if (strategy.singleStrategy()
+                .map(reference -> "sentiment-polarity".equals(reference.pluginId().value()))
+                .orElse(false)) {
+            return true;
+        }
+        return strategy.components().stream().anyMatch(component ->
+                "sentiment-polarity".equals(component.strategyReference().pluginId().value()));
     }
 
     private ResolvedStrategyInput resolveCompositeStrategyPool(Request request, int candleCount) {

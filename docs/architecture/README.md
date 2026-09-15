@@ -1,8 +1,8 @@
 # Architecture Documentation
 
-**Status**: Implemented baseline — F014 release review in progress
+**Status**: Implemented baseline — extended through F016 Sentiment Strategy
 
-**Last Updated**: 2026-09-04
+**Last Updated**: 2026-09-11
 
 **Owner**: Văn Minh
 
@@ -19,6 +19,7 @@ Thư mục này là bản đồ kiến trúc cấp hệ thống của **Crypto S
 7. [Deployment View](deployment-view.md) — Local, CI và Demo topology.
 8. [Quality Attribute Scenarios](quality-attributes.md) — ASR theo S–S–E–A–R–M.
 9. [Architecture Evidence](architecture-evidence.md) — truy vết requirement, ADR, test/demo và evidence.
+10. [Sentiment Strategy Flow](sentiment-strategy.md) — snapshot, no-look-ahead, Search/Backtest và failure isolation của F016.
 
 ## Phân ranh tài liệu
 

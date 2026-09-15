@@ -38,6 +38,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -86,9 +87,12 @@ class SearchCandidateAllocationServiceTest {
                         new SearchSpace(Map.of()), Optional.of(space), Set.of(),
                         10, 10, 0));
         SearchExperimentTransactionGateway transactions = mock(SearchExperimentTransactionGateway.class);
+        List<com.cryptostrategy.platform.execution.api.port.out.AllocateSearchCandidateCommand>
+                allocations = new ArrayList<>();
         when(transactions.allocate(any())).thenAnswer(invocation -> {
             var allocation = invocation.getArgument(0,
                     com.cryptostrategy.platform.execution.api.port.out.AllocateSearchCandidateCommand.class);
+            allocations.add(allocation);
             durable.set(allocation.replacementRun());
             return SearchAllocationResult.allocated(allocation.candidate().candidateId(),
                     allocation.backtestJob().jobId(), allocation.replacementRun().version());
@@ -103,6 +107,12 @@ class SearchCandidateAllocationServiceTest {
 
         assertThat(result.allocatedWork()).isEqualTo(14);
         assertThat(result.activeWork()).isEqualTo(4);
+        assertThat(allocations)
+                .extracting(allocation -> allocation.candidate().experimentId().value())
+                .containsOnly(EXPERIMENT_ID);
+        assertThat(allocations)
+                .allSatisfy(allocation -> assertThat(allocation.candidate().definition())
+                        .doesNotContainKeys("sentimentSnapshotId", "sentimentSnapshotFingerprint"));
         verify(transactions, times(4)).allocate(any());
     }
 }

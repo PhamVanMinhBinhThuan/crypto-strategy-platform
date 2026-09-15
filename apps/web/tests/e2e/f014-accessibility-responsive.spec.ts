@@ -148,7 +148,7 @@ for (const viewport of viewports) {
     await expect(page.locator(".market-panel")).toHaveCount(4);
     await expectNoPageOverflow(page);
 
-    await page.goto("/search");
+    await page.goto("/search?mode=new");
     await expect(page.getByRole("heading", { name: "Search & Leaderboard" })).toBeVisible();
     const start = page.getByRole("button", { name: "Start Experiment" });
     await start.scrollIntoViewIfNeeded();
@@ -169,18 +169,26 @@ for (const viewport of viewports) {
   });
 }
 
-test("các thao tác chính dùng được chỉ bằng bàn phím", async ({ page }) => {
+test("các thao tác chính dùng được chỉ bằng bàn phím", async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name === "mobile",
+    "Keyboard focus semantics are covered by the desktop browser project; mobile is touch-emulated."
+  );
   await page.setViewportSize({ width: 1024, height: 768 });
   await installControlledBoundary(page);
 
   await page.goto("/market?pair=BTC%2FUSDT&timeframe=5m&timeframe=15m&timeframe=1h&timeframe=4h");
+  await expect(page.getByText("Market data is ready", { exact: true })).toBeVisible();
   const searchLink = page.getByRole("link", { name: "Search & Leaderboard" });
   await tabUntil(page, searchLink);
   await expect(searchLink).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/search$/);
 
+  await page.goto("/search?mode=new");
+
   const start = page.getByRole("button", { name: "Start Experiment" });
+  await expect(start).toBeEnabled();
   await tabUntil(page, start);
   await expect(start).toBeFocused();
 

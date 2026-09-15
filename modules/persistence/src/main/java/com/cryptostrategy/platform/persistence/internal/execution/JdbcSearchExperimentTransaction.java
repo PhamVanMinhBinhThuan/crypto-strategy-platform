@@ -11,6 +11,7 @@ import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
 import com.cryptostrategy.platform.experiment.api.job.Job;
 import com.cryptostrategy.platform.experiment.api.job.JobType;
 import com.cryptostrategy.platform.experiment.api.outbox.OutboxEvent;
+import com.cryptostrategy.platform.experiment.api.provenance.SentimentProvenanceSnapshot;
 import com.cryptostrategy.platform.persistence.internal.experiment.ExperimentJsonMapper;
 import com.cryptostrategy.platform.persistence.internal.experiment.ExperimentSql;
 import com.cryptostrategy.platform.search.api.model.CoordinationDecision;
@@ -19,6 +20,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -96,6 +98,9 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
             com.cryptostrategy.platform.experiment.api.ExperimentId sourceExperimentId) {
         var rows = jdbc.query("""
                 select e.status,
+                    (select m.sentiment_config::text
+                       from experiment.experiment_manifest m
+                      where m.experiment_id=e.experiment_id) sentiment_config,
                     not exists (
                         select 1 from experiment.candidate_definition c
                         where c.experiment_id=e.experiment_id and not exists (
@@ -110,7 +115,9 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
                 """, (rs, row) -> new SourceSnapshot(sourceExperimentId, rs.getString("status"),
                 rs.getBoolean("evidence_complete"), jdbc.queryForList(
                         "select candidate_id from experiment.candidate_definition where experiment_id=? order by generation_index,candidate_id",
-                        String.class, sourceExperimentId.value())), sourceExperimentId.value(), ownerUserId);
+                        String.class, sourceExperimentId.value()),
+                sentimentProvenance(rs.getString("sentiment_config"))),
+                sourceExperimentId.value(), ownerUserId);
         return rows.stream().findFirst();
     }
 
@@ -443,6 +450,13 @@ public final class JdbcSearchExperimentTransaction implements SearchExperimentTr
         Object value = map.get(key);
         if (value == null || value.toString().isBlank()) throw new IllegalStateException("Missing receipt field: " + key);
         return value.toString();
+    }
+
+    private Optional<SentimentProvenanceSnapshot> sentimentProvenance(String configJson) {
+        if (configJson == null || configJson.isBlank() || "null".equals(configJson)) {
+            return Optional.empty();
+        }
+        return SentimentProvenanceSnapshot.fromConfig(json.readMap(configJson));
     }
 
     private record RunFence(long version, String status) {}

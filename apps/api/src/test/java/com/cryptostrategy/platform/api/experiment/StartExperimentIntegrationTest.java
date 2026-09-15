@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.argThat;
 
@@ -16,6 +17,8 @@ import com.cryptostrategy.platform.execution.api.port.in.StartSearchExperimentUs
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
 import com.cryptostrategy.platform.experiment.api.error.IdempotencyConflictException;
+import com.cryptostrategy.platform.news.api.error.NewsErrorCode;
+import com.cryptostrategy.platform.news.api.error.NewsException;
 import com.cryptostrategy.platform.experiment.api.port.in.GetExperimentUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.GetJobUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.ListCandidatesUseCase;
@@ -94,6 +97,22 @@ class StartExperimentIntegrationTest {
                 .isInstanceOf(IdempotencyConflictException.class);
     }
 
+    @Test
+    void snapshotPreflightFailureStopsBeforeAnyDurableSearchGraphIsStarted() {
+        Fixture fixture = fixture();
+        when(fixture.mapper.map(any(), anyString(), anyString(), anyString(), any()))
+                .thenThrow(new NewsException(
+                        NewsErrorCode.SENTIMENT_SNAPSHOT_UNAVAILABLE,
+                        "No analyzed Sentiment is available for the selected Dataset"));
+
+        assertThatThrownBy(() -> fixture.controller.startExperiment(USER, "sentiment-missing", request()))
+                .isInstanceOf(NewsException.class)
+                .extracting(failure -> ((NewsException) failure).code())
+                .isEqualTo(NewsErrorCode.SENTIMENT_SNAPSHOT_UNAVAILABLE);
+
+        verifyNoInteractions(fixture.start);
+    }
+
     private static Fixture fixture() {
         IdempotencyCommandExecutor idempotency = mock(IdempotencyCommandExecutor.class);
         StartSearchExperimentUseCase start = mock(StartSearchExperimentUseCase.class);
@@ -109,7 +128,7 @@ class StartExperimentIntegrationTest {
         var controller = new ExperimentController(idempotency, mock(GetExperimentUseCase.class),
                 mock(GetJobUseCase.class), mock(ListCandidatesUseCase.class),
                 mock(StopExperimentUseCase.class), new PageRequestMapper(), start, mapper, true);
-        return new Fixture(controller, mapper, idempotency);
+        return new Fixture(controller, mapper, idempotency, start);
     }
 
     private static CommandDtos.StartExperimentRequest request() {
@@ -127,5 +146,5 @@ class StartExperimentIntegrationTest {
     }
 
     private record Fixture(ExperimentController controller, ExperimentRequestMapper mapper,
-            IdempotencyCommandExecutor idempotency) {}
+            IdempotencyCommandExecutor idempotency, StartSearchExperimentUseCase start) {}
 }

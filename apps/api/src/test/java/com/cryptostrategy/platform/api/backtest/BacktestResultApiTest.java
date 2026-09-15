@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.cryptostrategy.platform.api.auth.AuthenticatedUserContext;
 import com.cryptostrategy.platform.backtesting.api.model.BacktestAssumptions;
+import com.cryptostrategy.platform.backtesting.api.model.BacktestDecisionEvidence;
 import com.cryptostrategy.platform.backtesting.api.model.BacktestProvenance;
 import com.cryptostrategy.platform.backtesting.api.model.BacktestResult;
 import com.cryptostrategy.platform.backtesting.api.model.BacktestResultId;
@@ -28,10 +29,14 @@ import com.cryptostrategy.platform.experiment.api.port.in.GetExperimentUseCase;
 import com.cryptostrategy.platform.experiment.api.port.in.ListCandidatesUseCase;
 import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenanceSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
+import com.cryptostrategy.platform.experiment.api.provenance.SentimentProvenanceSnapshot;
+import com.cryptostrategy.platform.domain.api.market.AssetId;
 import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
 import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
 import com.cryptostrategy.platform.strategy.api.model.StrategyReference;
 import com.cryptostrategy.platform.strategy.api.model.StrategyVersionId;
+import com.cryptostrategy.platform.strategy.api.model.StrategyInputSnapshotId;
+import com.cryptostrategy.platform.strategy.api.model.StrategySignal;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterSet;
 import com.cryptostrategy.platform.strategy.api.model.parameter.StrategyParameterValue;
 import java.math.BigDecimal;
@@ -134,6 +139,33 @@ class BacktestResultApiTest {
                 .isInstanceOf(ResourceInaccessibleException.class);
     }
 
+    @Test
+    void mapsFrozenSentimentSnapshotModelAndOrderedDecisionEvidence() {
+        GetBacktestResultUseCase results = mock(GetBacktestResultUseCase.class);
+        GetExperimentUseCase experiments = mock(GetExperimentUseCase.class);
+        ListCandidatesUseCase candidates = mock(ListCandidatesUseCase.class);
+        var result = sentimentResult();
+        when(results.getByResultId(result.resultId())).thenReturn(Optional.of(result));
+        when(experiments.getExperiment(OWNER, EXPERIMENT_ID)).thenReturn(Optional.of(mock(
+                com.cryptostrategy.platform.experiment.api.Experiment.class)));
+        when(experiments.getManifest(OWNER, EXPERIMENT_ID)).thenReturn(Optional.of(sentimentManifest()));
+        when(candidates.getCandidate(OWNER, EXPERIMENT_ID, CANDIDATE_ID))
+                .thenReturn(Optional.of(candidate()));
+
+        var response = new BacktestResultByIdController(results, experiments, candidates).getResult(
+                new AuthenticatedUserContext(OWNER, NOW.plusSeconds(60)), result.resultId().value());
+
+        var sentiment = response.provenance().sentimentProvenance();
+        assertThat(sentiment.snapshotId().value()).isEqualTo("01J00000000000000000000010");
+        assertThat(sentiment.model()).isEqualTo(new ResultDtos.SentimentModelEvidenceResponse(
+                "multichannel-english", "1.0.0", "whitespace-en-v1"));
+        assertThat(sentiment.articleCount()).isEqualTo(4);
+        assertThat(sentiment.evidenceFingerprint()).isEqualTo(fingerprint('9'));
+        assertThat(sentiment.decisions()).hasSize(1);
+        assertThat(sentiment.decisions().getFirst().signal()).isEqualTo("BUY");
+        assertThat(sentiment.decisions().getFirst().score()).isEqualTo("0.42");
+    }
+
     private static BacktestResult result() {
         return new BacktestResult(
                 new BacktestResultId("01J00000000000000000000006"),
@@ -157,6 +189,23 @@ class BacktestResultApiTest {
                         fingerprint('d')),
                 fingerprint('e'),
                 NOW);
+    }
+
+    private static BacktestResult sentimentResult() {
+        BacktestResult base = result();
+        var decision = new BacktestDecisionEvidence(NOW.minusSeconds(30), StrategySignal.BUY,
+                "SENTIMENT_BUY_THRESHOLD", java.util.Map.of(
+                        "sentimentSnapshotId", "01J00000000000000000000010",
+                        "sentimentEvidenceFingerprint", fingerprint('9'),
+                        "sentimentScore", "0.42",
+                        "eligibleArticleCount", "4",
+                        "lookbackHours", "24",
+                        "buyThreshold", "0.25",
+                        "sellThreshold", "-0.25"));
+        return new BacktestResult(base.resultId(), base.experimentId(), base.candidateId(), base.jobId(),
+                base.successfulAttemptId(), base.provenance(), base.assumptions(), base.initialCapital(),
+                base.finalCapital(), base.totalFees(), base.trades(), base.equityCurveSummary(),
+                List.of(decision), base.fingerprint(), base.completedAt());
     }
 
     private static ExperimentManifest manifest() {
@@ -190,6 +239,15 @@ class BacktestResultApiTest {
                 "50c28d9",
                 fingerprint('a'),
                 NOW.minusSeconds(10));
+    }
+
+    private static ExperimentManifest sentimentManifest() {
+        return manifest().withSentimentProvenance(new SentimentProvenanceSnapshot(
+                new StrategyInputSnapshotId("01J00000000000000000000010"),
+                "sentiment-snapshot-v1", fingerprint('8'),
+                new AssetId("01J00000000000000000000011"), NOW,
+                "multichannel-english", "1.0.0", "whitespace-en-v1", "sentiment-v1", 4))
+                .withFingerprint(fingerprint('a'));
     }
 
     private static CandidateDefinition candidate() {

@@ -6,18 +6,23 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.cryptostrategy.platform.domain.api.market.Asset;
+import com.cryptostrategy.platform.domain.api.market.AssetId;
 import com.cryptostrategy.platform.domain.api.market.DatasetVersionId;
 import com.cryptostrategy.platform.domain.api.market.MarketProvider;
 import com.cryptostrategy.platform.domain.api.market.Timeframe;
 import com.cryptostrategy.platform.domain.api.market.TradingPair;
 import com.cryptostrategy.platform.execution.api.port.in.RequestedGeneratorId;
 import com.cryptostrategy.platform.execution.api.port.in.SearchStartCommandFactory;
+import com.cryptostrategy.platform.execution.api.port.out.SentimentSnapshotPreflight;
+import com.cryptostrategy.platform.experiment.api.provenance.SentimentProvenanceSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
 import com.cryptostrategy.platform.marketdata.api.model.DatasetSnapshot;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
 import com.cryptostrategy.platform.strategy.api.StrategyModuleFactory;
 import com.cryptostrategy.platform.strategy.api.model.CombinationPolicyId;
 import com.cryptostrategy.platform.strategy.api.model.StrategyDescriptor;
+import com.cryptostrategy.platform.strategy.api.model.StrategyInputSnapshotId;
 import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
 import com.cryptostrategy.platform.strategy.api.model.StrategySignal;
 import com.cryptostrategy.platform.strategy.api.model.StrategyPluginId;
@@ -57,6 +62,8 @@ class SearchStartCommandFactoryServiceTest {
     private static final UserStrategyVersionId USER_VERSION_ID =
             new UserStrategyVersionId("01J00000000000000000000402");
     private static final Instant NOW = Instant.parse("2026-09-04T03:00:00Z");
+    private static final AssetId BASE_ASSET_ID =
+            new AssetId("01J00000000000000000000406");
 
     @Test
     void resolvesPublishedCompositeByOwnerAndFreezesItIntoManifest() {
@@ -216,6 +223,98 @@ class SearchStartCommandFactoryServiceTest {
                 .containsEntry("slippageRate", "0.0000000000");
     }
 
+    @Test
+    void refusesToAcceptSentimentSearchWithoutFrozenSnapshotPreflight() {
+        GetDatasetUseCase datasets = mock(GetDatasetUseCase.class);
+        DatasetSnapshot dataset = dataset();
+        when(datasets.getDataset(OWNER, DATASET_ID)).thenReturn(dataset);
+        StrategyRegistry registry = mock(StrategyRegistry.class);
+        ResolveStrategySnapshotUseCase userStrategies = mock(ResolveStrategySnapshotUseCase.class);
+        StrategyFingerprintCalculator fingerprints = StrategyModuleFactory.fingerprints();
+        StrategyReference sentiment = reference("sentiment-polarity", '5');
+        StrategyDescriptor descriptor = new StrategyDescriptor(
+                sentiment,
+                "strategy-contract-v1",
+                "Sentiment Polarity",
+                "Uses one frozen News sentiment snapshot",
+                "SENTIMENT",
+                Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD),
+                1,
+                new StrategyParameterSchema(List.of(), List.of()),
+                "strategy-descriptor-v1:sentiment-polarity:1.0.0");
+        when(registry.descriptor(sentiment.pluginId(), sentiment.implementationVersion()))
+                .thenReturn(descriptor);
+        when(registry.resolveParameters(
+                        sentiment.pluginId(), sentiment.implementationVersion(), Map.of()))
+                .thenReturn(StrategyParameterSet.empty());
+        when(registry.requiredLookback(
+                        sentiment.pluginId(), sentiment.implementationVersion(), Map.of()))
+                .thenReturn(1);
+        SearchStartCommandFactory.Request request = new SearchStartCommandFactory.Request(
+                OWNER,
+                "sentiment-preflight",
+                "sentiment-request-hash",
+                "sentiment-correlation",
+                "Sentiment search",
+                DATASET_ID,
+                new RequestedGeneratorId("random-search"),
+                "1.0.0",
+                16L,
+                null,
+                sentiment.pluginId(),
+                sentiment.implementationVersion().toString(),
+                Map.of(),
+                4,
+                60,
+                2);
+
+        assertThatThrownBy(() -> service(datasets, registry, userStrategies, fingerprints)
+                        .create(request))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Sentiment snapshot");
+    }
+
+    @Test
+    void freezesSentimentSnapshotBeforeBuildingTheAcceptedManifest() {
+        GetDatasetUseCase datasets = mock(GetDatasetUseCase.class);
+        DatasetSnapshot dataset = dataset();
+        when(datasets.getDataset(OWNER, DATASET_ID)).thenReturn(dataset);
+        StrategyRegistry registry = mock(StrategyRegistry.class);
+        ResolveStrategySnapshotUseCase userStrategies = mock(ResolveStrategySnapshotUseCase.class);
+        StrategyFingerprintCalculator fingerprints = StrategyModuleFactory.fingerprints();
+        StrategyReference sentiment = reference("sentiment-polarity", '5');
+        StrategyDescriptor descriptor = new StrategyDescriptor(
+                sentiment, "strategy-contract-v1", "Sentiment Polarity",
+                "Uses one frozen News sentiment snapshot", "SENTIMENT",
+                Set.of(StrategySignal.BUY, StrategySignal.SELL, StrategySignal.HOLD), 1,
+                new StrategyParameterSchema(List.of(), List.of()),
+                "strategy-descriptor-v1:sentiment-polarity:1.0.0");
+        when(registry.descriptor(sentiment.pluginId(), sentiment.implementationVersion()))
+                .thenReturn(descriptor);
+        when(registry.resolveParameters(
+                        sentiment.pluginId(), sentiment.implementationVersion(), Map.of()))
+                .thenReturn(StrategyParameterSet.empty());
+        when(registry.requiredLookback(
+                        sentiment.pluginId(), sentiment.implementationVersion(), Map.of()))
+                .thenReturn(1);
+        SentimentSnapshotPreflight snapshots = mock(SentimentSnapshotPreflight.class);
+        SentimentProvenanceSnapshot provenance = sentimentProvenance();
+        var preflight = new SentimentSnapshotPreflight.FreezeRequest(OWNER, BASE_ASSET_ID, NOW);
+        when(snapshots.freeze(preflight)).thenReturn(provenance);
+        SearchStartCommandFactory.Request request = new SearchStartCommandFactory.Request(
+                OWNER, "sentiment-ready", "sentiment-ready-hash", "sentiment-correlation",
+                "Sentiment search", DATASET_ID, new RequestedGeneratorId("random-search"),
+                "1.0.0", 16L, null, sentiment.pluginId(),
+                sentiment.implementationVersion().toString(), Map.of(), 4, 60, 2);
+
+        var command = service(datasets, registry, userStrategies, fingerprints, snapshots)
+                .create(request);
+
+        assertThat(command.manifest().sentimentProvenance()).contains(provenance);
+        assertThat(command.manifest().fingerprint()).startsWith("sha256:");
+        verify(snapshots).freeze(preflight);
+    }
+
     private static SearchStartCommandFactory.Request request() {
         return new SearchStartCommandFactory.Request(
                 OWNER,
@@ -252,6 +351,26 @@ class SearchStartCommandFactoryServiceTest {
                 Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
+    private static SearchStartCommandFactoryService service(
+            GetDatasetUseCase datasets,
+            StrategyRegistry registry,
+            ResolveStrategySnapshotUseCase userStrategies,
+            StrategyFingerprintCalculator fingerprints,
+            SentimentSnapshotPreflight snapshots) {
+        return new SearchStartCommandFactoryService(
+                datasets, registry, userStrategies, fingerprints, snapshots,
+                new ObjectMapper().findAndRegisterModules(), "f016", "commit",
+                Clock.fixed(NOW, ZoneOffset.UTC));
+    }
+
+    private static SentimentProvenanceSnapshot sentimentProvenance() {
+        return new SentimentProvenanceSnapshot(
+                new StrategyInputSnapshotId("01J00000000000000000000407"), "sentiment-snapshot-v1",
+                "sha256:" + "b".repeat(64), BASE_ASSET_ID, NOW,
+                "multichannel-english", "1.0.0", "whitespace-en-v1",
+                "sentiment-v1", 4);
+    }
+
     private static CompositeStrategyDraftSource compositeSource() {
         StrategyParameterSet empty = StrategyParameterSet.empty();
         return new CompositeStrategyDraftSource(
@@ -272,7 +391,10 @@ class SearchStartCommandFactoryServiceTest {
 
     private static DatasetSnapshot dataset() {
         TradingPair pair = mock(TradingPair.class);
+        Asset baseAsset = mock(Asset.class);
+        when(baseAsset.assetId()).thenReturn(BASE_ASSET_ID);
         when(pair.canonicalSymbol()).thenReturn("BTC/USDT");
+        when(pair.baseAsset()).thenReturn(baseAsset);
         return new DatasetSnapshot(
                 DATASET_ID,
                 "candle-v1",

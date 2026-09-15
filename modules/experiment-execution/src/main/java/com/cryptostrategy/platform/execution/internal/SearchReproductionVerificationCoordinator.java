@@ -38,7 +38,7 @@ public final class SearchReproductionVerificationCoordinator {
             String status = comparison.matches() ? "MATCHED" : "MISMATCHED";
             boolean committed = gateway.complete(new SearchReproductionVerificationGateway.Completion(
                     claimed.verificationId(), claimed.version(), status, comparison.tradesMatched(),
-                    comparison.metricsMatched(), comparison.fingerprintsMatched(), fingerprint(source),
+                    comparison.metricsMatched(), comparison.fingerprintsAndProvenanceMatched(), fingerprint(source),
                     fingerprint(reproduced), comparison.differences(), clock.instant(), null, null));
             if (!committed) return Result.STALE;
             return comparison.matches() ? Result.MATCHED : Result.MISMATCHED;
@@ -73,13 +73,17 @@ public final class SearchReproductionVerificationCoordinator {
                 && source.leaderboard().fingerprint().equals(reproduced.leaderboard().fingerprint())
                 && source.orderedCandidateFingerprints().equals(
                         reproduced.orderedCandidateFingerprints());
+        boolean sentimentProvenance = source.sentimentProvenance().equals(reproduced.sentimentProvenance());
         Map<String, Object> differences = new LinkedHashMap<>();
         if (!trades) differences.put("tradeSequence", Map.of("sourceCount", sourceTrades.size(),
                 "reproductionCount", reproducedTrades.size()));
         if (!metrics) differences.put("metrics", "canonical metric tuple differs");
         if (!fingerprints) differences.put("fingerprints",
                 "candidate or result evidence fingerprints differ");
-        return new Comparison(trades, metrics, fingerprints, Map.copyOf(differences));
+        if (!sentimentProvenance) differences.put("sentimentProvenance",
+                "frozen Sentiment snapshot or model release differs");
+        return new Comparison(trades, metrics, fingerprints, sentimentProvenance,
+                Map.copyOf(differences));
     }
 
     private static String trade(Trade value) {
@@ -91,7 +95,8 @@ public final class SearchReproductionVerificationCoordinator {
     private static String fingerprint(ExecutionEvidence value) {
         String canonical = value.backtest().fingerprint() + "|" + value.evaluation().fingerprint()
                 + "|" + value.leaderboard().fingerprint() + "|"
-                + String.join(",", value.orderedCandidateFingerprints());
+                + String.join(",", value.orderedCandidateFingerprints()) + "|"
+                + value.sentimentProvenance().map(Object::toString).orElse("technical-only");
         try {
             return "sha256:" + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
                     .digest(canonical.getBytes(StandardCharsets.UTF_8)));
@@ -99,8 +104,14 @@ public final class SearchReproductionVerificationCoordinator {
     }
 
     record Comparison(boolean tradesMatched, boolean metricsMatched, boolean fingerprintsMatched,
+            boolean sentimentProvenanceMatched,
             Map<String, Object> differences) {
-        boolean matches() { return tradesMatched && metricsMatched && fingerprintsMatched; }
+        boolean fingerprintsAndProvenanceMatched() {
+            return fingerprintsMatched && sentimentProvenanceMatched;
+        }
+        boolean matches() {
+            return tradesMatched && metricsMatched && fingerprintsAndProvenanceMatched();
+        }
     }
 
     public enum Result { MATCHED, MISMATCHED, FAILED, STALE, NOT_READY_OR_ALREADY_TERMINAL }

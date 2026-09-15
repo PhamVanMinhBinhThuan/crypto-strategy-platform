@@ -12,6 +12,7 @@ import com.cryptostrategy.platform.backtesting.api.port.in.PrepareBacktestUseCas
 import com.cryptostrategy.platform.backtesting.api.port.in.RunBacktestUseCase;
 import com.cryptostrategy.platform.backtesting.api.port.out.BacktestResultStore;
 import com.cryptostrategy.platform.backtesting.api.port.out.FrozenStrategyResolver;
+import com.cryptostrategy.platform.backtesting.api.port.out.FrozenSupplementalInputResolver;
 import com.cryptostrategy.platform.backtesting.api.port.out.ResolvedStrategy;
 import com.cryptostrategy.platform.experiment.api.port.in.GetFrozenBacktestExecutionUseCase;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
@@ -26,6 +27,7 @@ public final class RunBacktestService implements RunBacktestUseCase, PrepareBack
     private final VerifyDatasetUseCase datasetVerifier;
     private final DatasetCandleReader candleReader;
     private final FrozenStrategyResolver strategies;
+    private final FrozenSupplementalInputResolver supplementalInputs;
     private final BacktestResultStore results;
     private final BacktestConfigurationParser configurationParser = new BacktestConfigurationParser();
     private final DeterministicBacktestEngine engine = new DeterministicBacktestEngine();
@@ -38,11 +40,26 @@ public final class RunBacktestService implements RunBacktestUseCase, PrepareBack
             FrozenStrategyResolver strategies,
             BacktestResultStore results
     ) {
+        this(frozenExecutions, datasets, datasetVerifier, candleReader, strategies,
+                FrozenSupplementalInputResolver.none(), results);
+    }
+
+    public RunBacktestService(
+            GetFrozenBacktestExecutionUseCase frozenExecutions,
+            GetDatasetUseCase datasets,
+            VerifyDatasetUseCase datasetVerifier,
+            DatasetCandleReader candleReader,
+            FrozenStrategyResolver strategies,
+            FrozenSupplementalInputResolver supplementalInputs,
+            BacktestResultStore results
+    ) {
         this.frozenExecutions = Objects.requireNonNull(frozenExecutions, "frozenExecutions cannot be null");
         this.datasets = Objects.requireNonNull(datasets, "datasets cannot be null");
         this.datasetVerifier = Objects.requireNonNull(datasetVerifier, "datasetVerifier cannot be null");
         this.candleReader = Objects.requireNonNull(candleReader, "candleReader cannot be null");
         this.strategies = Objects.requireNonNull(strategies, "strategies cannot be null");
+        this.supplementalInputs = Objects.requireNonNull(supplementalInputs,
+                "supplementalInputs cannot be null");
         this.results = Objects.requireNonNull(results, "results cannot be null");
     }
 
@@ -90,7 +107,8 @@ public final class RunBacktestService implements RunBacktestUseCase, PrepareBack
                 new BacktestProvenance(manifest.fingerprint(), dataset.checksum(), resolved.verifiedFingerprint()),
                 configurationParser.parse(manifest.backtestConfig()),
                 command.batchSize(),
-                resolved.requiredLookback()
+                resolved.requiredLookback(),
+                supplementalInputs.resolve(manifest)
         );
 
         BacktestResult result = engine.run(backtestResolved, candleReader, resolved.strategy());

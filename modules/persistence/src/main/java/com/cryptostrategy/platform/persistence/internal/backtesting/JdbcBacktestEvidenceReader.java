@@ -25,7 +25,8 @@ public final class JdbcBacktestEvidenceReader implements BacktestResultReader {
                            manifest_fingerprint,dataset_fingerprint,strategy_fingerprint,
                            assumptions_json::text,initial_capital,final_capital,total_fees,
                            equity_point_count,equity_peak,equity_trough,equity_peak_sequence,
-                           equity_trough_sequence,equity_curve_fingerprint,result_fingerprint,completed_at
+                           equity_trough_sequence,equity_curve_fingerprint,strategy_decision_evidence::text,
+                           result_fingerprint,completed_at
                     from experiment.backtest_result where backtest_result_id=?
                     """, (rs, row) -> {
                 List<Trade> trades = readTrades(id);
@@ -36,7 +37,8 @@ public final class JdbcBacktestEvidenceReader implements BacktestResultReader {
                         Money.of(rs.getBigDecimal(11)), trades,
                         new EquityCurveSummary(rs.getLong(12), Money.of(rs.getBigDecimal(13)),
                                 Money.of(rs.getBigDecimal(14)), rs.getLong(15), rs.getLong(16), rs.getString(17)),
-                        rs.getString(18), rs.getTimestamp(19).toInstant());
+                        json.readDecisionEvidence(rs.getString(18)), rs.getString(19),
+                        rs.getTimestamp(20).toInstant());
             }, id.value()));
         } catch (EmptyResultDataAccessException absent) { return Optional.empty(); }
     }

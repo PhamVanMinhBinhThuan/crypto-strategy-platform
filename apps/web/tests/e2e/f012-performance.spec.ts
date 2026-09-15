@@ -11,7 +11,14 @@ const journeys = [
 ] as const;
 
 async function warmUp(page: Page, path: string, primaryContent: string) {
-  await page.goto(path);
+  try {
+    await page.goto(path);
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.includes("interrupted by another navigation"))
+      throw error;
+    // A newly compiled route can make the Next.js development client reload the previous page.
+    await page.goto(path);
+  }
   await expect(page.locator(primaryContent).first()).toBeVisible({ timeout: 30_000 });
 }
 
@@ -36,6 +43,8 @@ test("SC-001: ít nhất 95% lần mở từng route usable dưới 2 giây", as
       await page.getByRole("link", { name: alternate[1], exact: true }).click();
       await expect(page).toHaveURL(new RegExp(`${alternate[0]}(?:\\?|$)`));
       samples.push(await readiness(page, linkName, primaryContent));
+      // Keep the synthetic loop below the browser's pushState abuse threshold.
+      await page.waitForTimeout(150);
     }
     expect(
       samples.filter((duration) => duration < 2_000).length,

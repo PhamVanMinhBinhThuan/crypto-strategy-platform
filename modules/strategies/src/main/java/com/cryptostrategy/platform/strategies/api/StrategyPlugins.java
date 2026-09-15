@@ -3,6 +3,7 @@ package com.cryptostrategy.platform.strategies.api;
 import com.cryptostrategy.platform.strategies.internal.bollinger.BollingerBandsPlugin;
 import com.cryptostrategy.platform.strategies.internal.ma.MovingAverageCrossoverPlugin;
 import com.cryptostrategy.platform.strategies.internal.rsi.RsiPlugin;
+import com.cryptostrategy.platform.strategies.internal.sentiment.SentimentPolarityPlugin;
 import com.cryptostrategy.platform.strategies.internal.support.SupportResistancePlugin;
 import com.cryptostrategy.platform.strategy.api.StrategyPlugin;
 import com.cryptostrategy.platform.strategy.api.model.SemanticVersion;
@@ -16,7 +17,8 @@ public final class StrategyPlugins {
             new MovingAverageCrossoverPlugin(),
             new RsiPlugin(),
             new BollingerBandsPlugin(),
-            new SupportResistancePlugin()));
+            new SupportResistancePlugin(),
+            new SentimentPolarityPlugin()));
 
     private StrategyPlugins() {}
 

@@ -26,6 +26,7 @@ Các ADR được tổng hợp thành C4/Dynamic View và ma trận kiểm chứ
 | `0015-standalone-backtest-aggregate.md` | Aggregate single-run và identity chính thức cho Backtest đơn lẻ |
 | `0016-search-coordinator-durable-orchestration.md` | Search Coordinator, durable decision và consumer-group boundary |
 | `0017-composite-search-space-and-refill.md` | Versioned Composite Search Space và durable bounded-window refill |
+| `0018-sentiment-strategy-snapshot-input.md` | Frozen Sentiment snapshot làm supplemental input cho Strategy |
 
 ## Quy ước
 

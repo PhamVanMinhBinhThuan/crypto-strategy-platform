@@ -33,11 +33,22 @@ public final class ExperimentExecutionModuleFactory {
     }
     public static StartSearchExperimentUseCase start(SearchExperimentTransactionGateway gateway) { return new SearchExperimentOrchestrationService(gateway); }
     public static StartSearchReproductionUseCase reproduce(SearchReproductionGateway gateway) { return new SearchReproductionApplicationService(gateway); }
+    public static StartSearchReproductionUseCase reproduce(SearchReproductionGateway gateway,
+            SentimentSnapshotPreflight sentimentSnapshots) {
+        return new SearchReproductionApplicationService(gateway, sentimentSnapshots);
+    }
     public static SearchStartCommandFactory startCommands(GetDatasetUseCase datasets, StrategyRegistry strategies,
             ResolveStrategySnapshotUseCase userStrategies, StrategyFingerprintCalculator fingerprints,
             ObjectMapper json, String version, String commit, Clock clock) {
         return new SearchStartCommandFactoryService(datasets, strategies, userStrategies, fingerprints,
                 json, version, commit, clock);
+    }
+    public static SearchStartCommandFactory startCommands(GetDatasetUseCase datasets, StrategyRegistry strategies,
+            ResolveStrategySnapshotUseCase userStrategies, StrategyFingerprintCalculator fingerprints,
+            SentimentSnapshotPreflight sentimentSnapshots, ObjectMapper json,
+            String version, String commit, Clock clock) {
+        return new SearchStartCommandFactoryService(datasets, strategies, userStrategies, fingerprints,
+                sentimentSnapshots, json, version, commit, clock);
     }
     public static TrustedSearchCoordinationUseCase trustedCoordination(TrustedSearchCoordinationGateway gateway, Clock clock) { return new TrustedSearchCoordinationService(gateway, clock); }
     public static SearchCandidateAllocationUseCase allocation(SearchRunStore runs, SearchGenerationUseCase generation,

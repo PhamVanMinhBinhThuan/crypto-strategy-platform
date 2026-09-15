@@ -1,11 +1,13 @@
 package com.cryptostrategy.platform.experiment.api;
 
 import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenanceSnapshot;
+import com.cryptostrategy.platform.experiment.api.provenance.SentimentProvenanceSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
 
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public record ExperimentManifest(
         ExperimentId experimentId,
@@ -48,6 +50,33 @@ public record ExperimentManifest(
                 softwareVersion,
                 gitCommit,
                 calculatedFingerprint,
+                createdAt
+        );
+    }
+
+    /** Typed F016 view over the backward-compatible sentimentConfig storage field. */
+    public Optional<SentimentProvenanceSnapshot> sentimentProvenance() {
+        return SentimentProvenanceSnapshot.fromConfig(sentimentConfig);
+    }
+
+    /**
+     * Returns a draft copy containing canonical Sentiment provenance. The old fingerprint is
+     * intentionally cleared because the Manifest content has changed and must be frozen again.
+     */
+    public ExperimentManifest withSentimentProvenance(SentimentProvenanceSnapshot provenance) {
+        Objects.requireNonNull(provenance, "provenance cannot be null");
+        return new ExperimentManifest(
+                experimentId,
+                manifestVersion,
+                datasetProvenance,
+                strategyProvenance,
+                backtestConfig,
+                searchConfig,
+                evaluationConfig,
+                provenance.toConfig(),
+                softwareVersion,
+                gitCommit,
+                null,
                 createdAt
         );
     }

@@ -240,7 +240,9 @@ python -m pip install --upgrade pip
 python -m pip install -e "apps/sentiment[test,ml]"
 ```
 
-Python 3.13 không được hỗ trợ bởi `apps/sentiment/pyproject.toml`. Trên một số máy macOS ARM, `tensorflow-cpu==2.19.0` không có wheel phù hợp; nên dùng Docker hoặc xem [F014 Demo Runbook](demo/f014/runbook.md).
+Python 3.13 không được hỗ trợ bởi `apps/sentiment/pyproject.toml`. Extra `ml` tự chọn
+`tensorflow==2.19.0` trên ARM và `tensorflow-cpu==2.19.0` trên kiến trúc còn lại, nên cùng lệnh cài
+đặt dùng được cho macOS ARM lẫn Docker Linux ARM.
 
 <a id="data-infrastructure"></a>
 

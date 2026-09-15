@@ -108,7 +108,7 @@ Kết quả phải là `PONG`. Có thể dùng Redis container đang chạy sẵ
 
 ## 5. Khởi động Sentiment và xử lý lỗi checksum CRLF
 
-Build lần đầu tải `tensorflow-cpu` khoảng 252 MB và có thể mất nhiều thời gian. Chạy Compose sau khi đã nạp `.env.local`:
+Build lần đầu tải TensorFlow phù hợp với kiến trúc máy và có thể mất nhiều thời gian. Chạy Compose sau khi đã nạp `.env.local`:
 
 ```powershell
 docker compose -f infra/compose/docker-compose.yml up -d --build sentiment
@@ -296,4 +296,3 @@ git worktree prune
 ```
 
 Không xóa worktree khi API/Worker còn chạy từ JAR bên trong đó.
-

@@ -109,6 +109,9 @@ export function ResultEvidence({ result }: { result: BacktestResultViewModel }) 
           </dl>
         </article>
       </div>
+      {provenance.sentimentProvenance && (
+        <SentimentResultEvidence sentiment={provenance.sentimentProvenance} />
+      )}
     </section>
   );
 }
@@ -139,6 +142,9 @@ export function ResultTechnicalDetails({ result }: { result: BacktestResultViewM
     ["Strategy implementations", strategyImplementations(result)],
     ["Software version", provenance.softwareVersion],
     ["Git commit", provenance.gitCommit],
+    ["Sentiment snapshot ID", provenance.sentimentProvenance?.snapshotId],
+    ["Sentiment snapshot fingerprint", provenance.sentimentProvenance?.snapshotFingerprint],
+    ["Sentiment evidence fingerprint", provenance.sentimentProvenance?.evidenceFingerprint],
     ["Assumptions version", result.assumptions.assumptionsVersion],
     ["Raw fee rate", result.assumptions.feeRate],
     ["Raw slippage rate", result.assumptions.slippageRate],
@@ -168,6 +174,73 @@ export function ResultTechnicalDetails({ result }: { result: BacktestResultViewM
         jsonValues={definition ? ([["Immutable candidate definition", definition]] as const) : []}
       />
     </section>
+  );
+}
+
+function SentimentResultEvidence({
+  sentiment
+}: {
+  sentiment: NonNullable<BacktestResultViewModel["provenance"]["sentimentProvenance"]>;
+}) {
+  const latest = sentiment.decisions.at(-1);
+  return (
+    <article
+      className="panel sentiment-result-evidence"
+      aria-labelledby="sentiment-evidence-heading"
+    >
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Frozen research signal</p>
+          <h3 id="sentiment-evidence-heading">Sentiment evidence</h3>
+        </div>
+        {latest && (
+          <span className={`badge signal-${latest.signal.toLowerCase()}`}>{latest.signal}</span>
+        )}
+      </div>
+      <p className="muted">
+        Sentiment is a research signal, not financial advice or a profit guarantee.
+      </p>
+      <dl className="sentiment-evidence-grid">
+        <div>
+          <dt>Latest score</dt>
+          <dd className="mono">{latest?.score ?? "Unavailable"}</dd>
+        </div>
+        <div>
+          <dt>Eligible articles</dt>
+          <dd className="mono">{latest?.eligibleArticleCount ?? sentiment.articleCount}</dd>
+        </div>
+        <div>
+          <dt>Thresholds</dt>
+          <dd className="mono">
+            SELL ≤ {latest?.sellThreshold ?? "—"} · BUY ≥ {latest?.buyThreshold ?? "—"}
+          </dd>
+        </div>
+        <div>
+          <dt>Lookback</dt>
+          <dd className="mono">
+            {latest?.lookbackHours ? `${latest.lookbackHours} hours` : "Unavailable"}
+          </dd>
+        </div>
+        <div>
+          <dt>Model release</dt>
+          <dd>
+            {sentiment.model.name}@{sentiment.model.version}
+          </dd>
+        </div>
+        <div>
+          <dt>Preprocessing</dt>
+          <dd>{sentiment.model.preprocessingVersion}</dd>
+        </div>
+        <div>
+          <dt>Snapshot</dt>
+          <dd className="mono">{sentiment.snapshotId}</dd>
+        </div>
+        <div>
+          <dt>Decision evidence</dt>
+          <dd className="mono">{sentiment.evidenceFingerprint ?? "Unavailable"}</dd>
+        </div>
+      </dl>
+    </article>
   );
 }
 

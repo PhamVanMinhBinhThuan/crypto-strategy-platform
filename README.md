@@ -477,7 +477,7 @@ Giá trị dưới đây chỉ là placeholder an toàn. Danh sách canonical n�
 | `PLATFORM_MARKET_DATA_PROVIDER`     | Không                        | API               | `fixture` mặc định hoặc Binance live                 | `binance`                                                       |
 | `PLATFORM_SECURITY_ALLOWED_ORIGINS` | Có khi chạy Web              | API               | CORS/WebSocket origin                                | `http://localhost:3000`                                         |
 | `NEWS_ENABLED`                      | Không                        | Worker            | Bật News collection/analysis                         | `true`                                                          |
-| `SENTIMENT_SERVICE_URL`             | Khi bật News                 | Worker            | Internal inference endpoint                          | `http://127.0.0.1:8000`                                         |
+| `SENTIMENT_SERVICE_URL`             | Khi bật News                 | API, Worker       | Internal inference endpoint và readiness probe      | `http://127.0.0.1:8000`                                         |
 | `SENTIMENT_SERVICE_TOKEN`           | Khi bật Sentiment            | Worker, Sentiment | Token bảo vệ internal API                            | `<random-local-token>`                                          |
 | `SENTIMENT_BUNDLE_PATH`             | Có cho Sentiment ML          | Sentiment/Compose | Model bundle mount path                              | `/absolute/path/to/active_release`                              |
 | `SENTIMENT_MODEL_NAME`              | Không                        | Worker            | Model identity ghi vào Result                        | `multichannel-english`                                          |
@@ -635,3 +635,5 @@ Xem danh sách đầy đủ và trạng thái từng quyết định tại [ADR 
 7. Chạy test phù hợp trước Pull Request và ghi rõ profile nào là LIVE hay CONTROLLED.
 8. Không commit `.env.local`, token, cookie, database URL có credential hoặc artifact chứa secret.
 
+> [!WARNING]
+> Dự án phục vụ học tập và nghiên cứu. Kết quả backtest không bảo đảm hiệu quả giao dịch trong tương lai và không phải lời khuyên tài chính. Hệ thống không thực hiện giao dịch bằng tiền thật.

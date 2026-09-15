@@ -81,7 +81,10 @@ cd ../..
 Gradle Wrapper sẽ tự tải dependency Java trong lần chạy đầu tiên.
 
 Database dùng chung phải được người quản lý database áp dụng toàn bộ migration trong
-`supabase/migrations/`. Không tự sửa schema trực tiếp trên Supabase Dashboard.
+`supabase/migrations/`. Riêng F016 cần
+`20260909000100_f016_sentiment_snapshot.sql` và
+`20260911000100_f016_result_decision_evidence.sql`; chưa áp hai file này thì Sentiment Strategy
+không thể lưu snapshot hoặc chạy Result live. Không tự sửa schema trực tiếp trên Supabase Dashboard.
 
 Nếu database chưa có cặp BTC/USDT dùng cho demo, người có quyền database chạy:
 
@@ -149,8 +152,8 @@ export SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE=1
 ./gradlew :apps:api:bootRun --no-daemon
 ```
 
-Khi API khởi động, catalog MA, RSI, Bollinger Bands và Support/Resistance sẽ được đồng bộ vào
-database.
+Khi API khởi động, catalog MA, RSI, Bollinger Bands, Support/Resistance và Sentiment Polarity sẽ
+được đồng bộ vào database.
 
 ### Terminal 4 — Worker
 
@@ -194,7 +197,7 @@ curl -fsSI http://127.0.0.1:3000/login
 Sau khi đăng nhập, kiểm tra nhanh:
 
 1. `Market Dashboard` hiển thị bốn biểu đồ BTC/USDT.
-2. `Strategy Composer` hiển thị đủ bốn Strategy hệ thống.
+2. `Strategy Composer` hiển thị đủ năm Strategy hệ thống.
 3. Tạo Strategy riêng, chọn Strategy vừa tạo, mở form version mới, thay đổi ít nhất một tham số rồi
    lưu.
 4. `Search & Leaderboard` tạo dataset và chạy một Search nhỏ.

@@ -138,6 +138,21 @@ const publishedComposite = () => ({
   }
 });
 
+const frozenDataset = {
+  datasetId: "dataset-btc-1h",
+  version: "candle-v1",
+  provider: "BINANCE",
+  pair: "BTC/USDT",
+  timeframe: "1h",
+  normalizationVersion: "binance-v1",
+  startTime: "2026-08-05T00:00:00Z",
+  endTime: "2026-09-04T00:00:00Z",
+  membershipCount: 720,
+  checksum: `sha256:${"d".repeat(64)}`,
+  status: "READY",
+  createdAt: "2026-09-04T00:00:01Z"
+};
+
 async function json(route: Route, body: unknown, status = 200) {
   await route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
 }
@@ -169,6 +184,25 @@ async function installResearchBoundary(page: Page) {
       return json(route, singleStrategy);
     if (method === "GET" && url.pathname === `/api/v1/user-strategies/${ids.composite}`)
       return json(route, compositeIsPublished ? publishedComposite() : compositeStrategy);
+    if (method === "GET" && url.pathname === `/api/v1/user-strategies/${ids.composite}/versions`)
+      return json(route, {
+        items: compositeIsPublished
+          ? [publishedComposite().latestVersion]
+          : [compositeStrategy.latestVersion]
+      });
+    if (method === "GET" && url.pathname === `/api/v1/user-strategies/${ids.single}/versions`)
+      return json(route, { items: [singleStrategy.latestVersion] });
+    if (method === "GET" && url.pathname === "/api/v1/datasets")
+      return json(route, {
+        items: [frozenDataset],
+        nextCursor: null,
+        hasMore: false,
+        totalCount: 1
+      });
+    if (method === "GET" && url.pathname === "/api/v1/search/generators")
+      return json(route, {
+        items: [{ generatorId: "random-search", version: "1.0.0", displayName: "Random Search" }]
+      });
     if (method === "POST" && url.pathname === "/api/v1/user-strategies") {
       const draft = request.postDataJSON() as Record<string, unknown>;
       const source = draft.source as Record<string, unknown> | undefined;
@@ -200,7 +234,9 @@ async function installResearchBoundary(page: Page) {
     }
     if (method === "POST" && url.pathname === "/api/v1/experiments") {
       const command = request.postDataJSON() as Record<string, unknown>;
-      if (command.userStrategyVersionId !== ids.compositeVersion)
+      const searchSpace = command.searchSpace as
+        { strategyPool?: Array<{ userStrategyVersionId?: string }> } | undefined;
+      if (searchSpace?.strategyPool?.[0]?.userStrategyVersionId !== ids.compositeVersion)
         return json(route, { code: "STRATEGY_PARAMETERS_INVALID" }, 422);
       return json(
         route,
@@ -233,39 +269,40 @@ test("tạo Strategy cá nhân, publish composite rồi dùng trong Search và m
   await page.goto("/strategies");
 
   await page.getByRole("button", { name: /Moving Average Crossover/ }).click();
+  await page.getByRole("tab", { name: "Parameters" }).click();
   await page.getByLabel("Strategy name").fill("MA cá nhân");
   await page.getByRole("button", { name: "Save strategy" }).click();
-  await expect(page.getByRole("heading", { name: "MA cá nhân" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "MA cá nhân" }).first()).toBeVisible();
 
   await page.getByRole("button", { name: /Moving Average Crossover/ }).click();
+  await page.getByRole("tab", { name: "Parameters" }).click();
   await page.getByLabel("Strategy name").fill("Composite demo");
   await page.getByLabel("Composite").check();
-  await page.getByLabel(/Moving Average Crossover · v1.0.0/).check();
-  await page.getByLabel(/RSI Threshold · v1.0.0/).check();
+  await page.getByLabel(/Moving Average Crossover.*v1\.0\.0/).check();
+  await page.getByLabel(/RSI Threshold.*v1\.0\.0/).check();
   await page.getByRole("button", { name: "Save strategy" }).click();
   await page.getByRole("button", { name: /Composite demo/ }).click();
-  await expect(page.getByRole("heading", { name: "Composite demo" })).toBeVisible();
-  await expect(page.getByText(/Quy tắc xung đột: majority-vote/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Composite demo" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Majority Vote" })).toBeVisible();
 
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Publish version" }).click();
   await expect(page.getByText(/1 · PUBLISHED/)).toBeVisible();
 
-  await page.goto("/search");
+  await page.goto("/search?mode=new");
   await page.getByLabel("Name").fill("F014 composite search");
-  await page.getByLabel("Dataset ID", { exact: true }).fill("dataset-btc-1h");
-  await page.getByLabel("Strategy", { exact: true }).selectOption({ label: "Composite demo" });
-  await page.getByLabel("Maximum candidates").fill("1");
-  await page.getByRole("button", { name: "Start Experiment" }).click();
+  await page.getByLabel("Frozen Dataset").selectOption(frozenDataset.datasetId);
+  await page.getByLabel("Remove Moving Average Crossover").uncheck();
+  await page.getByLabel("Include Composite demo · version 1").check();
+  await page.getByLabel("Candidate limit").fill("1");
+  await page.getByRole("button", { name: "Start experiment" }).click();
 
-  const experiment = page.getByRole("link", { name: /Open Experiment/ });
-  await expect(experiment).toBeVisible();
-  await experiment.click();
+  await expect(page).toHaveURL(/\/search\/experiment-013$/);
   const result = page.getByRole("link", { name: "View Backtest" }).first();
   await expect(result).toBeVisible();
   await result.click();
   await expect(page).toHaveURL(/\/backtests\?resultId=/);
-  await expect(page.getByText("Total return")).toBeVisible();
+  await expect(page.getByText("Total return", { exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Trade history" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Scrollable trade history" })).toBeVisible();
 });

@@ -1,8 +1,8 @@
 # Dynamic Views and Data Flows
 
-**Status**: Implemented baseline — synchronized for F014 demo hardening
+**Status**: Implemented baseline — synchronized through F016 Sentiment Strategy
 
-**Last Updated**: 2026-09-04
+**Last Updated**: 2026-09-11
 
 **Owner**: Văn Minh
 
@@ -221,7 +221,7 @@ Quy tắc:
 - `newsId + contentHash + modelVersion` xác định một logical result; model/content mới tạo version mới.
 - Circuit breaker và concurrency limit bảo vệ Worker/model; Sentiment lỗi chỉ làm News/Sentiment degraded.
 - Technical Strategy, Backtest và realtime chart không chờ Sentiment.
-- Sentiment Strategy tương lai chỉ nhận frozen `sentimentData` trong StrategyContext; không gọi Python trực tiếp và không dùng News xuất bản sau `evaluationTime`.
+- Sentiment Strategy nhận frozen supplemental input trong `StrategyContext`; không gọi Python trực tiếp và không dùng News xuất bản sau `evaluationTime`. Chi tiết: [F016 Sentiment Strategy Flow](sentiment-strategy.md).
 
 ## 6. F014 End-to-End Demo Boundary
 

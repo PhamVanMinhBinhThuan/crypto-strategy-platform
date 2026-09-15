@@ -19,14 +19,15 @@ import org.junit.jupiter.api.Test;
 
 class StrategyPluginsTest {
     private static final Set<String> EXPECTED_PLUGIN_IDS = Set.of(
-            "ma-crossover", "rsi-threshold", "bollinger-bands", "support-resistance");
+            "ma-crossover", "rsi-threshold", "bollinger-bands", "support-resistance",
+            "sentiment-polarity");
 
     @Test
-    void trustedCatalogPublishesAllFourRequiredStrategies() {
+    void trustedCatalogPublishesAllFiveRequiredStrategies() {
         List<StrategyPlugin> plugins = StrategyPlugins.trusted();
         DefaultStrategyRegistry registry = new DefaultStrategyRegistry(plugins);
 
-        assertEquals(4, plugins.size());
+        assertEquals(5, plugins.size());
         assertEquals(
                 EXPECTED_PLUGIN_IDS,
                 registry.listAvailable().stream()
