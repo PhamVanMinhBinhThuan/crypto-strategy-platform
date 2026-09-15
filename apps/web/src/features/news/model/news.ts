@@ -1,9 +1,15 @@
 import type { z } from "zod";
-import type { newsItemSchema, newsPageSchema, sentimentSchema } from "../api/schemas";
+import type {
+  newsItemSchema,
+  newsPageSchema,
+  sentimentSchema,
+  sentimentServiceStatusSchema
+} from "../api/schemas";
 
 export type Sentiment = z.infer<typeof sentimentSchema>;
 export type NewsItem = z.infer<typeof newsItemSchema>;
 export type NewsPage = z.infer<typeof newsPageSchema>;
+export type SentimentServiceStatus = z.infer<typeof sentimentServiceStatusSchema>;
 
 export type NewsAnalysisStatus = NewsItem["analysisStatus"];
 

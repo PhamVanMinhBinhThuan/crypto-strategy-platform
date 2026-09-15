@@ -9,5 +9,5 @@ export default async function Page({
 }) {
   const { id } = await params;
   const { candidateId, view } = await searchParams;
-  return <SearchView id={id} candidateId={candidateId} view={view} />;
+  return <SearchView key={id} id={id} candidateId={candidateId} view={view} />;
 }

@@ -6,7 +6,10 @@ import {
   ResultTechnicalDetails
 } from "@/src/features/backtests/components/ResultEvidence";
 import { mapBacktestResult } from "@/src/features/backtests/mappers/backtest-result-mapper";
-import { normalBacktestResult } from "@/src/features/backtests/fixtures/backtest-result-fixtures";
+import {
+  normalBacktestResult,
+  sentimentBacktestResult
+} from "@/src/features/backtests/fixtures/backtest-result-fixtures";
 describe("result summary", () => {
   it("renders exactly four production metrics plus capital and evidence", () => {
     const result = mapBacktestResult(normalBacktestResult);
@@ -34,5 +37,17 @@ describe("result summary", () => {
     ])
       expect(screen.getByText(label)).toBeInTheDocument();
     expect(container).not.toHaveTextContent(/Sharpe|Sortino|Profit Factor/);
+  });
+  it("presents score, thresholds, model and immutable sentiment evidence", () => {
+    render(<ResultEvidence result={mapBacktestResult(sentimentBacktestResult)} />);
+    for (const value of [
+      "Sentiment evidence",
+      "0.42",
+      "SELL ≤ -0.25 · BUY ≥ 0.25",
+      "multichannel-english@1.0.0",
+      "whitespace-en-v1",
+      "Sentiment is a research signal, not financial advice or a profit guarantee."
+    ])
+      expect(screen.getByText(value)).toBeInTheDocument();
   });
 });

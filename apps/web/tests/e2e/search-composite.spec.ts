@@ -122,15 +122,15 @@ for (const width of [360, 768, 1024, 1440]) {
   test(`F-015 configuration remains usable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width === 360 ? 800 : 900 });
     await installBoundary(page);
-    await page.goto("/search");
+    await page.goto("/search?mode=new");
 
     await expect(page.getByRole("heading", { name: "Configure Experiment" })).toBeVisible();
     await expect(page.getByLabel("Pair")).toBeVisible();
     await expect(page.getByLabel("Start UTC")).toBeVisible();
     await expect(page.getByLabel("End UTC")).toBeVisible();
-    await expect(page.getByRole("group", { name: "Strategy pool" })).toBeVisible();
-    await expect(page.getByLabel("Maximum candidates")).toBeVisible();
-    await page.getByRole("button", { name: "Start Experiment" }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole("region", { name: "Strategy search space" })).toBeVisible();
+    await expect(page.getByLabel("Candidate limit")).toBeVisible();
+    await page.getByRole("button", { name: "Start experiment" }).scrollIntoViewIfNeeded();
     await expectNoPageOverflow(page);
   });
 }
@@ -143,7 +143,7 @@ test("keyboard flow creates a frozen range and starts a two-strategy composite s
   await installBoundary(page, (payload) => {
     startPayload = payload as Record<string, unknown>;
   });
-  await page.goto("/search");
+  await page.goto("/search?mode=new");
 
   await page.getByLabel("Name").fill("F-015 browser flow");
   await page.getByLabel("Pair").fill("BTC/USDT");
@@ -154,18 +154,19 @@ test("keyboard flow creates a frozen range and starts a two-strategy composite s
   await createDataset.focus();
   await expect(createDataset).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.getByText(/Frozen dataset ready with 744 candles/)).toBeVisible();
+  await expect(page.getByRole("region", { name: "Selected frozen dataset" })).toContainText("744");
 
   const includeRsi = page.getByLabel("Include RSI");
   await includeRsi.focus();
   await page.keyboard.press("Space");
-  await expect(includeRsi).toBeChecked();
+  await expect(page.getByLabel("Remove RSI")).toBeChecked();
   await page.getByLabel("Maximum components").fill("2");
-  await page.getByLabel("Maximum candidates").fill("100");
-  await page.getByLabel("Worker concurrency").fill("4");
-  await page.getByLabel("Top-K").selectOption("10");
+  await page.getByLabel("Candidate limit").fill("100");
+  await page.getByText("Advanced settings").click();
+  await page.getByLabel("Parallel backtests").fill("4");
+  await page.getByLabel("Leaderboard size").fill("10");
 
-  const start = page.getByRole("button", { name: "Start Experiment" });
+  const start = page.getByRole("button", { name: "Start experiment" });
   await start.focus();
   await expect(start).toBeFocused();
   await page.keyboard.press("Enter");

@@ -14,7 +14,10 @@ import com.cryptostrategy.platform.execution.api.ExecutionEvidence;
 import com.cryptostrategy.platform.execution.api.port.out.ExecutionEvidenceReader;
 import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionVerificationGateway;
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
+import com.cryptostrategy.platform.experiment.api.provenance.SentimentProvenanceSnapshot;
+import com.cryptostrategy.platform.domain.api.market.AssetId;
 import com.cryptostrategy.platform.leaderboard.api.model.LeaderboardRevision;
+import com.cryptostrategy.platform.strategy.api.model.StrategyInputSnapshotId;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -65,6 +68,20 @@ class SearchReproductionVerificationTest {
                 .isEqualTo(SearchReproductionVerificationCoordinator.Result.NOT_READY_OR_ALREADY_TERMINAL);
     }
 
+    @Test
+    void frozenSentimentSnapshotAndModelMustMatchExactly() {
+        var source = evidence("same", "0.10", sentiment("model-v1", 'a'));
+        var exact = evidence("same", "0.10", sentiment("model-v1", 'a'));
+        var changedModel = evidence("same", "0.10", sentiment("model-v2", 'a'));
+        var changedSnapshot = evidence("same", "0.10", sentiment("model-v1", 'b'));
+
+        assertThat(SearchReproductionVerificationCoordinator.compare(source, exact).matches()).isTrue();
+        assertThat(SearchReproductionVerificationCoordinator.compare(source, changedModel).differences())
+                .containsOnlyKeys("sentimentProvenance");
+        assertThat(SearchReproductionVerificationCoordinator.compare(source, changedSnapshot).differences())
+                .containsOnlyKeys("sentimentProvenance");
+    }
+
     private static Fixture fixture(ExecutionEvidence source, ExecutionEvidence target) {
         var gateway = mock(SearchReproductionVerificationGateway.class);
         var reader = mock(ExecutionEvidenceReader.class);
@@ -82,6 +99,11 @@ class SearchReproductionVerificationTest {
     }
 
     private static ExecutionEvidence evidence(String fingerprint, String totalReturn) {
+        return evidence(fingerprint, totalReturn, null);
+    }
+
+    private static ExecutionEvidence evidence(String fingerprint, String totalReturn,
+            SentimentProvenanceSnapshot sentiment) {
         BacktestResult backtest = mock(BacktestResult.class);
         EvaluationResult evaluation = mock(EvaluationResult.class);
         LeaderboardRevision leaderboard = mock(LeaderboardRevision.class);
@@ -96,7 +118,16 @@ class SearchReproductionVerificationTest {
         when(evaluation.numberOfTrades()).thenReturn(1);
         when(evaluation.fingerprint()).thenReturn(fingerprint);
         when(leaderboard.fingerprint()).thenReturn(fingerprint);
-        return new ExecutionEvidence(backtest, evaluation, leaderboard);
+        return new ExecutionEvidence(backtest, evaluation, leaderboard, List.of(),
+                Optional.ofNullable(sentiment));
+    }
+
+    private static SentimentProvenanceSnapshot sentiment(String modelVersion, char snapshotHash) {
+        return new SentimentProvenanceSnapshot(
+                new StrategyInputSnapshotId("01J00000000000000000000407"),
+                "sentiment-snapshot-v1", "sha256:" + String.valueOf(snapshotHash).repeat(64),
+                new AssetId("01J00000000000000000000406"), NOW.minusSeconds(60),
+                "multichannel-english", modelVersion, "whitespace-en-v1", "sentiment-v1", 4);
     }
 
     private record Fixture(SearchReproductionVerificationGateway gateway,

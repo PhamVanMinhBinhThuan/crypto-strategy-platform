@@ -31,6 +31,18 @@ test("News vẫn hiển thị khi một sentiment lỗi và filter đi qua publi
   const queries: string[][] = [];
   await page.route("**/api/v1/news-items**", async (route) => {
     const url = new URL(route.request().url());
+    if (url.pathname === "/api/v1/news-items/sentiment-status") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "AVAILABLE",
+          message: "Sentiment service is available.",
+          checkedAt: "2026-09-04T02:00:00Z"
+        })
+      });
+      return;
+    }
     const statuses = url.searchParams.getAll("analysisStatus");
     queries.push(statuses);
     const items = statuses.length
@@ -62,6 +74,19 @@ test("News provider lỗi có retry rõ ràng và phục hồi về dữ liệu 
   await authorize(page);
   let attempts = 0;
   await page.route("**/api/v1/news-items**", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.pathname === "/api/v1/news-items/sentiment-status") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "AVAILABLE",
+          message: "Sentiment service is available.",
+          checkedAt: "2026-09-04T02:00:00Z"
+        })
+      });
+      return;
+    }
     attempts += 1;
     if (attempts === 1) {
       await route.fulfill({

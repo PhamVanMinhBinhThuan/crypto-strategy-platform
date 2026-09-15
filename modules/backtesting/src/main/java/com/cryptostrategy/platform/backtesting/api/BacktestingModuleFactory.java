@@ -4,6 +4,7 @@ import com.cryptostrategy.platform.backtesting.api.port.out.BacktestResultStore;
 import com.cryptostrategy.platform.backtesting.api.port.out.BacktestResultReader;
 import com.cryptostrategy.platform.backtesting.api.port.in.GetBacktestResultUseCase;
 import com.cryptostrategy.platform.backtesting.api.port.out.FrozenStrategyResolver;
+import com.cryptostrategy.platform.backtesting.api.port.out.FrozenSupplementalInputResolver;
 import com.cryptostrategy.platform.backtesting.internal.RunBacktestService;
 import com.cryptostrategy.platform.backtesting.internal.BacktestResultQueryService;
 import com.cryptostrategy.platform.experiment.api.port.in.GetFrozenBacktestExecutionUseCase;
@@ -35,5 +36,19 @@ public final class BacktestingModuleFactory {
                 strategyResolver,
                 backtestResultStore
         );
+    }
+
+    public static RunBacktestService runBacktestService(
+            GetFrozenBacktestExecutionUseCase frozenExecutionUseCase,
+            GetDatasetUseCase getDatasetUseCase,
+            VerifyDatasetUseCase verifyDatasetUseCase,
+            DatasetCandleReader candleReader,
+            FrozenStrategyResolver strategyResolver,
+            FrozenSupplementalInputResolver supplementalInputResolver,
+            BacktestResultStore backtestResultStore
+    ) {
+        return new RunBacktestService(frozenExecutionUseCase, getDatasetUseCase,
+                verifyDatasetUseCase, candleReader, strategyResolver, supplementalInputResolver,
+                backtestResultStore);
     }
 }

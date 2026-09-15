@@ -6,6 +6,7 @@ import com.cryptostrategy.platform.search.api.model.SearchRunId;
 
 import com.cryptostrategy.platform.experiment.api.ExperimentId;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
+import com.cryptostrategy.platform.experiment.api.provenance.SentimentProvenanceSnapshot;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -18,11 +19,19 @@ public interface SearchReproductionGateway {
     Result create(CreateCommand command);
 
     record SourceSnapshot(ExperimentId sourceExperimentId, String status,
-            boolean evidenceComplete, List<String> orderedCandidateIds) {
+            boolean evidenceComplete, List<String> orderedCandidateIds,
+            Optional<SentimentProvenanceSnapshot> sentimentProvenance) {
         public SourceSnapshot {
             Objects.requireNonNull(sourceExperimentId, "sourceExperimentId");
             Objects.requireNonNull(status, "status");
             orderedCandidateIds = List.copyOf(orderedCandidateIds);
+            sentimentProvenance = Objects.requireNonNull(
+                    sentimentProvenance, "sentimentProvenance");
+        }
+
+        public SourceSnapshot(ExperimentId sourceExperimentId, String status,
+                boolean evidenceComplete, List<String> orderedCandidateIds) {
+            this(sourceExperimentId, status, evidenceComplete, orderedCandidateIds, Optional.empty());
         }
     }
 

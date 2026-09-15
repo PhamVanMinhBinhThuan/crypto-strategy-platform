@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={jetBrainsMono.variable}>
+      <body className={jetBrainsMono.variable} suppressHydrationWarning>
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>

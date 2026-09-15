@@ -177,9 +177,9 @@ export SENTIMENT_BUNDLE_PATH="$(pwd)/apps/sentiment/artifacts/active_release"
 uvicorn app.main:create_app --factory --app-dir apps/sentiment --host 127.0.0.1 --port 8000
 ```
 
-Trên macOS ARM, PyPI không phát hành `tensorflow-cpu==2.19.0`. Có thể tạo `.venv` local bị ignore,
-cài core/test dependencies rồi cài `numpy==2.1.3 tensorflow==2.19.0` để kiểm tra cùng model bundle;
-không sửa `pyproject.toml`, vì image Linux production vẫn dùng extra `ml` với `tensorflow-cpu`.
+Extra `ml` tự chọn `tensorflow==2.19.0` trên ARM và `tensorflow-cpu==2.19.0` trên kiến trúc còn lại.
+Vì vậy macOS ARM và Docker Linux ARM có thể dùng trực tiếp `python -m pip install -e
+'./apps/sentiment[ml]'`; không cần thay dependency thủ công.
 
 Không dùng cách local này nếu `SENTIMENT_SERVICE_TOKEN` chưa được inject hoặc model dependency chưa
 cài thành công. Bundle checked-in giúp tái lập model; service token vẫn chỉ nằm ngoài repository.

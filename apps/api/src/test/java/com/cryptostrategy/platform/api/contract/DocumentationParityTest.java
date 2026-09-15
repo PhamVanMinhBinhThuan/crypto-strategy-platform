@@ -42,6 +42,11 @@ class DocumentationParityTest {
                 ResultDtos.BacktestResultResponse.class);
         assertRecordFields(
                 openApi,
+                "BacktestProvenance",
+                "BacktestAssumptions",
+                ResultDtos.ProvenanceResponse.class);
+        assertRecordFields(
+                openApi,
                 "Leaderboard",
                 "Sentiment",
                 LeaderboardDtos.LeaderboardResponse.class);

@@ -5,6 +5,8 @@ import com.cryptostrategy.platform.news.api.port.in.CollectNewsUseCase;
 import com.cryptostrategy.platform.news.api.port.in.GetSentimentAuditUseCase;
 import com.cryptostrategy.platform.news.api.port.in.ListNewsUseCase;
 import com.cryptostrategy.platform.news.api.port.in.NewsAnalysisUseCase;
+import com.cryptostrategy.platform.news.api.port.in.CreateSentimentSnapshotUseCase;
+import com.cryptostrategy.platform.news.api.port.in.GetSentimentSnapshotUseCase;
 import com.cryptostrategy.platform.news.api.port.out.AnalysisWorkStore;
 import com.cryptostrategy.platform.news.api.port.out.AssetResolver;
 import com.cryptostrategy.platform.news.api.port.out.NewsItemStore;
@@ -13,10 +15,13 @@ import com.cryptostrategy.platform.news.api.port.out.NewsQueryPort;
 import com.cryptostrategy.platform.news.api.port.out.SentimentAuditStore;
 import com.cryptostrategy.platform.news.api.port.out.SentimentInferencePort;
 import com.cryptostrategy.platform.news.api.port.out.SentimentModelReleaseStore;
+import com.cryptostrategy.platform.news.api.port.out.SentimentSnapshotSource;
+import com.cryptostrategy.platform.news.api.port.out.SentimentSnapshotStore;
 import com.cryptostrategy.platform.news.internal.application.NewsAnalysisService;
 import com.cryptostrategy.platform.news.internal.application.NewsAuditService;
 import com.cryptostrategy.platform.news.internal.application.NewsCollectionService;
 import com.cryptostrategy.platform.news.internal.application.NewsQueryService;
+import com.cryptostrategy.platform.news.internal.application.SentimentSnapshotService;
 import com.cryptostrategy.platform.news.internal.normalization.CanonicalNewsNormalizer;
 import java.time.Clock;
 import java.time.Duration;
@@ -30,6 +35,15 @@ public final class NewsModuleFactory {
     public static NewsNormalizationPolicy canonicalNormalizationV1(){return new CanonicalNewsNormalizer();}
     public static ListNewsUseCase queryUseCase(NewsQueryPort queries){return new NewsQueryService(queries);}
     public static GetSentimentAuditUseCase auditUseCase(SentimentAuditStore audit){return new NewsAuditService(audit);}
+    public static SentimentSnapshotService snapshotUseCase(SentimentSnapshotSource source,
+            SentimentSnapshotStore store, Clock clock) {
+        return new SentimentSnapshotService(source, store, clock);
+    }
+    public static SnapshotComponents snapshotComponents(SentimentSnapshotSource source,
+            SentimentSnapshotStore store, Clock clock) {
+        var service = new SentimentSnapshotService(source, store, clock);
+        return new SnapshotComponents(service, service);
+    }
 
     public static Components create(Dependencies dependencies, Settings settings) {
         Objects.requireNonNull(dependencies, "dependencies");
@@ -104,6 +118,15 @@ public final class NewsModuleFactory {
             Objects.requireNonNull(analysis, "analysis");
             Objects.requireNonNull(queries, "queries");
             Objects.requireNonNull(audit, "audit");
+        }
+    }
+
+    public record SnapshotComponents(
+            CreateSentimentSnapshotUseCase create,
+            GetSentimentSnapshotUseCase get) {
+        public SnapshotComponents {
+            Objects.requireNonNull(create, "create");
+            Objects.requireNonNull(get, "get");
         }
     }
 }

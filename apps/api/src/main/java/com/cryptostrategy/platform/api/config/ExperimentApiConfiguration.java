@@ -17,6 +17,7 @@ import com.cryptostrategy.platform.execution.api.port.out.SearchExperimentTransa
 import com.cryptostrategy.platform.execution.api.port.in.StartSearchReproductionUseCase;
 import com.cryptostrategy.platform.execution.api.port.in.GetSearchReproductionVerificationUseCase;
 import com.cryptostrategy.platform.execution.api.port.out.SearchReproductionGateway;
+import com.cryptostrategy.platform.execution.api.port.out.SentimentSnapshotPreflight;
 import com.cryptostrategy.platform.execution.api.port.in.SearchStartCommandFactory;
 import com.cryptostrategy.platform.execution.api.ExperimentExecutionModuleFactory;
 import com.cryptostrategy.platform.marketdata.api.port.in.GetDatasetUseCase;
@@ -45,11 +46,13 @@ public class ExperimentApiConfiguration {
             StrategyRegistry strategies,
             ResolveStrategySnapshotUseCase userStrategies,
             StrategyFingerprintCalculator fingerprints,
+            SentimentSnapshotPreflight sentimentSnapshots,
             ObjectMapper objectMapper,
             @Value("${platform.build.version:development}") String softwareVersion,
             @Value("${platform.build.git-commit:unknown}") String gitCommit) {
         return ExperimentExecutionModuleFactory.startCommands(
-                datasets, strategies, userStrategies, fingerprints, objectMapper, softwareVersion,
+                datasets, strategies, userStrategies, fingerprints, sentimentSnapshots,
+                objectMapper, softwareVersion,
                 gitCommit, Clock.systemUTC());
     }
 
@@ -88,8 +91,9 @@ public class ExperimentApiConfiguration {
 
     @Bean
     StartSearchReproductionUseCase startSearchReproductionUseCase(
-            @Qualifier("searchReproductionGateway") SearchReproductionGateway gateway) {
-        return ExperimentExecutionModuleFactory.reproduce(gateway);
+            @Qualifier("searchReproductionGateway") SearchReproductionGateway gateway,
+            SentimentSnapshotPreflight sentimentSnapshots) {
+        return ExperimentExecutionModuleFactory.reproduce(gateway, sentimentSnapshots);
     }
 
     @Bean

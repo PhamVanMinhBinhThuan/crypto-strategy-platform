@@ -3,7 +3,7 @@ import { installF012Adapter } from "./f012-controllable-adapter";
 
 test.beforeEach(async ({ page }) => installF012Adapter(page));
 
-test("Market hiển thị bốn panel và không giữ Candle của selection cũ", async ({ page }) => {
+test("Market giữ bốn panel độc lập khi đổi timeframe", async ({ page }) => {
   const duplicateKeyWarnings: string[] = [];
   page.on("console", (message) => {
     if (message.text().includes("same key")) duplicateKeyWarnings.push(message.text());
@@ -14,7 +14,7 @@ test("Market hiển thị bốn panel và không giữ Candle của selection c�
   await expect(page.locator(".candle-chart")).toHaveCount(4);
   await page.getByLabel("Panel 1 timeframe").selectOption("15m");
   await expect(page).toHaveURL(/timeframe=15m/);
-  await expect(page.locator(".candle-chart")).toHaveCount(3);
+  await expect(page.locator(".candle-chart")).toHaveCount(4);
   expect(duplicateKeyWarnings).toEqual([]);
 });
 

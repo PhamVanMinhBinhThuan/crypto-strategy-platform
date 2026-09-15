@@ -1,13 +1,16 @@
 "use client";
-import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useClients } from "@/src/foundation/composition/client-provider";
-import type { NewsAnalysisStatus } from "../model/news";
-import { listNewsItems } from "../api/news-api";
+import type { NewsAnalysisStatus, SentimentServiceStatus } from "../model/news";
+import { getSentimentServiceStatus, listNewsItems } from "../api/news-api";
 import { newsReducer, type NewsState } from "../state/news-reducer";
 import { NEWS_STATUSES, NewsFilters } from "./NewsFilters";
 import { NewsFeed } from "./NewsFeed";
 import { AsyncStatus } from "../../shared/AsyncStatus";
+import { SentimentServiceBanner } from "./SentimentServiceBanner";
+import { listSystemStrategies } from "../../strategy/api/strategy-api";
+import { NewsStrategyAction } from "./NewsStrategyAction";
 const parseStatuses = (params: URLSearchParams) =>
   [...new Set(params.getAll("analysisStatus"))].filter((value): value is NewsAnalysisStatus =>
     NEWS_STATUSES.some((item) => item === value)
@@ -35,7 +38,43 @@ export function NewsWorkspace() {
     [urlStatuses]
   );
   const [state, dispatch] = useReducer(newsReducer, initial);
+  const [sentimentStatus, setSentimentStatus] = useState<SentimentServiceStatus | null>(null);
+  const [sentimentStrategyAvailable, setSentimentStrategyAvailable] = useState(false);
   const pendingUrlStatuses = useRef<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    const refresh = async () => {
+      const result = await getSentimentServiceStatus(api);
+      if (!active) return;
+      setSentimentStatus(
+        result.ok
+          ? result.data
+          : {
+              status: "DEGRADED",
+              message: "Unable to verify the Sentiment service. Existing results remain available.",
+              checkedAt: new Date().toISOString()
+            }
+      );
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 5_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [api]);
+  useEffect(() => {
+    let active = true;
+    void listSystemStrategies(api).then((result) => {
+      if (!active) return;
+      setSentimentStrategyAvailable(
+        result.ok && result.data.items.some((item) => item.strategyId === "sentiment-polarity")
+      );
+    });
+    return () => {
+      active = false;
+    };
+  }, [api]);
   useEffect(() => {
     const current = state.selectedStatuses.join("|");
     const incoming = urlStatuses.join("|");
@@ -98,8 +137,12 @@ export function NewsWorkspace() {
           <h1>News Sentiment</h1>
           <p>Public news and sentiment, with failures isolated by source.</p>
         </div>
-        <NewsFilters selected={state.selectedStatuses} onChange={changeFilters} />
+        <div className="news-header-actions">
+          <NewsStrategyAction available={sentimentStrategyAvailable} />
+          <NewsFilters selected={state.selectedStatuses} onChange={changeFilters} />
+        </div>
       </header>
+      {sentimentStatus ? <SentimentServiceBanner value={sentimentStatus} /> : null}
       <NewsFeed
         items={state.items}
         loading={state.loading}

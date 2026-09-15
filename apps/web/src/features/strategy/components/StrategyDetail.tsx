@@ -119,6 +119,16 @@ export function StrategyDetail({
           ))}
         </div>
       </section>
+      {descriptor!.strategyId === "sentiment-polarity" ? (
+        <aside className="sentiment-strategy-notice" aria-label="Sentiment strategy notice">
+          <strong>Research signal from frozen News evidence</strong>
+          <p>
+            This strategy evaluates previously analyzed News from an immutable snapshot. It does not
+            call the live model while Backtest or Search is running.
+          </p>
+          <small>For research use only — not financial advice or a promise of profit.</small>
+        </aside>
+      ) : null}
     </section>
   );
 }

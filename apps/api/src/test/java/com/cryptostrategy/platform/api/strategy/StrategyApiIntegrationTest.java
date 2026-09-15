@@ -95,7 +95,7 @@ class StrategyApiIntegrationTest {
     }
 
     @Test
-    void exposesAndValidatesAllFourStrategiesFromTheProductionRegistryContract()
+    void exposesAndValidatesAllFiveStrategiesFromTheProductionRegistryContract()
             throws Exception {
         List<StrategyDescriptor> descriptors = registry.listAvailable();
         org.mockito.Mockito.doAnswer(invocation -> catalogFromDescriptors(
@@ -108,7 +108,7 @@ class StrategyApiIntegrationTest {
                         .with(authenticatedAs(USER_A_ID))
                         .queryParam("limit", "10"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items.length()").value(4))
+                .andExpect(jsonPath("$.items.length()").value(5))
                 .andExpect(jsonPath("$.hasMore").value(false))
                 .andReturn()
                 .getResponse()
@@ -123,7 +123,8 @@ class StrategyApiIntegrationTest {
                         "ma-crossover",
                         "rsi-threshold",
                         "bollinger-bands",
-                        "support-resistance");
+                        "support-resistance",
+                        "sentiment-polarity");
 
         for (StrategyDescriptor descriptor : descriptors) {
             String invalidRequest = json.writeValueAsString(Map.of(

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mapBacktestResult } from "@/src/features/backtests/mappers/backtest-result-mapper";
 import {
   normalBacktestResult,
+  sentimentBacktestResult,
   zeroTradeBacktestResult
 } from "@/src/features/backtests/fixtures/backtest-result-fixtures";
 import { parseBacktestLookup } from "@/src/features/backtests/types/backtest-result";
@@ -31,5 +32,11 @@ describe("Backtest result contract", () => {
     expect(mapped.provenance.resultFingerprint).toBe("sha256:result013");
     expect(mapped.assumptions.roundingMode).toBe("HALF_EVEN");
     expect(() => mapBacktestResult({ ...normalBacktestResult, completedAt: "not-utc" })).toThrow();
+  });
+  it("maps authoritative frozen sentiment evidence without calculating it", () => {
+    const sentiment = mapBacktestResult(sentimentBacktestResult).provenance.sentimentProvenance;
+    expect(sentiment?.model.version).toBe("1.0.0");
+    expect(sentiment?.decisions[0]?.score).toBe("0.42");
+    expect(sentiment?.evidenceFingerprint).toMatch(/^sha256:/);
   });
 });

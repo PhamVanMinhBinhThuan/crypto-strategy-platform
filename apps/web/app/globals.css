@@ -1060,6 +1060,33 @@ table td,
   padding-left: 0.7rem;
   color: var(--muted);
 }
+.sentiment-strategy-notice,
+.sentiment-search-notice {
+  border: 1px solid color-mix(in srgb, var(--green) 48%, var(--line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--green) 7%, var(--panel));
+  padding: 0.85rem 1rem;
+}
+.sentiment-strategy-notice {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+.sentiment-strategy-notice p,
+.sentiment-strategy-notice small,
+.sentiment-parameter-intro,
+.sentiment-search-notice {
+  color: var(--muted);
+}
+.sentiment-strategy-notice p,
+.sentiment-parameter-intro,
+.sentiment-search-notice {
+  margin: 0;
+}
+.sentiment-parameter-intro {
+  border-left: 3px solid var(--green);
+  padding-left: 0.75rem;
+}
 .supported-signals {
   display: flex;
   align-items: center;
@@ -1646,6 +1673,17 @@ table td,
 }
 .news-workspace header p {
   color: var(--muted);
+}
+.news-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+.news-header-actions > .button {
+  width: auto;
+  white-space: nowrap;
 }
 .news-filters {
   display: flex;
@@ -2880,6 +2918,30 @@ td small {
 .backtest-trade-details h3 {
   margin: 0 0 0.9rem;
   font-size: 1rem;
+}
+.sentiment-result-evidence {
+  display: grid;
+  gap: 0.75rem;
+  border-color: color-mix(in srgb, var(--green) 45%, var(--line));
+}
+.sentiment-result-evidence h3,
+.sentiment-result-evidence p {
+  margin: 0;
+}
+.sentiment-evidence-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+.sentiment-evidence-grid > div {
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(4, 12, 16, 0.42);
+}
+.sentiment-evidence-grid dd {
+  margin-bottom: 0;
 }
 .backtest-setup-primary {
   margin: 0;

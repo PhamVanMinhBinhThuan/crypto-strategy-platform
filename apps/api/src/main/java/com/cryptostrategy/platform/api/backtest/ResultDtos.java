@@ -1,6 +1,7 @@
 package com.cryptostrategy.platform.api.backtest;
 
 import com.cryptostrategy.platform.backtesting.api.model.BacktestResult;
+import com.cryptostrategy.platform.backtesting.api.model.BacktestDecisionEvidence;
 import com.cryptostrategy.platform.backtesting.api.model.BacktestResultId;
 import com.cryptostrategy.platform.backtesting.api.model.BacktestResultSummary;
 import com.cryptostrategy.platform.backtesting.api.model.Trade;
@@ -13,6 +14,7 @@ import com.cryptostrategy.platform.experiment.api.ExperimentManifest;
 import com.cryptostrategy.platform.experiment.api.provenance.DatasetProvenanceSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyComponentSnapshot;
 import com.cryptostrategy.platform.experiment.api.provenance.StrategyProvenanceSnapshot;
+import com.cryptostrategy.platform.experiment.api.provenance.SentimentProvenanceSnapshot;
 import com.cryptostrategy.platform.experiment.api.backtest.BacktestId;
 import com.cryptostrategy.platform.experiment.api.job.AttemptId;
 import com.cryptostrategy.platform.experiment.api.job.JobId;
@@ -175,7 +177,8 @@ public final class ResultDtos {
             StrategyEvidenceResponse strategy,
             CandidateEvidenceResponse candidate,
             String softwareVersion,
-            String gitCommit) {
+            String gitCommit,
+            SentimentProvenanceResponse sentimentProvenance) {
         static ProvenanceResponse from(BacktestResult result, ExperimentManifest manifest,
                 CandidateDefinition candidate) {
             return new ProvenanceResponse(
@@ -192,7 +195,60 @@ public final class ResultDtos {
                     manifest == null ? null : StrategyEvidenceResponse.from(manifest.strategyProvenance()),
                     candidate == null ? null : CandidateEvidenceResponse.from(candidate),
                     manifest == null ? null : manifest.softwareVersion(),
-                    manifest == null ? null : manifest.gitCommit());
+                    manifest == null ? null : manifest.gitCommit(),
+                    manifest == null ? null : manifest.sentimentProvenance()
+                            .map(value -> SentimentProvenanceResponse.from(value, result.decisionEvidence()))
+                            .orElse(null));
+        }
+    }
+
+    public record SentimentModelEvidenceResponse(
+            String name,
+            String version,
+            String preprocessingVersion) {}
+
+    public record SentimentDecisionEvidenceResponse(
+            Instant occurredAt,
+            String signal,
+            String reasonCode,
+            String score,
+            String eligibleArticleCount,
+            String lookbackHours,
+            String buyThreshold,
+            String sellThreshold,
+            String evidenceFingerprint) {
+        static SentimentDecisionEvidenceResponse from(BacktestDecisionEvidence value) {
+            Map<String, String> evidence = value.evidence();
+            return new SentimentDecisionEvidenceResponse(
+                    value.occurredAt(), value.signal().name(), value.reasonCode(),
+                    evidence.get("sentimentScore"), evidence.get("eligibleArticleCount"),
+                    evidence.get("lookbackHours"), evidence.get("buyThreshold"),
+                    evidence.get("sellThreshold"), evidence.get("sentimentEvidenceFingerprint"));
+        }
+    }
+
+    public record SentimentProvenanceResponse(
+            @JsonSerialize(using = TypedUlidSerializer.class) com.cryptostrategy.platform.strategy.api.model.StrategyInputSnapshotId snapshotId,
+            String snapshotFingerprint,
+            String schemaVersion,
+            SentimentModelEvidenceResponse model,
+            int articleCount,
+            String evidenceFingerprint,
+            List<SentimentDecisionEvidenceResponse> decisions) {
+        static SentimentProvenanceResponse from(SentimentProvenanceSnapshot provenance,
+                List<BacktestDecisionEvidence> decisionEvidence) {
+            List<SentimentDecisionEvidenceResponse> decisions = decisionEvidence.stream()
+                    .filter(BacktestDecisionEvidence::containsSentimentEvidence)
+                    .map(SentimentDecisionEvidenceResponse::from)
+                    .toList();
+            String evidenceFingerprint = decisions.isEmpty()
+                    ? null : decisions.getLast().evidenceFingerprint();
+            return new SentimentProvenanceResponse(
+                    provenance.snapshotId(), provenance.snapshotFingerprint(),
+                    provenance.snapshotSchemaVersion(), new SentimentModelEvidenceResponse(
+                            provenance.modelName(), provenance.modelVersion(),
+                            provenance.preprocessingVersion()), provenance.articleCount(),
+                    evidenceFingerprint, decisions);
         }
     }
 

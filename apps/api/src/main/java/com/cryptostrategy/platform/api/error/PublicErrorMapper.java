@@ -181,6 +181,9 @@ public final class PublicErrorMapper {
                     "The database is temporarily unavailable.");
             case INVALID_SENTIMENT_RESPONSE -> retryable(HttpStatus.BAD_GATEWAY, "SENTIMENT_RESPONSE_INVALID",
                     "The sentiment service returned an invalid response.");
+            case SENTIMENT_SNAPSHOT_UNAVAILABLE -> error(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "SENTIMENT_SNAPSHOT_UNAVAILABLE",
+                    "No frozen sentiment data is available for the selected asset and time range.");
         };
     }
 

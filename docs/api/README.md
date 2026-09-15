@@ -11,6 +11,7 @@ Thư mục này quản lý quy ước và contract giao tiếp của hệ thốn
 | `websocket-events.md` | Protocol và event catalog WebSocket |
 | `error-catalog.md` | Cấu trúc lỗi và danh sách error code |
 | `examples.md` | Request/response/event mẫu |
+| `sentiment-strategy.md` | Contract và provenance của Sentiment Strategy F016 |
 
 ## Nguồn dữ liệu
 
@@ -23,4 +24,3 @@ Thư mục này quản lý quy ước và contract giao tiếp của hệ thốn
 - Frontend chỉ sử dụng internal API contract, không dùng Binance payload trực tiếp.
 - Contract thay đổi phải được producer và consumer review.
 - Breaking change phải được version hóa.
-

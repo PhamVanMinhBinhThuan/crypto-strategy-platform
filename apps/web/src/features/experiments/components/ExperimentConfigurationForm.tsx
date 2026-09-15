@@ -29,7 +29,7 @@ import {
 } from "./ExperimentConfigurationSections";
 import { TechnicalDetails } from "./TechnicalDetails";
 
-const supportedForSearch = (strategy: StrategyDescriptor) =>
+export const supportedForSearch = (strategy: StrategyDescriptor) =>
   strategy.parameters.every(
     (parameter) =>
       parameter.type === "INTEGER" ||
@@ -38,7 +38,9 @@ const supportedForSearch = (strategy: StrategyDescriptor) =>
         parameter.allowedValues.length > 0)
   );
 
-const searchDomains = (strategy: StrategyDescriptor): Record<string, SearchParameterDomain> =>
+export const searchDomains = (
+  strategy: StrategyDescriptor
+): Record<string, SearchParameterDomain> =>
   Object.fromEntries(
     strategy.parameters.map((parameter) => [
       parameter.name,
@@ -72,6 +74,8 @@ const parameterLabels: Readonly<Record<string, string>> = {
   period: "Period",
   buyThreshold: "Buy threshold",
   sellThreshold: "Sell threshold",
+  lookbackHours: "News lookback (hours)",
+  minimumArticles: "Minimum analyzed articles",
   lookback: "Lookback period",
   tolerance: "Price tolerance",
   tolerancePercent: "Price tolerance (%)"
@@ -1252,6 +1256,12 @@ export function ExperimentConfigurationForm({
               )}
 
               <div className="experiment-parameter-groups">
+                {draft.strategyPool.some((entry) => entry.strategyId === "sentiment-polarity") ? (
+                  <p className="sentiment-search-notice" role="note">
+                    Sentiment candidates share one server-frozen News snapshot and model release.
+                    Scores and signals are calculated by the backend, not this page.
+                  </p>
+                ) : null}
                 {draft.strategyPool.map((entry) => {
                   const visibleParameters = Object.entries(entry.parameters).filter(
                     ([, domain]) => domain.kind !== "OPTIONS" || domain.options.length > 1

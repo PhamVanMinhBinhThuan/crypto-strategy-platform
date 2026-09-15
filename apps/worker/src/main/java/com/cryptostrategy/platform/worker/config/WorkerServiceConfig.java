@@ -6,6 +6,7 @@ import com.cryptostrategy.platform.backtesting.api.port.in.PrepareBacktestUseCas
 import com.cryptostrategy.platform.backtesting.api.port.in.RunBacktestUseCase;
 import com.cryptostrategy.platform.backtesting.api.port.out.BacktestResultStore;
 import com.cryptostrategy.platform.backtesting.api.port.out.FrozenStrategyResolver;
+import com.cryptostrategy.platform.backtesting.api.port.out.FrozenSupplementalInputResolver;
 import com.cryptostrategy.platform.combination.api.CombinationModuleFactory;
 import com.cryptostrategy.platform.combination.api.CombinationPolicies;
 import com.cryptostrategy.platform.combination.api.CompositeStrategyMaterializer;
@@ -232,6 +233,7 @@ public class WorkerServiceConfig {
             MarketDataModuleFactory.Components marketDataComponents,
             MarketDataPersistenceFactory.Components marketDataPersistence,
             FrozenStrategyResolver strategyResolver,
+            FrozenSupplementalInputResolver supplementalInputResolver,
             BacktestResultStore backtestResultStore
     ) {
         return BacktestingModuleFactory.runBacktestService(
@@ -240,6 +242,7 @@ public class WorkerServiceConfig {
                 marketDataComponents.verifyDataset(),
                 marketDataPersistence.reader(),
                 strategyResolver,
+                supplementalInputResolver,
                 backtestResultStore
         );
     }

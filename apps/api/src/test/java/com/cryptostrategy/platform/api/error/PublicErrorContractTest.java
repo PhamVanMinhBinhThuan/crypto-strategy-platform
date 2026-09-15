@@ -13,6 +13,8 @@ import com.cryptostrategy.platform.experiment.api.error.IdempotencyConflictExcep
 import com.cryptostrategy.platform.experiment.api.error.InvalidStateTransitionException;
 import com.cryptostrategy.platform.marketdata.api.error.MarketDataErrorCode;
 import com.cryptostrategy.platform.marketdata.api.error.MarketDataException;
+import com.cryptostrategy.platform.news.api.error.NewsErrorCode;
+import com.cryptostrategy.platform.news.api.error.NewsException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -146,6 +148,20 @@ class PublicErrorContractTest {
     }
 
     @Test
+    void sentimentSnapshotPreflightFailureUsesASafeStableError() throws Exception {
+        MvcResult result = expectError(
+                "sentiment-snapshot", "SENTIMENT-SNAPSHOT-123", 422,
+                "SENTIMENT_SNAPSHOT_UNAVAILABLE");
+
+        String body = result.getResponse().getContentAsString();
+        assertThat(body)
+                .contains("No frozen sentiment data is available")
+                .doesNotContain(SENSITIVE_FRAGMENT)
+                .doesNotContain("NewsException");
+        assertThat(result.getResponse().getHeader("Retry-After")).isNull();
+    }
+
+    @Test
     void envelopeDefensivelyCopiesAllowlistedStructuredDetails() {
         List<Map<String, String>> fieldErrors = new ArrayList<>();
         fieldErrors.add(new LinkedHashMap<>(Map.of(
@@ -234,6 +250,9 @@ class PublicErrorContractTest {
                 case "invalid-upstream" -> throw new MarketDataException(
                         MarketDataErrorCode.MARKET_DATA_MAPPING_FAILED,
                         "provider payload=" + SENSITIVE_FRAGMENT);
+                case "sentiment-snapshot" -> throw new NewsException(
+                        NewsErrorCode.SENTIMENT_SNAPSHOT_UNAVAILABLE,
+                        "snapshot table details token=" + SENSITIVE_FRAGMENT);
                 default -> throw new IllegalStateException(
                         "token=" + SENSITIVE_FRAGMENT
                                 + " SQL=SELECT * FROM private_credentials"

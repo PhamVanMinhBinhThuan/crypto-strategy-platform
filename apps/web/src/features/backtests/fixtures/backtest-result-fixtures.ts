@@ -60,7 +60,8 @@ export const normalBacktestResult = {
     strategy: null,
     candidate: null,
     softwareVersion: null,
-    gitCommit: null
+    gitCommit: null,
+    sentimentProvenance: null
   },
   assumptions: {
     assumptionsVersion: "1",
@@ -71,6 +72,38 @@ export const normalBacktestResult = {
     executionPriceRule: "NEXT_CANDLE_OPEN",
     forceCloseAtEnd: true,
     roundingMode: "HALF_EVEN"
+  }
+} as const;
+export const sentimentBacktestResult = {
+  ...normalBacktestResult,
+  backtestResultId: "result-sentiment-016",
+  provenance: {
+    ...normalBacktestResult.provenance,
+    sentimentProvenance: {
+      snapshotId: "snapshot-sentiment-016",
+      snapshotFingerprint: `sha256:${"8".repeat(64)}`,
+      schemaVersion: "sentiment-snapshot-v1",
+      model: {
+        name: "multichannel-english",
+        version: "1.0.0",
+        preprocessingVersion: "whitespace-en-v1"
+      },
+      articleCount: 4,
+      evidenceFingerprint: `sha256:${"9".repeat(64)}`,
+      decisions: [
+        {
+          occurredAt: "2026-09-03T04:00:00Z",
+          signal: "BUY",
+          reasonCode: "SENTIMENT_BUY_THRESHOLD",
+          score: "0.42",
+          eligibleArticleCount: "4",
+          lookbackHours: "24",
+          buyThreshold: "0.25",
+          sellThreshold: "-0.25",
+          evidenceFingerprint: `sha256:${"9".repeat(64)}`
+        }
+      ]
+    }
   }
 } as const;
 export const backtestResultHistoryPage = {

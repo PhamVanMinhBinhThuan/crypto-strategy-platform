@@ -9,7 +9,7 @@ import java.sql.DatabaseMetaData;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.Test;
 class StrategyConfigurationTest {
-    @Test void trustedPluginCompositionHasNoDeliveryEndpoint(){assertEquals(4,new DefaultStrategyRegistry(StrategyPlugins.trusted()).listAvailable().size());assertFalse(StrategyConfiguration.class.getName().toLowerCase().contains("controller"));}
+    @Test void trustedPluginCompositionHasNoDeliveryEndpoint(){assertEquals(5,new DefaultStrategyRegistry(StrategyPlugins.trusted()).listAvailable().size());assertFalse(StrategyConfiguration.class.getName().toLowerCase().contains("controller"));}
     @Test void startupSynchronizesTheRuntimeCatalogOnPostgres() throws Exception {
         var synchronization=mock(StrategyCatalogSynchronization.class);
         var runner=new StrategyConfiguration().strategyCatalogStartup(synchronization,dataSource("PostgreSQL"));
